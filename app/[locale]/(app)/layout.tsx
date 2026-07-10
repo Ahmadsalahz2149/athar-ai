@@ -3,6 +3,7 @@ import { setRequestLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { AppTopBar } from "@/components/AppTopBar";
+import { NavProvider } from "@/components/nav-context";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { ensureUserContext } from "@/lib/auth/bootstrap";
 import { db } from "@/lib/db";
@@ -38,11 +39,13 @@ export default async function AppLayout({
 
   return (
     <div className="app-shell">
-      <Sidebar balance={balance} />
-      <div className="app-main">
-        <AppTopBar />
-        <div className="app-content scb">{children}</div>
-      </div>
+      <NavProvider>
+        <Sidebar balance={balance} />
+        <div className="app-main">
+          <AppTopBar />
+          <div className="app-content scb">{children}</div>
+        </div>
+      </NavProvider>
     </div>
   );
 }

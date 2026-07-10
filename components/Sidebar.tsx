@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { Logo } from "./Logo";
 import { START_GRANT } from "@/lib/credits/costs";
+import { useNav } from "./nav-context";
 
 function Icon({ d }: { d: string }) {
   return (
@@ -25,18 +26,22 @@ export function Sidebar({ balance = null }: { balance?: number | null }) {
   const t = useTranslations("Nav");
   const brand = useTranslations("Brand");
   const pathname = usePathname();
+  const { open, setOpen } = useNav();
+  const close = () => setOpen(false);
   const pct = balance == null ? 60 : Math.max(3, Math.min(100, Math.round((balance / START_GRANT) * 100)));
 
   return (
-    <aside
-      className="app-sidebar"
-      style={{
-        background: "linear-gradient(180deg,#102A43,#0B1F33)",
-        color: "#fff",
-        borderInlineStart: "1px solid rgba(255,255,255,.06)",
-      }}
-    >
-      <Link href="/" className="app-brand">
+    <>
+      {open && <div className="nav-overlay" onClick={close} aria-hidden />}
+      <aside
+        className={`app-sidebar${open ? " open" : ""}`}
+        style={{
+          background: "linear-gradient(180deg,#102A43,#0B1F33)",
+          color: "#fff",
+          borderInlineStart: "1px solid rgba(255,255,255,.06)",
+        }}
+      >
+      <Link href="/" className="app-brand" onClick={close}>
         <Logo size={34} />
         <div className="app-brand-text" style={{ fontWeight: 700, fontSize: 16 }}>
           {brand("name")}
@@ -51,6 +56,7 @@ export function Sidebar({ balance = null }: { balance?: number | null }) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={close}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -89,6 +95,7 @@ export function Sidebar({ balance = null }: { balance?: number | null }) {
           {balance == null ? t("planUsage") : t("creditsLeft", { n: balance })}
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
