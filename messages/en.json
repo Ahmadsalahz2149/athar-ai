@@ -61,6 +61,20 @@
     "noTrain": "We do not use your content to train our models.",
     "backHome": "Back to home"
   },
+  "Auth": {
+    "loginTitle": "Sign in to Athar",
+    "signupTitle": "Create your Athar account",
+    "email": "Email",
+    "password": "Password",
+    "login": "Sign in",
+    "signup": "Create account",
+    "toSignup": "No account? Create one",
+    "toLogin": "Have an account? Sign in",
+    "signOut": "Sign out",
+    "working": "One moment…",
+    "checkEmail": "Check your email to confirm your account, then sign in.",
+    "genericError": "Couldn't complete that. Check your details."
+  },
   "Onboarding": {
     "badge": "Quick start",
     "title": "Let's build your DNA in under 5 minutes",

@@ -60,3 +60,14 @@ export const drafts = pgTable("drafts", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
+
+// Links a Supabase auth user to an organization (org → memberships → brands).
+export const memberships = pgTable("memberships", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  orgId: uuid("org_id")
+    .notNull()
+    .references(() => organizations.id),
+  role: text("role").notNull().default("owner"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});

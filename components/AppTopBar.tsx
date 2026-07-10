@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
+import { SignOutButton } from "./SignOutButton";
 
 export function AppTopBar() {
   const nav = useTranslations("Nav");
@@ -41,22 +42,25 @@ export function AppTopBar() {
       >
         ✦ {nav("createPost")}
       </Link>
-      <Link
-        href={pathname}
-        locale={other}
-        style={{
-          color: "var(--navy)",
-          border: "1px solid var(--border-2)",
-          borderRadius: 999,
-          padding: "6px 14px",
-          background: "var(--card)",
-          fontSize: 13.5,
-          fontWeight: 600,
-          fontFamily: other === "en" ? "var(--font-latin)" : "var(--font-ar)",
-        }}
-      >
-        {nav("switchTo")}
-      </Link>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <Link
+          href={pathname}
+          locale={other}
+          style={{
+            color: "var(--navy)",
+            border: "1px solid var(--border-2)",
+            borderRadius: 999,
+            padding: "6px 14px",
+            background: "var(--card)",
+            fontSize: 13.5,
+            fontWeight: 600,
+            fontFamily: other === "en" ? "var(--font-latin)" : "var(--font-ar)",
+          }}
+        >
+          {nav("switchTo")}
+        </Link>
+        <SignOutButton />
+      </div>
     </header>
   );
 }

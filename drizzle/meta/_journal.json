@@ -8,6 +8,13 @@
       "when": 1783661922924,
       "tag": "0000_puzzling_doctor_doom",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783662344714,
+      "tag": "0001_loose_obadiah_stane",
+      "breakpoints": true
     }
   ]
 }
