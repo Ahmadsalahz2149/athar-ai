@@ -3,6 +3,13 @@
 import { useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { generateStudio, type GenerateResult } from "./actions";
+import {
+  PROVIDERS,
+  MODEL_CATALOG,
+  DEFAULT_PROVIDER,
+  DEFAULT_MODEL,
+  type ProviderId,
+} from "@/lib/ai/catalog";
 
 const PLATFORMS = ["LinkedIn", "X / Twitter", "Instagram"] as const;
 
@@ -15,6 +22,8 @@ export function StudioClient() {
   const [topic, setTopic] = useState("");
   const [platform, setPlatform] = useState<string>(PLATFORMS[0]);
   const [count, setCount] = useState(3);
+  const [provider, setProvider] = useState<ProviderId>(DEFAULT_PROVIDER);
+  const [model, setModel] = useState<string>(DEFAULT_MODEL);
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [activeDraft, setActiveDraft] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -24,7 +33,7 @@ export function StudioClient() {
     setResult(null);
     setActiveDraft(0);
     startTransition(async () => {
-      const r = await generateStudio({ posts, topic, platform, count });
+      const r = await generateStudio({ posts, topic, platform, count, provider, model });
       setResult(r);
     });
   }
@@ -91,6 +100,37 @@ export function StudioClient() {
                 ))}
               </select>
             </div>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBlockStart: 14 }}>
+          <div>
+            <label style={labelStyle}>{t("providerLabel")}</label>
+            <select
+              value={provider}
+              onChange={(e) => {
+                const p = e.target.value as ProviderId;
+                setProvider(p);
+                setModel(MODEL_CATALOG[p][0].id);
+              }}
+              style={field}
+            >
+              {PROVIDERS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>{t("modelLabel")}</label>
+            <select value={model} onChange={(e) => setModel(e.target.value)} style={field}>
+              {MODEL_CATALOG[provider].map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

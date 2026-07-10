@@ -26,6 +26,8 @@
     "topicPlaceholder": "مثال: كيف تجد صوتك في الكتابة",
     "platformLabel": "المنصّة",
     "countLabel": "عدد المسودّات",
+    "providerLabel": "المزوّد",
+    "modelLabel": "النموذج",
     "generate": "استخرج البصمة واكتب",
     "generating": "جارٍ التوليد…",
     "dnaTitle": "بصمة المحتوى (DNA v0)",

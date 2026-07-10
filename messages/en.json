@@ -26,6 +26,8 @@
     "topicPlaceholder": "e.g. how to find your writing voice",
     "platformLabel": "Platform",
     "countLabel": "Number of drafts",
+    "providerLabel": "Provider",
+    "modelLabel": "Model",
     "generate": "Extract voice & write",
     "generating": "Generating…",
     "dnaTitle": "Content DNA (DNA v0)",

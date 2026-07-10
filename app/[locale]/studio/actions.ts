@@ -1,7 +1,8 @@
 "use server";
 
-import { generateText, hasProviderKey } from "@/lib/ai/generate";
+import { generateText, hasKeyFor, currentProvider } from "@/lib/ai/generate";
 import { MODELS } from "@/lib/ai/models";
+import { isValidSelection, type ProviderId } from "@/lib/ai/catalog";
 import { extractJson } from "@/lib/ai/json";
 import {
   DNA_SYSTEM,
@@ -24,6 +25,9 @@ export type GenerateInput = {
   topic: string;
   platform: string;
   count?: number;
+  /** UI-chosen provider + model (validated server-side). */
+  provider?: string;
+  model?: string;
 };
 
 export type GenerateResult =
@@ -72,28 +76,37 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
   if (paragraphs.length < 3 && posts.length < 200) {
     return { ok: false, error: "too_few_posts" };
   }
-  if (!hasProviderKey()) {
+
+  // Resolve provider/model: use the UI selection if valid, else env defaults.
+  let provider: ProviderId = currentProvider();
+  let model: string | undefined;
+  if (input.provider && input.model && isValidSelection(input.provider, input.model)) {
+    provider = input.provider as ProviderId;
+    model = input.model;
+  }
+  if (!hasKeyFor(provider)) {
     return { ok: false, error: "no_key" };
   }
 
-  // Anthropic model tiers are env-overridable — e.g. set both to claude-haiku-4-5
-  // for a much cheaper run that still handles Arabic well.
-  const dnaModel = process.env.ANTHROPIC_DNA_MODEL || MODELS.OPUS;
-  const draftModel = process.env.ANTHROPIC_DRAFT_MODEL || MODELS.SONNET;
+  // Anthropic fallback tiers (used only when no explicit model is chosen).
+  const dnaFallback = process.env.ANTHROPIC_DNA_MODEL || MODELS.OPUS;
+  const draftFallback = process.env.ANTHROPIC_DRAFT_MODEL || MODELS.SONNET;
 
   try {
-    // 1) Content DNA — Opus on Anthropic (structured output); MiniMax model otherwise.
+    // 1) Content DNA.
     const dnaRes = await generateText({
       system: DNA_SYSTEM,
       user: buildDnaUserMessage(posts),
       maxTokens: 4096,
-      anthropicModel: dnaModel,
+      anthropicModel: dnaFallback,
       schema: DNA_SCHEMA,
+      provider,
+      model,
     });
     if (dnaRes.truncated) return { ok: false, error: "truncated", message: "DNA output hit the token cap." };
     const dna = normalizeDna(extractJson<unknown>(dnaRes.text));
 
-    // 2) Drafts — Sonnet on Anthropic; MiniMax model otherwise. Generous cap.
+    // 2) Drafts.
     const count = Math.min(Math.max(input.count ?? 3, 1), 5);
     const draftRes = await generateText({
       system: DRAFT_SYSTEM,
@@ -104,8 +117,10 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
         count,
       }),
       maxTokens: 8192,
-      anthropicModel: draftModel,
+      anthropicModel: draftFallback,
       schema: DRAFTS_SCHEMA,
+      provider,
+      model,
     });
     if (draftRes.truncated) return { ok: false, error: "truncated", message: "Drafts output hit the token cap." };
     const drafts = normalizeDrafts(extractJson<unknown>(draftRes.text));
