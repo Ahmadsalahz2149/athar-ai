@@ -1,0 +1,25 @@
+#!/bin/sh
+# Athar pre-commit secret scan (lightweight; M0 hardening swaps in gitleaks).
+# Blocks committing .env files (except .env.example) and obvious secrets.
+
+fail=0
+
+for f in $(git diff --cached --name-only --diff-filter=ACM); do
+  case "$f" in
+    .env.example) : ;;
+    .env|.env.*) echo "BLOCK: refusing to commit env file: $f"; fail=1 ;;
+  esac
+done
+
+if git diff --cached -U0 --diff-filter=ACM \
+  | grep -nE '(sk-ant-[A-Za-z0-9_-]{8,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|service_role.{0,20}eyJ[A-Za-z0-9_-]{20,})' \
+  >/dev/null 2>&1; then
+  echo "BLOCK: a possible secret was found in the staged changes."
+  fail=1
+fi
+
+if [ "$fail" != 0 ]; then
+  echo "Commit blocked by the secret scan. Remove the secret(s) and retry."
+  exit 1
+fi
+exit 0

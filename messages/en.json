@@ -1,0 +1,54 @@
+{
+  "Brand": {
+    "name": "Athar",
+    "ai": "AI",
+    "tagline": "Personal Brand Growth OS"
+  },
+  "Nav": {
+    "studio": "Studio",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "switchTo": "العربية"
+  },
+  "Home": {
+    "badge": "✦ Personal Brand Growth OS",
+    "title": "Turn your expertise into content that leaves a mark",
+    "subtitle": "Upload or paste your content and let AI learn your style and dialect, then turn it into ready-to-post drafts in your own voice — not a robot's.",
+    "cta": "Open the Studio",
+    "note": "Stage 1 — the Studio slice works end-to-end."
+  },
+  "Studio": {
+    "title": "Content Studio",
+    "subtitle": "Paste your posts and let Athar extract your voice and write in your style.",
+    "postsLabel": "Your posts (3+, separated by a blank line)",
+    "postsPlaceholder": "Paste 3 or more of your own posts…",
+    "topicLabel": "Draft topic",
+    "topicPlaceholder": "e.g. how to find your writing voice",
+    "platformLabel": "Platform",
+    "countLabel": "Number of drafts",
+    "generate": "Extract voice & write",
+    "generating": "Generating…",
+    "dnaTitle": "Content DNA (DNA v0)",
+    "dnaDialect": "Dialect",
+    "dnaTone": "Tone",
+    "dnaHooks": "Hook patterns",
+    "dnaAudience": "Audience",
+    "dnaCompletion": "DNA completeness",
+    "draftsTitle": "Drafts",
+    "draftLabel": "Draft",
+    "copy": "Copy",
+    "copied": "Copied",
+    "needKey": "To run real generation, add ANTHROPIC_API_KEY to .env.local and try again.",
+    "needPosts": "Paste at least 3 posts (or enough text).",
+    "errorGeneric": "Generation failed. Check the key and try again.",
+    "meta": "Models: {dnaModel} for DNA · {draftModel} for drafts"
+  },
+  "Legal": {
+    "termsTitle": "Terms of Service",
+    "privacyTitle": "Privacy Policy",
+    "refundTitle": "Refund Policy",
+    "draftNotice": "This is an early draft for review — finalized before the first paying customer.",
+    "noTrain": "We do not use your content to train our models.",
+    "backHome": "Back to home"
+  }
+}

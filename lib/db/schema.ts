@@ -1,0 +1,62 @@
+import {
+  pgTable,
+  uuid,
+  text,
+  integer,
+  jsonb,
+  timestamp,
+} from "drizzle-orm/pg-core";
+
+/**
+ * Tenancy-ready schema (ARCHITECTURE A2). Every tenant row carries org_id AND
+ * brand_id from day one, even though the MVP UX is single-brand. `content_dna`
+ * is intentionally NOT a table — brands point at the current dna_versions row
+ * (C6 / ADR).
+ */
+
+export const organizations = pgTable("organizations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const brands = pgTable("brands", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id")
+    .notNull()
+    .references(() => organizations.id),
+  name: text("name").notNull(),
+  currentDnaVersionId: uuid("current_dna_version_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+export const dnaVersions = pgTable("dna_versions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id").notNull(),
+  brandId: uuid("brand_id")
+    .notNull()
+    .references(() => brands.id),
+  version: integer("version").notNull(),
+  payload: jsonb("payload").notNull(),
+  completionPct: integer("completion_pct").notNull().default(0),
+  builtFromSourceIds: jsonb("built_from_source_ids"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const drafts = pgTable("drafts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id").notNull(),
+  brandId: uuid("brand_id")
+    .notNull()
+    .references(() => brands.id),
+  dnaVersionId: uuid("dna_version_id").references(() => dnaVersions.id),
+  platform: text("platform").notNull(),
+  topic: text("topic"),
+  hook: text("hook").notNull(),
+  body: text("body").notNull(),
+  // English enum values only — never store display strings (A6).
+  status: text("status").notNull().default("draft"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
