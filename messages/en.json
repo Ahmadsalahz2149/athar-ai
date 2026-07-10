@@ -14,7 +14,8 @@
     "planUsage": "3 of 5 files",
     "terms": "Terms",
     "privacy": "Privacy",
-    "switchTo": "العربية"
+    "switchTo": "العربية",
+    "creditsLeft": "{n} credits left"
   },
   "Home": {
     "badge": "✦ Personal Brand Growth OS",
@@ -51,7 +52,8 @@
     "needPosts": "Paste at least 3 posts (or enough text).",
     "truncated": "The response exceeded the token cap. Lower the number of drafts or try again.",
     "errorGeneric": "Generation failed. Check the key and try again.",
-    "meta": "Models: {dnaModel} for DNA · {draftModel} for drafts"
+    "meta": "Models: {dnaModel} for DNA · {draftModel} for drafts",
+    "insufficientCredits": "Not enough credits for this run. Upgrade your plan or wait for your balance to refill."
   },
   "Legal": {
     "termsTitle": "Terms of Service",
@@ -94,7 +96,8 @@
     "toStudio": "Open the Studio and write drafts",
     "needKey": "Add your provider key to .env.local and try again.",
     "tooFew": "Add a bit more text (at least two answers in your voice).",
-    "error": "Couldn't build your DNA. Try again."
+    "error": "Couldn't build your DNA. Try again.",
+    "insufficientCredits": "Not enough credits to build your DNA. Upgrade your plan or wait for your balance to refill."
   },
   "Ingest": {
     "title": "Import content",

@@ -71,3 +71,18 @@ export const memberships = pgTable("memberships", {
   role: text("role").notNull().default("owner"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Append-only credit ledger (ADR-004 / A4). Balance is derived (sum of deltas);
+// balance_after is a denormalized convenience. Never UPDATE/DELETE rows.
+export const creditLedger = pgTable("credit_ledger", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id")
+    .notNull()
+    .references(() => organizations.id),
+  delta: integer("delta").notNull(),
+  reason: text("reason").notNull(),
+  refType: text("ref_type"),
+  refId: uuid("ref_id"),
+  balanceAfter: integer("balance_after").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});

@@ -146,7 +146,9 @@ export function StudioClient() {
                 ? t("needPosts")
                 : result.error === "truncated"
                   ? t("truncated")
-                  : `${t("errorGeneric")}${result.message ? ` (${result.message})` : ""}`}
+                  : result.error === "insufficient_credits"
+                    ? t("insufficientCredits")
+                    : `${t("errorGeneric")}${result.message ? ` (${result.message})` : ""}`}
           </p>
         )}
       </section>

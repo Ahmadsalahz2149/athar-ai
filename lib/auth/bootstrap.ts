@@ -1,6 +1,8 @@
 import "server-only";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
+import { forOrg } from "@/lib/db/forOrg";
+import { START_GRANT } from "@/lib/credits/costs";
 
 /**
  * Ensure a signed-in user has an organization + brand (single-brand MVP).
@@ -27,6 +29,10 @@ export async function ensureUserContext(
     orgId = org.id;
     await db.insert(schema.memberships).values({ userId, orgId, role: "owner" });
   }
+
+  // One-time welcome grant so any org (including ones created before credits
+  // existed) can generate immediately (ADR-004). Idempotent — granted once ever.
+  await forOrg(db, orgId).grantOnce(START_GRANT, "signup_grant");
 
   const brandRows = await db
     .select()

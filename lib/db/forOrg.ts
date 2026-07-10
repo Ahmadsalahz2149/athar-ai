@@ -8,7 +8,7 @@ import type { ContentDna } from "@/lib/ai/prompts";
  * every query is scoped to `orgId`, and every write first verifies the target brand
  * belongs to this org. This is the enforceable boundary that the CI tenancy test
  * (tests/tenancy.test.ts) proves. Do not call raw db.select()/insert() on tenant
- * tables (organizations/brands/dna_versions/drafts) outside this file.
+ * tables (organizations/brands/dna_versions/drafts/credit_ledger) outside this file.
  */
 export type Db = PostgresJsDatabase<typeof schema>;
 
@@ -21,6 +21,23 @@ export function forOrg(db: Db, orgId: string) {
       .limit(1);
     if (!rows.length) throw new Error("Tenancy violation: brand does not belong to this org");
     return rows[0];
+  }
+
+  async function appendLedger(delta: number, reason: string, refType?: string, refId?: string): Promise<number> {
+    const rows = await db
+      .select({ d: schema.creditLedger.delta })
+      .from(schema.creditLedger)
+      .where(eq(schema.creditLedger.orgId, orgId));
+    const balanceAfter = rows.reduce((s, r) => s + r.d, 0) + delta;
+    await db.insert(schema.creditLedger).values({
+      orgId,
+      delta,
+      reason,
+      refType: refType ?? null,
+      refId: refId ?? null,
+      balanceAfter,
+    });
+    return balanceAfter;
   }
 
   return {
@@ -101,6 +118,41 @@ export function forOrg(db: Db, orgId: string) {
         )
         .orderBy(desc(schema.drafts.createdAt))
         .limit(limit);
+    },
+
+    // --- Credits (append-only ledger; balance = sum of deltas) ---
+    async balance(): Promise<number> {
+      const rows = await db
+        .select({ d: schema.creditLedger.delta })
+        .from(schema.creditLedger)
+        .where(eq(schema.creditLedger.orgId, orgId));
+      return rows.reduce((s, r) => s + r.d, 0);
+    },
+
+    async grant(amount: number, reason: string): Promise<number> {
+      return appendLedger(Math.abs(amount), reason);
+    },
+
+    // Idempotent grant keyed on `reason` — grants once per org, ever. Safe to call
+    // on every login to back-fill orgs created before credits existed.
+    async grantOnce(amount: number, reason: string): Promise<number> {
+      const existing = await db
+        .select({ id: schema.creditLedger.id })
+        .from(schema.creditLedger)
+        .where(and(eq(schema.creditLedger.orgId, orgId), eq(schema.creditLedger.reason, reason)))
+        .limit(1);
+      if (existing.length) {
+        const rows = await db
+          .select({ d: schema.creditLedger.delta })
+          .from(schema.creditLedger)
+          .where(eq(schema.creditLedger.orgId, orgId));
+        return rows.reduce((s, r) => s + r.d, 0);
+      }
+      return appendLedger(Math.abs(amount), reason);
+    },
+
+    async debit(amount: number, reason: string, refType?: string, refId?: string): Promise<number> {
+      return appendLedger(-Math.abs(amount), reason, refType, refId);
     },
   };
 }

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { Logo } from "./Logo";
+import { START_GRANT } from "@/lib/credits/costs";
 
 function Icon({ d }: { d: string }) {
   return (
@@ -20,10 +21,11 @@ const NAV: { href: string; key: string; icon: ReactNode }[] = [
   { href: "/dna", key: "dna", icon: <Icon d="M7 4c6 3 4 8 10 11M17 4c-6 3-4 8-10 11M8 6h8M8 18h8" /> },
 ];
 
-export function Sidebar() {
+export function Sidebar({ balance = null }: { balance?: number | null }) {
   const t = useTranslations("Nav");
   const brand = useTranslations("Brand");
   const pathname = usePathname();
+  const pct = balance == null ? 60 : Math.max(3, Math.min(100, Math.round((balance / START_GRANT) * 100)));
 
   return (
     <aside
@@ -85,9 +87,11 @@ export function Sidebar() {
       >
         <div style={{ fontSize: 12.5, fontWeight: 600, marginBlockEnd: 8 }}>{t("planFree")}</div>
         <div style={{ height: 6, borderRadius: 6, background: "rgba(255,255,255,.12)", overflow: "hidden", marginBlockEnd: 8 }}>
-          <div style={{ width: "60%", height: "100%", background: "var(--teal)" }} />
+          <div style={{ width: `${pct}%`, height: "100%", background: "var(--teal)" }} />
         </div>
-        <div style={{ fontSize: 11.5, color: "#9FB3C8" }}>{t("planUsage")}</div>
+        <div style={{ fontSize: 11.5, color: "#9FB3C8" }}>
+          {balance == null ? t("planUsage") : t("creditsLeft", { n: balance })}
+        </div>
       </div>
     </aside>
   );

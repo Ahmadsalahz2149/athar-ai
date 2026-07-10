@@ -7,6 +7,7 @@ import { extractJson } from "@/lib/ai/json";
 import { normalizeDna, normalizeDrafts, type Draft } from "@/lib/ai/normalize";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
+import { estimateStudio } from "@/lib/credits/costs";
 import { currentContext } from "@/lib/auth/current";
 import {
   DNA_SYSTEM,
@@ -37,9 +38,13 @@ export type GenerateResult =
       ok: true;
       dna: ContentDna;
       drafts: Draft[];
-      meta: { dnaModel: string; draftModel: string; dnaPrompt: string; draftPrompt: string };
+      meta: { dnaModel: string; draftModel: string; dnaPrompt: string; draftPrompt: string; cost: number };
     }
-  | { ok: false; error: "no_key" | "too_few_posts" | "truncated" | "failed"; message?: string };
+  | {
+      ok: false;
+      error: "no_key" | "too_few_posts" | "truncated" | "failed" | "insufficient_credits";
+      message?: string;
+    };
 
 export async function generateStudio(input: GenerateInput): Promise<GenerateResult> {
   const posts = (input.posts ?? "").trim();
@@ -57,6 +62,22 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
   }
   if (!hasKeyFor(provider)) {
     return { ok: false, error: "no_key" };
+  }
+
+  const count = Math.min(Math.max(input.count ?? 3, 1), 5);
+
+  // Pre-flight credit check (ADR-004): estimate cost, refuse if the org can't
+  // cover it. Resolve the tenant context once; reuse it for debit + persistence.
+  const estimate = estimateStudio(count);
+  let ctx: Awaited<ReturnType<typeof currentContext>> = null;
+  if (db) {
+    ctx = await currentContext();
+    if (ctx) {
+      const bal = await forOrg(db, ctx.orgId).balance();
+      if (bal < estimate) {
+        return { ok: false, error: "insufficient_credits", message: `${bal}/${estimate}` };
+      }
+    }
   }
 
   // Anthropic fallback tiers (used only when no explicit model is chosen).
@@ -78,7 +99,6 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
     const dna = normalizeDna(extractJson<unknown>(dnaRes.text));
 
     // 2) Drafts.
-    const count = Math.min(Math.max(input.count ?? 3, 1), 5);
     const draftRes = await generateText({
       system: DRAFT_SYSTEM,
       user: buildDraftUserMessage({
@@ -100,23 +120,23 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
       return { ok: false, error: "failed", message: "No drafts were parsed from the model response." };
     }
 
-    // Persist (best-effort) to the signed-in user's brand — never break generation.
+    // Persist + debit (best-effort) to the signed-in user's brand — never break
+    // generation. The credit debit happens only after a successful generation,
+    // so a failed run never charges the user.
     try {
-      if (db) {
-        const ctx = await currentContext();
-        if (ctx) {
-          const t = forOrg(db, ctx.orgId);
-          const dnaVersionId = await t.saveDna(ctx.brandId, dna);
-          for (const d of drafts) {
-            await t.saveDraft(ctx.brandId, {
-              platform: input.platform,
-              topic: input.topic,
-              hook: d.hook,
-              body: d.body,
-              dnaVersionId,
-            });
-          }
+      if (db && ctx) {
+        const t = forOrg(db, ctx.orgId);
+        const dnaVersionId = await t.saveDna(ctx.brandId, dna);
+        for (const d of drafts) {
+          await t.saveDraft(ctx.brandId, {
+            platform: input.platform,
+            topic: input.topic,
+            hook: d.hook,
+            body: d.body,
+            dnaVersionId,
+          });
         }
+        await t.debit(estimate, "studio_generation", "brand", ctx.brandId);
       }
     } catch {
       /* persistence is best-effort */
@@ -131,6 +151,7 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
         draftModel: draftRes.model,
         dnaPrompt: `${DNA_PROMPT_ID}@${DNA_PROMPT_VERSION}`,
         draftPrompt: `${DRAFT_PROMPT_ID}@${DRAFT_PROMPT_VERSION}`,
+        cost: estimate,
       },
     };
   } catch (e) {

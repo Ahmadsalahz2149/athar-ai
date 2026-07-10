@@ -6,6 +6,21 @@ const withNextIntl = createNextIntlPlugin();
 const nextConfig: NextConfig = {
   // Pin the workspace root (a stray lockfile in $HOME was being inferred).
   turbopack: { root: import.meta.dirname },
+
+  // Server Actions (login/signup, generation) are CSRF-protected by comparing
+  // Origin vs Host. When you open the dev server from a phone via the machine's
+  // LAN IP instead of localhost, that check rejects the action and login fails.
+  // Allow the LAN origins used for on-device testing. If your machine's IP
+  // changes, add it here (find it with `ipconfig getifaddr en0`).
+  experimental: {
+    serverActions: {
+      allowedOrigins: [
+        "localhost:3000",
+        "127.0.0.1:3000",
+        "10.207.10.120:3000",
+      ],
+    },
+  },
 };
 
 export default withNextIntl(nextConfig);

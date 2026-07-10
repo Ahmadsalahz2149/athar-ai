@@ -85,7 +85,7 @@ export function OnboardingClient() {
 
         {result && !result.ok && (
           <p style={notice}>
-            {result.error === "no_key" ? t("needKey") : result.error === "too_few" ? t("tooFew") : `${t("error")}${result.message ? ` (${result.message})` : ""}`}
+            {result.error === "no_key" ? t("needKey") : result.error === "too_few" ? t("tooFew") : result.error === "insufficient_credits" ? t("insufficientCredits") : `${t("error")}${result.message ? ` (${result.message})` : ""}`}
           </p>
         )}
       </section>
