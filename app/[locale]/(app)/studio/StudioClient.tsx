@@ -69,7 +69,7 @@ export function StudioClient() {
           style={{ ...field, resize: "vertical", lineHeight: 1.8 }}
         />
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBlockStart: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12, marginBlockStart: 14 }}>
           <div>
             <label style={labelStyle}>{t("topicLabel")}</label>
             <input
@@ -103,7 +103,7 @@ export function StudioClient() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBlockStart: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBlockStart: 14 }}>
           <div>
             <label style={labelStyle}>{t("providerLabel")}</label>
             <select

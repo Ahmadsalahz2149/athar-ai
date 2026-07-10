@@ -134,21 +134,30 @@ export function forOrg(db: Db, orgId: string) {
     },
 
     // Idempotent grant keyed on `reason` — grants once per org, ever. Safe to call
-    // on every login to back-fill orgs created before credits existed.
+    // on every login to back-fill orgs created before credits existed. The DB
+    // partial-unique index on signup_grant is the real guard: the pre-check is a
+    // fast path, and a lost race surfaces as a unique violation we swallow.
     async grantOnce(amount: number, reason: string): Promise<number> {
-      const existing = await db
-        .select({ id: schema.creditLedger.id })
-        .from(schema.creditLedger)
-        .where(and(eq(schema.creditLedger.orgId, orgId), eq(schema.creditLedger.reason, reason)))
-        .limit(1);
-      if (existing.length) {
+      const currentBalance = async () => {
         const rows = await db
           .select({ d: schema.creditLedger.delta })
           .from(schema.creditLedger)
           .where(eq(schema.creditLedger.orgId, orgId));
         return rows.reduce((s, r) => s + r.d, 0);
+      };
+      const existing = await db
+        .select({ id: schema.creditLedger.id })
+        .from(schema.creditLedger)
+        .where(and(eq(schema.creditLedger.orgId, orgId), eq(schema.creditLedger.reason, reason)))
+        .limit(1);
+      if (existing.length) return currentBalance();
+      try {
+        return await appendLedger(Math.abs(amount), reason);
+      } catch (e) {
+        // 23505 = unique_violation: a concurrent login already granted it.
+        if ((e as { code?: string })?.code === "23505") return currentBalance();
+        throw e;
       }
-      return appendLedger(Math.abs(amount), reason);
     },
 
     async debit(amount: number, reason: string, refType?: string, refId?: string): Promise<number> {

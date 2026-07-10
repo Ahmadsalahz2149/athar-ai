@@ -5,7 +5,9 @@ import {
   integer,
   jsonb,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 /**
  * Tenancy-ready schema (ARCHITECTURE A2). Every tenant row carries org_id AND
@@ -74,15 +76,25 @@ export const memberships = pgTable("memberships", {
 
 // Append-only credit ledger (ADR-004 / A4). Balance is derived (sum of deltas);
 // balance_after is a denormalized convenience. Never UPDATE/DELETE rows.
-export const creditLedger = pgTable("credit_ledger", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  orgId: uuid("org_id")
-    .notNull()
-    .references(() => organizations.id),
-  delta: integer("delta").notNull(),
-  reason: text("reason").notNull(),
-  refType: text("ref_type"),
-  refId: uuid("ref_id"),
-  balanceAfter: integer("balance_after").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const creditLedger = pgTable(
+  "credit_ledger",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    delta: integer("delta").notNull(),
+    reason: text("reason").notNull(),
+    refType: text("ref_type"),
+    refId: uuid("ref_id"),
+    balanceAfter: integer("balance_after").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    // At most ONE signup_grant per org, enforced at the DB level so concurrent
+    // logins can't double-grant the welcome credits (grantOnce races).
+    uniqueIndex("credit_ledger_signup_grant_uq")
+      .on(t.orgId)
+      .where(sql`${t.reason} = 'signup_grant'`),
+  ],
+);

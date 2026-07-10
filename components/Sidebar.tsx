@@ -29,18 +29,14 @@ export function Sidebar({ balance = null }: { balance?: number | null }) {
 
   return (
     <aside
+      className="app-sidebar"
       style={{
-        width: 256,
-        flex: "none",
         background: "linear-gradient(180deg,#102A43,#0B1F33)",
         color: "#fff",
-        display: "flex",
-        flexDirection: "column",
-        padding: "22px 14px",
         borderInlineStart: "1px solid rgba(255,255,255,.06)",
       }}
     >
-      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBlockEnd: 26 }}>
+      <Link href="/" className="app-brand">
         <Logo size={34} />
         <div style={{ fontWeight: 700, fontSize: 16 }}>
           {brand("name")}
@@ -48,7 +44,7 @@ export function Sidebar({ balance = null }: { balance?: number | null }) {
         </div>
       </Link>
 
-      <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <nav className="app-nav">
         {NAV.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
@@ -77,8 +73,8 @@ export function Sidebar({ balance = null }: { balance?: number | null }) {
       </nav>
 
       <div
+        className="app-plan"
         style={{
-          marginBlockStart: "auto",
           padding: 14,
           borderRadius: 14,
           background: "rgba(255,255,255,.05)",

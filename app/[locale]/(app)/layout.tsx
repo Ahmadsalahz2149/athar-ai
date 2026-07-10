@@ -37,13 +37,11 @@ export default async function AppLayout({
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div className="app-shell">
       <Sidebar balance={balance} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div className="app-main">
         <AppTopBar />
-        <div className="scb" style={{ flex: 1, overflowY: "auto" }}>
-          {children}
-        </div>
+        <div className="app-content scb">{children}</div>
       </div>
     </div>
   );
