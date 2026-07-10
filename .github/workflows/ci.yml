@@ -13,6 +13,8 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - name: Lint (incl. tenancy-façade rule, ADR-005)
+        run: npm run lint
       - name: Build (typecheck + compile)
         run: npm run build
       - name: Tests (tenancy + credits + eval rubric)
