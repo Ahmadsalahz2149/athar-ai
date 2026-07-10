@@ -131,7 +131,20 @@
     "unsupported": "File type not supported yet. Supported: audio/video or a text file.",
     "tooBig": "File is over the limit (30 MB).",
     "needTranscribeKey": "ElevenLabs key not set. Add ELEVENLABS_API_KEY to .env.local.",
-    "emptyExtract": "We could not extract enough text from the file."
+    "emptyExtract": "We could not extract enough text from the file.",
+    "mode_video": "Video",
+    "mode_audio": "Audio",
+    "mode_pdf": "PDF",
+    "mode_book": "Book",
+    "mode_doc": "Document",
+    "mode_link": "Link",
+    "mode_posts": "Posts",
+    "urlTitle": "Import from a URL",
+    "urlPlaceholder": "https://example.com/article",
+    "fetchBtn": "Fetch & analyze",
+    "fetching": "Fetching…",
+    "needUrl": "Enter a valid URL (starting with https).",
+    "urlError": "Could not fetch the URL."
   },
   "Analysis": {
     "title": "File analysis",

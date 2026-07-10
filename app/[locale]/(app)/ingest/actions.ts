@@ -3,6 +3,8 @@
 import { embed, hasEmbeddingKey } from "@/lib/ai/embed";
 import { transcribeAudio, hasTranscribeKey } from "@/lib/ai/transcribe";
 import { chunkArabic } from "@/lib/ai/chunk";
+import { extractPdfText } from "@/lib/ingest/extractPdf";
+import { fetchUrlText } from "@/lib/ingest/fetchUrl";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
@@ -92,11 +94,12 @@ export async function ingestFile(form: FormData): Promise<IngestResult> {
 
     const type = file.type || "";
     const isAudio = type.startsWith("audio/") || type.startsWith("video/");
+    const isPdf = type === "application/pdf" || /\.pdf$/i.test(file.name);
     const isText =
       type.startsWith("text/") ||
       type === "application/json" ||
       /\.(txt|md|markdown|csv)$/i.test(file.name);
-    if (!isAudio && !isText) {
+    if (!isAudio && !isPdf && !isText) {
       return { ok: false, error: "unsupported", message: type || file.name };
     }
 
@@ -106,18 +109,52 @@ export async function ingestFile(form: FormData): Promise<IngestResult> {
     }
 
     let text: string;
+    let kind: string;
     if (isAudio) {
       if (!hasTranscribeKey()) return { ok: false, error: "no_transcribe_key" };
       text = await transcribeAudio(file, file.name);
+      kind = "audio";
+    } else if (isPdf) {
+      text = await extractPdfText(new Uint8Array(await file.arrayBuffer()));
+      kind = "pdf";
     } else {
       text = (await file.text()).trim();
+      kind = "text";
     }
     if (text.length < 20) return { ok: false, error: "empty" };
     return await storeText(ctx.orgId, ctx.brandId, text, {
-      kind: isAudio ? "audio" : "text",
+      kind,
       title: file.name,
       cost: estimate,
-      reason: isAudio ? "ingest_audio" : "ingest_file",
+      reason: isAudio ? "ingest_audio" : isPdf ? "ingest_pdf" : "ingest_file",
+    });
+  } catch (e) {
+    return { ok: false, error: "failed", message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Ingest a public URL: SSRF-safe fetch → HTML/PDF/text extraction → store. */
+export async function ingestUrl(input: { url: string }): Promise<IngestResult> {
+  try {
+    const url = (input.url ?? "").trim();
+    if (!url) return { ok: false, error: "too_few" };
+    if (!db) return { ok: false, error: "no_session" };
+
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false, error: "no_session" };
+
+    const estimate = estimateIngest();
+    if ((await forOrg(db, ctx.orgId).balance()) < estimate) {
+      return { ok: false, error: "insufficient_credits" };
+    }
+
+    const { text, title } = await fetchUrlText(url);
+    if (text.length < 20) return { ok: false, error: "empty" };
+    return await storeText(ctx.orgId, ctx.brandId, text, {
+      kind: "url",
+      title,
+      cost: estimate,
+      reason: "ingest_url",
     });
   } catch (e) {
     return { ok: false, error: "failed", message: e instanceof Error ? e.message : String(e) };

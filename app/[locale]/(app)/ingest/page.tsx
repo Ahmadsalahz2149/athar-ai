@@ -1,7 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { IngestText } from "./IngestText";
-import { IngestUpload } from "./IngestUpload";
+import { IngestPanel } from "./IngestPanel";
 
 const split = (s: string) => s.split(/[،,]/).map((x) => x.trim()).filter(Boolean);
 
@@ -9,7 +8,6 @@ export default async function IngestPage({ params }: { params: Promise<{ locale:
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("Ingest");
-  const types = split(t("types"));
   const dos = split(t("doItems"));
   const steps = split(t("pipeline"));
 
@@ -20,20 +18,7 @@ export default async function IngestPage({ params }: { params: Promise<{ locale:
 
       <div className="col-2">
         <div>
-          <IngestText />
-
-          <div style={{ marginBlockStart: 18 }}>
-            <IngestUpload />
-          </div>
-
-          <div style={{ marginBlockStart: 22 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--heading)", marginBlockEnd: 10 }}>{t("typesLabel")}</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {types.map((ty, i) => (
-                <span key={i} style={{ padding: "9px 15px", borderRadius: 999, fontSize: 13, fontWeight: 600, border: i === 0 ? "1.5px solid var(--teal)" : "1.5px solid var(--border-2)", background: i === 0 ? "var(--teal-tint-2)" : "var(--card)", color: i === 0 ? "var(--navy)" : "var(--slate)" }}>{ty}</span>
-              ))}
-            </div>
-          </div>
+          <IngestPanel />
 
           <div style={{ marginBlockStart: 22 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--heading)", marginBlockEnd: 10 }}>{t("doLabel")}</div>

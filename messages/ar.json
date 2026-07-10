@@ -131,7 +131,20 @@
     "unsupported": "نوع ملف غير مدعوم بعد. المدعوم: صوت/فيديو أو ملف نصّي.",
     "tooBig": "الملف أكبر من الحدّ (٣٠ ميغابايت).",
     "needTranscribeKey": "مفتاح ElevenLabs غير مضبوط. أضف ELEVENLABS_API_KEY في ‎.env.local.",
-    "emptyExtract": "لم نستخرج نصًّا كافيًا من الملف."
+    "emptyExtract": "لم نستخرج نصًّا كافيًا من الملف.",
+    "mode_video": "فيديو",
+    "mode_audio": "صوت",
+    "mode_pdf": "PDF",
+    "mode_book": "كتاب",
+    "mode_doc": "مستند",
+    "mode_link": "رابط",
+    "mode_posts": "بوستات",
+    "urlTitle": "استورد من رابط",
+    "urlPlaceholder": "https://example.com/article",
+    "fetchBtn": "اجلب وحلّل",
+    "fetching": "جارٍ الجلب…",
+    "needUrl": "أدخل رابطًا صحيحًا (يبدأ بـ https).",
+    "urlError": "تعذّر جلب الرابط."
   },
   "Analysis": {
     "title": "تحليل الملف",

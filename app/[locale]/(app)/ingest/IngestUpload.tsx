@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { ingestFile, type IngestResult } from "./actions";
 
-export function IngestUpload() {
+export function IngestUpload({ accept = "audio/*,video/*,text/*,.txt,.md,.markdown,.csv,.pdf" }: { accept?: string }) {
   const t = useTranslations("Ingest");
   const locale = useLocale();
   const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
@@ -60,7 +60,7 @@ export function IngestUpload() {
         <input
           ref={inputRef}
           type="file"
-          accept="audio/*,video/*,text/*,.txt,.md,.markdown,.csv"
+          accept={accept}
           hidden
           onChange={(e) => {
             const f = e.target.files?.[0];
