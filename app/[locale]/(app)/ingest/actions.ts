@@ -81,28 +81,30 @@ export async function ingestText(input: { title?: string; text: string }): Promi
 /** Ingest an uploaded file: audio/video → ElevenLabs transcription; text files →
  * read directly. Then the shared chunk→embed→store tail. */
 export async function ingestFile(form: FormData): Promise<IngestResult> {
-  const file = form.get("file");
-  if (!(file instanceof File)) return { ok: false, error: "failed", message: "no file" };
-  if (file.size > MAX_FILE_BYTES) return { ok: false, error: "too_big" };
-  if (!db) return { ok: false, error: "no_session" };
-
-  const ctx = await currentContext();
-  if (!ctx) return { ok: false, error: "no_session" };
-
-  const type = file.type || "";
-  const isAudio = type.startsWith("audio/") || type.startsWith("video/");
-  const isText =
-    type.startsWith("text/") ||
-    type === "application/json" ||
-    /\.(txt|md|markdown|csv)$/i.test(file.name);
-  if (!isAudio && !isText) return { ok: false, error: "unsupported" };
-
-  const estimate = isAudio ? estimateTranscribe() : estimateIngest();
-  if ((await forOrg(db, ctx.orgId).balance()) < estimate) {
-    return { ok: false, error: "insufficient_credits" };
-  }
-
   try {
+    const file = form.get("file");
+    if (!(file instanceof File)) return { ok: false, error: "failed", message: "no file received" };
+    if (file.size > MAX_FILE_BYTES) return { ok: false, error: "too_big" };
+    if (!db) return { ok: false, error: "no_session" };
+
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false, error: "no_session" };
+
+    const type = file.type || "";
+    const isAudio = type.startsWith("audio/") || type.startsWith("video/");
+    const isText =
+      type.startsWith("text/") ||
+      type === "application/json" ||
+      /\.(txt|md|markdown|csv)$/i.test(file.name);
+    if (!isAudio && !isText) {
+      return { ok: false, error: "unsupported", message: type || file.name };
+    }
+
+    const estimate = isAudio ? estimateTranscribe() : estimateIngest();
+    if ((await forOrg(db, ctx.orgId).balance()) < estimate) {
+      return { ok: false, error: "insufficient_credits" };
+    }
+
     let text: string;
     if (isAudio) {
       if (!hasTranscribeKey()) return { ok: false, error: "no_transcribe_key" };

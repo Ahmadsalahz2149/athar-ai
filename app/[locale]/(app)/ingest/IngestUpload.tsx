@@ -17,9 +17,19 @@ export function IngestUpload() {
   const upload = (file: File) => {
     setName(file.name);
     setRes(null);
+    if (file.size > 30 * 1024 * 1024) {
+      setRes({ ok: false, error: "too_big" });
+      return;
+    }
     const fd = new FormData();
     fd.append("file", file);
-    start(async () => setRes(await ingestFile(fd)));
+    start(async () => {
+      try {
+        setRes(await ingestFile(fd));
+      } catch (e) {
+        setRes({ ok: false, error: "failed", message: e instanceof Error ? e.message : String(e) });
+      }
+    });
   };
 
   return (
@@ -88,30 +98,33 @@ export function IngestUpload() {
       {res && res.ok && (
         <p style={okStyle}>{t("ingestDone", { chunks: nf.format(res.chunks), total: nf.format(res.totalChunks) })}</p>
       )}
-      {res && !res.ok && <p style={errStyle}>{errorMessage(res.error, t)}</p>}
+      {res && !res.ok && <p style={errStyle}>{errorMessage(res, t)}</p>}
     </div>
   );
 }
 
-function errorMessage(error: string, t: (k: string) => string): string {
-  switch (error) {
-    case "unsupported":
-      return t("unsupported");
-    case "too_big":
-      return t("tooBig");
-    case "no_transcribe_key":
-      return t("needTranscribeKey");
-    case "no_embed_key":
-      return t("needEmbedKey");
-    case "insufficient_credits":
-      return t("insufficientCredits");
-    case "no_session":
-      return t("needSession");
-    case "empty":
-      return t("emptyExtract");
-    default:
-      return t("ingestError");
-  }
+function errorMessage(res: { error: string; message?: string }, t: (k: string) => string): string {
+  const base = (() => {
+    switch (res.error) {
+      case "unsupported":
+        return t("unsupported");
+      case "too_big":
+        return t("tooBig");
+      case "no_transcribe_key":
+        return t("needTranscribeKey");
+      case "no_embed_key":
+        return t("needEmbedKey");
+      case "insufficient_credits":
+        return t("insufficientCredits");
+      case "no_session":
+        return t("needSession");
+      case "empty":
+        return t("emptyExtract");
+      default:
+        return t("ingestError");
+    }
+  })();
+  return res.message ? `${base} (${res.message})` : base;
 }
 
 const okStyle: React.CSSProperties = {
