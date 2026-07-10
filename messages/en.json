@@ -21,7 +21,8 @@
     "title": "Turn your expertise into content that leaves a mark",
     "subtitle": "Upload or paste your content and let AI learn your style and dialect, then turn it into ready-to-post drafts in your own voice — not a robot's.",
     "cta": "Open the Studio",
-    "note": "Stage 1 — the Studio slice works end-to-end."
+    "startLink": "or start with a quick interview",
+    "note": "Stage 2 — the four screens and cold start are working."
   },
   "Studio": {
     "title": "Content Studio",
@@ -59,6 +60,27 @@
     "draftNotice": "This is an early draft for review — finalized before the first paying customer.",
     "noTrain": "We do not use your content to train our models.",
     "backHome": "Back to home"
+  },
+  "Onboarding": {
+    "badge": "Quick start",
+    "title": "Let's build your DNA in under 5 minutes",
+    "subtitle": "Answer a few short questions in your own words, or paste your posts — Athar learns your voice and dialect directly, no uploads.",
+    "tabInterview": "Quick interview",
+    "tabPaste": "Paste your posts",
+    "q1": "What's your field and expertise?",
+    "q2": "Who is your core audience?",
+    "q3": "Write in your voice: explain an idea or tip you believe in (3–4 lines).",
+    "q4": "Write in your voice: tell a moment or a lesson you learned.",
+    "answerPlaceholder": "Write here in your natural voice…",
+    "pasteLabel": "Paste 3+ of your own posts",
+    "pastePlaceholder": "Paste your posts here…",
+    "generate": "Build my DNA",
+    "generating": "Building your DNA…",
+    "resultTitle": "Content DNA (DNA v0)",
+    "toStudio": "Open the Studio and write drafts",
+    "needKey": "Add your provider key to .env.local and try again.",
+    "tooFew": "Add a bit more text (at least two answers in your voice).",
+    "error": "Couldn't build your DNA. Try again."
   },
   "Ingest": {
     "title": "Import content",

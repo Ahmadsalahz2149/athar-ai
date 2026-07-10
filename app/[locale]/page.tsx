@@ -81,7 +81,12 @@ export default async function Home({
         >
           {t("cta")}
         </Link>
-        <p style={{ marginBlockStart: 22, fontSize: 12.5, color: "var(--subtle)" }}>
+        <div style={{ marginBlockStart: 14 }}>
+          <Link href="/onboarding" style={{ color: "var(--teal-deep)", fontWeight: 600, fontSize: 14 }}>
+            {t("startLink")}
+          </Link>
+        </div>
+        <p style={{ marginBlockStart: 18, fontSize: 12.5, color: "var(--subtle)" }}>
           {t("note")}
         </p>
       </main>
