@@ -23,6 +23,8 @@ const nextConfig: NextConfig = {
         "127.0.0.1:3000",
         "10.207.10.120:3000",
       ],
+      // Audio/video uploads for transcription go through a Server Action.
+      bodySizeLimit: "30mb",
     },
   },
 };

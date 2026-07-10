@@ -7,10 +7,15 @@ export const COSTS = {
   dna: 10,
   draft: 2,
   ingest: 3,
+  transcribe: 15,
 } as const;
 
 export function estimateIngest(): number {
   return COSTS.ingest;
+}
+
+export function estimateTranscribe(): number {
+  return COSTS.transcribe;
 }
 
 export function estimateStudio(count: number): number {

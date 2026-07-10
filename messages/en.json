@@ -105,7 +105,7 @@
     "title": "Import content",
     "subtitle": "Upload or paste your sources — Athar learns your style from them.",
     "dropTitle": "Drag your files here or click to upload",
-    "dropHint": "Video, audio, PDF, documents, or links",
+    "dropHint": "Audio, video, or a text file (PDF & links soon)",
     "soon": "Real upload activates in Stage 3",
     "typesLabel": "Content type",
     "types": "Video,Audio,PDF,Book,Doc,Link,Posts",
@@ -125,7 +125,13 @@
     "needEmbedKey": "Voyage key not set. Add VOYAGE_API_KEY to .env.local.",
     "needSession": "Sign in first to save the source.",
     "insufficientCredits": "Not enough credits for this run.",
-    "ingestError": "Import failed."
+    "ingestError": "Import failed.",
+    "uploading": "Uploading & processing…",
+    "transcribingNote": "Transcribing audio can take a minute or more depending on length.",
+    "unsupported": "File type not supported yet. Supported: audio/video or a text file.",
+    "tooBig": "File is over the limit (30 MB).",
+    "needTranscribeKey": "ElevenLabs key not set. Add ELEVENLABS_API_KEY to .env.local.",
+    "emptyExtract": "We could not extract enough text from the file."
   },
   "Analysis": {
     "title": "File analysis",
