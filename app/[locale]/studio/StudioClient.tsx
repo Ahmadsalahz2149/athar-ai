@@ -134,7 +134,7 @@ export function StudioClient() {
 
             <Field label={t("dnaTone")}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                {result.dna.tone_traits.map((tr, i) => (
+                {(result.dna.tone_traits ?? []).map((tr, i) => (
                   <span key={i} style={pill("var(--gold-tint)", "var(--gold-dark)")}>
                     {tr}
                   </span>
@@ -144,7 +144,7 @@ export function StudioClient() {
 
             <Field label={t("dnaHooks")}>
               <ul style={{ margin: 0, paddingInlineStart: 18, color: "var(--slate)", fontSize: 13.5, lineHeight: 1.9 }}>
-                {result.dna.hook_patterns.map((h, i) => (
+                {(result.dna.hook_patterns ?? []).map((h, i) => (
                   <li key={i}>{h}</li>
                 ))}
               </ul>

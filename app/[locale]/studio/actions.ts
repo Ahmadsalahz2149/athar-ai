@@ -35,6 +35,37 @@ export type GenerateResult =
     }
   | { ok: false; error: "no_key" | "too_few_posts" | "truncated" | "failed"; message?: string };
 
+/** Coerce any model output into a well-formed DNA — missing fields never crash the UI. */
+function normalizeDna(raw: unknown): ContentDna {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const arr = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x)).filter(Boolean) : []);
+  const pct = Number(o.completion_pct);
+  return {
+    summary: typeof o.summary === "string" ? o.summary : "",
+    dialect: typeof o.dialect === "string" ? o.dialect : "",
+    tone_traits: arr(o.tone_traits),
+    hook_patterns: arr(o.hook_patterns),
+    audience: typeof o.audience === "string" ? o.audience : "",
+    dos: arr(o.dos),
+    donts: arr(o.donts),
+    completion_pct: Number.isFinite(pct) ? Math.max(0, Math.min(100, Math.round(pct))) : 0,
+  };
+}
+
+function normalizeDrafts(raw: unknown): Draft[] {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const list = Array.isArray(o.drafts) ? o.drafts : [];
+  return list
+    .map((d) => {
+      const x = (d ?? {}) as Record<string, unknown>;
+      return {
+        hook: typeof x.hook === "string" ? x.hook : "",
+        body: typeof x.body === "string" ? x.body : "",
+      };
+    })
+    .filter((d) => d.hook.trim() || d.body.trim());
+}
+
 export async function generateStudio(input: GenerateInput): Promise<GenerateResult> {
   const posts = (input.posts ?? "").trim();
   const paragraphs = posts.split(/\n\s*\n/).filter((p) => p.trim().length > 0);
@@ -55,7 +86,7 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
       schema: DNA_SCHEMA,
     });
     if (dnaRes.truncated) return { ok: false, error: "truncated", message: "DNA output hit the token cap." };
-    const dna = extractJson<ContentDna>(dnaRes.text);
+    const dna = normalizeDna(extractJson<unknown>(dnaRes.text));
 
     // 2) Drafts — Sonnet on Anthropic; MiniMax model otherwise. Generous cap.
     const count = Math.min(Math.max(input.count ?? 3, 1), 5);
@@ -72,12 +103,16 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
       schema: DRAFTS_SCHEMA,
     });
     if (draftRes.truncated) return { ok: false, error: "truncated", message: "Drafts output hit the token cap." };
-    const parsed = extractJson<{ drafts: Draft[] }>(draftRes.text);
+    const drafts = normalizeDrafts(extractJson<unknown>(draftRes.text));
+
+    if (drafts.length === 0) {
+      return { ok: false, error: "failed", message: "No drafts were parsed from the model response." };
+    }
 
     return {
       ok: true,
       dna,
-      drafts: Array.isArray(parsed.drafts) ? parsed.drafts : [],
+      drafts,
       meta: {
         dnaModel: dnaRes.model,
         draftModel: draftRes.model,
