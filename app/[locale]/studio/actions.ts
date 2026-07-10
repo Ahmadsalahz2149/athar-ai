@@ -1,12 +1,14 @@
 "use server";
 
-import { getAnthropic, hasAnthropicKey } from "@/lib/ai/anthropic";
+import { generateText, hasProviderKey } from "@/lib/ai/generate";
 import { MODELS } from "@/lib/ai/models";
 import { extractJson } from "@/lib/ai/json";
 import {
   DNA_SYSTEM,
+  DNA_SCHEMA,
   buildDnaUserMessage,
   DRAFT_SYSTEM,
+  DRAFTS_SCHEMA,
   buildDraftUserMessage,
   DNA_PROMPT_ID,
   DNA_PROMPT_VERSION,
@@ -31,16 +33,7 @@ export type GenerateResult =
       drafts: Draft[];
       meta: { dnaModel: string; draftModel: string; dnaPrompt: string; draftPrompt: string };
     }
-  | { ok: false; error: "no_key" | "too_few_posts" | "failed"; message?: string };
-
-type TextyBlock = { type: string; text?: string };
-
-function textOf(msg: { content: TextyBlock[] }): string {
-  return msg.content
-    .filter((b) => b.type === "text" && typeof b.text === "string")
-    .map((b) => b.text as string)
-    .join("\n");
-}
+  | { ok: false; error: "no_key" | "too_few_posts" | "truncated" | "failed"; message?: string };
 
 export async function generateStudio(input: GenerateInput): Promise<GenerateResult> {
   const posts = (input.posts ?? "").trim();
@@ -48,49 +41,46 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
   if (paragraphs.length < 3 && posts.length < 200) {
     return { ok: false, error: "too_few_posts" };
   }
-  if (!hasAnthropicKey()) {
+  if (!hasProviderKey()) {
     return { ok: false, error: "no_key" };
   }
 
   try {
-    const client = getAnthropic();
-
-    // 1) Content DNA — Opus (synthesis). No tools; source passed as delimited data.
-    const dnaMsg = await client.messages.create({
-      model: MODELS.OPUS,
-      max_tokens: 2048,
+    // 1) Content DNA — Opus on Anthropic (structured output); MiniMax model otherwise.
+    const dnaRes = await generateText({
       system: DNA_SYSTEM,
-      messages: [{ role: "user", content: buildDnaUserMessage(posts) }],
+      user: buildDnaUserMessage(posts),
+      maxTokens: 4096,
+      anthropicModel: MODELS.OPUS,
+      schema: DNA_SCHEMA,
     });
-    const dna = extractJson<ContentDna>(textOf(dnaMsg));
+    if (dnaRes.truncated) return { ok: false, error: "truncated", message: "DNA output hit the token cap." };
+    const dna = extractJson<ContentDna>(dnaRes.text);
 
-    // 2) Drafts — Sonnet (workhorse).
+    // 2) Drafts — Sonnet on Anthropic; MiniMax model otherwise. Generous cap.
     const count = Math.min(Math.max(input.count ?? 3, 1), 5);
-    const draftMsg = await client.messages.create({
-      model: MODELS.SONNET,
-      max_tokens: 3072,
+    const draftRes = await generateText({
       system: DRAFT_SYSTEM,
-      messages: [
-        {
-          role: "user",
-          content: buildDraftUserMessage({
-            dna,
-            topic: input.topic?.trim() || dna.summary,
-            platform: input.platform,
-            count,
-          }),
-        },
-      ],
+      user: buildDraftUserMessage({
+        dna,
+        topic: input.topic?.trim() || dna.summary,
+        platform: input.platform,
+        count,
+      }),
+      maxTokens: 8192,
+      anthropicModel: MODELS.SONNET,
+      schema: DRAFTS_SCHEMA,
     });
-    const parsed = extractJson<{ drafts: Draft[] }>(textOf(draftMsg));
+    if (draftRes.truncated) return { ok: false, error: "truncated", message: "Drafts output hit the token cap." };
+    const parsed = extractJson<{ drafts: Draft[] }>(draftRes.text);
 
     return {
       ok: true,
       dna,
       drafts: Array.isArray(parsed.drafts) ? parsed.drafts : [],
       meta: {
-        dnaModel: MODELS.OPUS,
-        draftModel: MODELS.SONNET,
+        dnaModel: dnaRes.model,
+        draftModel: draftRes.model,
         dnaPrompt: `${DNA_PROMPT_ID}@${DNA_PROMPT_VERSION}`,
         draftPrompt: `${DRAFT_PROMPT_ID}@${DRAFT_PROMPT_VERSION}`,
       },

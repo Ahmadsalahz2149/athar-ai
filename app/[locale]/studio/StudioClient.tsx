@@ -104,7 +104,9 @@ export function StudioClient() {
               ? t("needKey")
               : result.error === "too_few_posts"
                 ? t("needPosts")
-                : `${t("errorGeneric")}${result.message ? ` (${result.message})` : ""}`}
+                : result.error === "truncated"
+                  ? t("truncated")
+                  : `${t("errorGeneric")}${result.message ? ` (${result.message})` : ""}`}
           </p>
         )}
       </section>

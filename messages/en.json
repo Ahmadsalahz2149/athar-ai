@@ -38,8 +38,9 @@
     "draftLabel": "Draft",
     "copy": "Copy",
     "copied": "Copied",
-    "needKey": "To run real generation, add ANTHROPIC_API_KEY to .env.local and try again.",
+    "needKey": "Add your provider key to .env.local (ANTHROPIC_API_KEY or MINIMAX_API_KEY) and try again.",
     "needPosts": "Paste at least 3 posts (or enough text).",
+    "truncated": "The response exceeded the token cap. Lower the number of drafts or try again.",
     "errorGeneric": "Generation failed. Check the key and try again.",
     "meta": "Models: {dnaModel} for DNA · {draftModel} for drafts"
   },
