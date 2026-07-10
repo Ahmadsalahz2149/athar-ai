@@ -70,6 +70,12 @@ async function minimaxGenerate(args: GenArgs): Promise<GenResult> {
   const model = process.env.MINIMAX_MODEL || "MiniMax-M2";
   if (!key) throw new Error("MINIMAX_API_KEY is not set.");
 
+  // MiniMax is a reasoning model and a Chinese model — force JSON-only, Arabic-only.
+  const guard =
+    "\n\nCRITICAL: Respond with ONE valid JSON object ONLY, written in Arabic. " +
+    "Do NOT output any Chinese characters. No reasoning, no <think> tags, no markdown fences, " +
+    "and no text before or after the JSON.";
+
   const res = await fetch(`${base}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
@@ -77,7 +83,7 @@ async function minimaxGenerate(args: GenArgs): Promise<GenResult> {
       model,
       max_tokens: args.maxTokens,
       messages: [
-        { role: "system", content: args.system },
+        { role: "system", content: args.system + guard },
         { role: "user", content: args.user },
       ],
     }),
@@ -88,8 +94,10 @@ async function minimaxGenerate(args: GenArgs): Promise<GenResult> {
     throw new Error(`MiniMax ${res.status}: ${JSON.stringify(data).slice(0, 300)}`);
   }
   const choice = (data as { choices?: Array<{ message?: { content?: string }; finish_reason?: string }> }).choices?.[0];
+  const raw = choice?.message?.content ?? "";
+  const text = raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
   return {
-    text: choice?.message?.content ?? "",
+    text,
     truncated: choice?.finish_reason === "length",
     provider: "minimax",
     model,

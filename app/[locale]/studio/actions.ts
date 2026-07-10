@@ -76,13 +76,18 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
     return { ok: false, error: "no_key" };
   }
 
+  // Anthropic model tiers are env-overridable — e.g. set both to claude-haiku-4-5
+  // for a much cheaper run that still handles Arabic well.
+  const dnaModel = process.env.ANTHROPIC_DNA_MODEL || MODELS.OPUS;
+  const draftModel = process.env.ANTHROPIC_DRAFT_MODEL || MODELS.SONNET;
+
   try {
     // 1) Content DNA — Opus on Anthropic (structured output); MiniMax model otherwise.
     const dnaRes = await generateText({
       system: DNA_SYSTEM,
       user: buildDnaUserMessage(posts),
       maxTokens: 4096,
-      anthropicModel: MODELS.OPUS,
+      anthropicModel: dnaModel,
       schema: DNA_SCHEMA,
     });
     if (dnaRes.truncated) return { ok: false, error: "truncated", message: "DNA output hit the token cap." };
@@ -99,7 +104,7 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
         count,
       }),
       maxTokens: 8192,
-      anthropicModel: MODELS.SONNET,
+      anthropicModel: draftModel,
       schema: DRAFTS_SCHEMA,
     });
     if (draftRes.truncated) return { ok: false, error: "truncated", message: "Drafts output hit the token cap." };
