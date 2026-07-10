@@ -1,5 +1,4 @@
 import { setRequestLocale } from "next-intl/server";
-import { TopBar } from "@/components/TopBar";
 import { StudioClient } from "./StudioClient";
 
 export default async function StudioPage({
@@ -10,10 +9,5 @@ export default async function StudioPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  return (
-    <>
-      <TopBar />
-      <StudioClient />
-    </>
-  );
+  return <StudioClient />;
 }

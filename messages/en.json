@@ -6,6 +6,12 @@
   },
   "Nav": {
     "studio": "Studio",
+    "ingest": "Import",
+    "analysis": "Analysis",
+    "dna": "Content DNA",
+    "createPost": "Create post",
+    "planFree": "Free plan",
+    "planUsage": "3 of 5 files",
     "terms": "Terms",
     "privacy": "Privacy",
     "switchTo": "العربية"
@@ -53,5 +59,47 @@
     "draftNotice": "This is an early draft for review — finalized before the first paying customer.",
     "noTrain": "We do not use your content to train our models.",
     "backHome": "Back to home"
+  },
+  "Ingest": {
+    "title": "Import content",
+    "subtitle": "Upload or paste your sources — Athar learns your style from them.",
+    "dropTitle": "Drag your files here or click to upload",
+    "dropHint": "Video, audio, PDF, documents, or links",
+    "soon": "Real upload activates in Stage 3",
+    "typesLabel": "Content type",
+    "types": "Video,Audio,PDF,Book,Doc,Link,Posts",
+    "doLabel": "What should Athar do with your content?",
+    "doItems": "Extract your strongest ideas,Learn your style and dialect,Suggest hooks and drafts",
+    "pipelineTitle": "How it works",
+    "pipeline": "Transcribe & analyze,Build Content DNA,Extract ideas,Generate drafts,Review & approve,Publish",
+    "pasteCta": "Or paste your posts directly in the Studio",
+    "pasteBtn": "Open the Studio"
+  },
+  "Analysis": {
+    "title": "File analysis",
+    "subtitle": "Athar distills the most important parts of your source.",
+    "fileTitle": "Personal Brand Course.pdf",
+    "fileMeta": "PDF · 21 Jun 2026 · Analyzed 100%",
+    "summaryLabel": "Executive summary",
+    "summary": "A complete method for building an influential personal brand from zero to your first 1,000 real followers, focused on finding your unique angle and building trust before selling.",
+    "ideasLabel": "Key extracted ideas",
+    "ideas": "Your unique angle is discovered, not invented|Trust always precedes the sale|Consistency beats perfection|Educational content alone doesn't sell",
+    "quotesLabel": "Strongest quotes",
+    "quotes": "People don't buy what you know — they buy their trust in you.|Content that excludes no one attracts no one."
+  },
+  "Dna": {
+    "title": "Content DNA",
+    "subtitle": "What Athar learned about your voice, audience, and hook style.",
+    "regenerate": "Regenerate from the Studio",
+    "summary": "A confident, story-driven voice that tends to open with a personal moment then draw a lesson, in a register close to the reader.",
+    "dialectLabel": "Dialect",
+    "dialect": "Egyptian / colloquial",
+    "audienceLabel": "Audience",
+    "audience": "Business owners and content creators",
+    "toneLabel": "Tone",
+    "tone": "Narrative,Direct,Motivational,Practical",
+    "hooksLabel": "Hook patterns",
+    "hooks": "Opens with a question or a moment|Uses striking numbers|Promises a lesson or outcome",
+    "completionLabel": "DNA completeness"
   }
 }

@@ -37,6 +37,14 @@ yarn-error.log*
 # Claude Code local session/settings
 .claude/
 
+# Design reference — keep the HTML/JS/MD source in git, drop heavy binaries
+design-reference/**/screenshots/
+design-reference/**/audit/
+design-reference/**/uploads/
+design-reference/**/*.png
+design-reference/**/*.jpg
+design-reference/**/.thumbnail
+
 # vercel
 .vercel
 
