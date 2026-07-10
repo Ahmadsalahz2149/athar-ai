@@ -22,8 +22,6 @@ import {
   type ContentDna,
 } from "@/lib/ai/prompts";
 
-export type { Draft };
-
 export type GenerateInput = {
   posts: string;
   topic: string;
