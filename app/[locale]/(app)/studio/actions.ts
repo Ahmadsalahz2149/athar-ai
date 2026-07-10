@@ -5,6 +5,9 @@ import { MODELS } from "@/lib/ai/models";
 import { isValidSelection, type ProviderId } from "@/lib/ai/catalog";
 import { extractJson } from "@/lib/ai/json";
 import { normalizeDna, normalizeDrafts, type Draft } from "@/lib/ai/normalize";
+import { db } from "@/lib/db";
+import { forOrg } from "@/lib/db/forOrg";
+import { currentContext } from "@/lib/auth/current";
 import {
   DNA_SYSTEM,
   DNA_SCHEMA,
@@ -97,6 +100,28 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
 
     if (drafts.length === 0) {
       return { ok: false, error: "failed", message: "No drafts were parsed from the model response." };
+    }
+
+    // Persist (best-effort) to the signed-in user's brand — never break generation.
+    try {
+      if (db) {
+        const ctx = await currentContext();
+        if (ctx) {
+          const t = forOrg(db, ctx.orgId);
+          const dnaVersionId = await t.saveDna(ctx.brandId, dna);
+          for (const d of drafts) {
+            await t.saveDraft(ctx.brandId, {
+              platform: input.platform,
+              topic: input.topic,
+              hook: d.hook,
+              body: d.body,
+              dnaVersionId,
+            });
+          }
+        }
+      }
+    } catch {
+      /* persistence is best-effort */
     }
 
     return {

@@ -136,6 +136,8 @@
     "tone": "Narrative,Direct,Motivational,Practical",
     "hooksLabel": "Hook patterns",
     "hooks": "Opens with a question or a moment|Uses striking numbers|Promises a lesson or outcome",
-    "completionLabel": "DNA completeness"
+    "completionLabel": "DNA completeness",
+    "empty": "No content DNA yet. Build it from a quick interview or by pasting your posts.",
+    "emptyCta": "Build your DNA"
   }
 }

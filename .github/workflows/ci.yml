@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Build (typecheck + compile)
+        run: npm run build
+      - name: Tenancy test (requires DATABASE_URL secret to run for real)
+        run: npm run test
+        env:
+          # Add DATABASE_URL as a repo secret (a throwaway/test Postgres) so the
+          # tenancy test runs. Without it the suite skips instead of failing.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

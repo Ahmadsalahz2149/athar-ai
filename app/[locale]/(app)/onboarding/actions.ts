@@ -4,6 +4,9 @@ import { generateText, hasKeyFor, currentProvider } from "@/lib/ai/generate";
 import { MODELS } from "@/lib/ai/models";
 import { extractJson } from "@/lib/ai/json";
 import { normalizeDna } from "@/lib/ai/normalize";
+import { db } from "@/lib/db";
+import { forOrg } from "@/lib/db/forOrg";
+import { currentContext } from "@/lib/auth/current";
 import { DNA_SYSTEM, DNA_SCHEMA, buildDnaUserMessage, type ContentDna } from "@/lib/ai/prompts";
 
 export type OnboardResult =
@@ -32,7 +35,16 @@ export async function onboardToDna(input: { samples: string }): Promise<OnboardR
       provider,
     });
     if (res.truncated) return { ok: false, error: "failed", message: "Output hit the token cap." };
-    return { ok: true, dna: normalizeDna(extractJson<unknown>(res.text)), model: res.model };
+    const dna = normalizeDna(extractJson<unknown>(res.text));
+    try {
+      if (db) {
+        const ctx = await currentContext();
+        if (ctx) await forOrg(db, ctx.orgId).saveDna(ctx.brandId, dna);
+      }
+    } catch {
+      /* best-effort */
+    }
+    return { ok: true, dna, model: res.model };
   } catch (e) {
     return { ok: false, error: "failed", message: e instanceof Error ? e.message : String(e) };
   }
