@@ -212,9 +212,25 @@ export function StudioClient() {
 
           {/* Drafts */}
           <section style={{ ...card, marginBlockStart: 22 }}>
-            <div style={sectionHead}>
+            <div style={{ ...sectionHead, flexWrap: "wrap", gap: 8 }}>
               <span style={dot("var(--gold)")} />
               {t("draftsTitle")}
+              {result.ok && result.meta.grounded && (
+                <span
+                  style={{
+                    marginInlineStart: "auto",
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    color: "var(--teal-deep)",
+                    background: "var(--teal-tint-2)",
+                    border: "1px solid rgba(20,184,166,.3)",
+                    borderRadius: 999,
+                    padding: "4px 11px",
+                  }}
+                >
+                  ✦ {t("grounded")}
+                </span>
+              )}
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBlockEnd: 14 }}>

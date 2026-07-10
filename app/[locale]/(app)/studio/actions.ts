@@ -8,6 +8,7 @@ import { normalizeDna, normalizeDrafts, type Draft } from "@/lib/ai/normalize";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { estimateStudio } from "@/lib/credits/costs";
+import { embedOne, hasEmbeddingKey } from "@/lib/ai/embed";
 import { currentContext } from "@/lib/auth/current";
 import {
   DNA_SYSTEM,
@@ -38,7 +39,14 @@ export type GenerateResult =
       ok: true;
       dna: ContentDna;
       drafts: Draft[];
-      meta: { dnaModel: string; draftModel: string; dnaPrompt: string; draftPrompt: string; cost: number };
+      meta: {
+        dnaModel: string;
+        draftModel: string;
+        dnaPrompt: string;
+        draftPrompt: string;
+        cost: number;
+        grounded: boolean;
+      };
     }
   | {
       ok: false;
@@ -98,14 +106,33 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
     if (dnaRes.truncated) return { ok: false, error: "truncated", message: "DNA output hit the token cap." };
     const dna = normalizeDna(extractJson<unknown>(dnaRes.text));
 
+    // 1.5) Retrieval grounding: if the brand has ingested sources, pull the
+    // chunks most relevant to the topic and feed them as <SOURCE> data so drafts
+    // draw on the person's real material (best-effort — never breaks generation).
+    const queryText = input.topic?.trim() || dna.summary;
+    let sourceContext: string | undefined;
+    if (db && ctx && hasEmbeddingKey()) {
+      try {
+        const t = forOrg(db, ctx.orgId);
+        if ((await t.countChunks(ctx.brandId)) > 0) {
+          const qv = await embedOne(queryText, "query");
+          const hits = await t.retrieve(ctx.brandId, qv, 6);
+          if (hits.length) sourceContext = hits.map((h, i) => `[${i + 1}] ${h.content}`).join("\n\n");
+        }
+      } catch {
+        /* grounding is best-effort */
+      }
+    }
+
     // 2) Drafts.
     const draftRes = await generateText({
       system: DRAFT_SYSTEM,
       user: buildDraftUserMessage({
         dna,
-        topic: input.topic?.trim() || dna.summary,
+        topic: queryText,
         platform: input.platform,
         count,
+        source: sourceContext,
       }),
       maxTokens: 8192,
       anthropicModel: draftFallback,
@@ -152,6 +179,7 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
         dnaPrompt: `${DNA_PROMPT_ID}@${DNA_PROMPT_VERSION}`,
         draftPrompt: `${DRAFT_PROMPT_ID}@${DRAFT_PROMPT_VERSION}`,
         cost: estimate,
+        grounded: !!sourceContext,
       },
     };
   } catch (e) {

@@ -54,7 +54,8 @@
     "truncated": "The response exceeded the token cap. Lower the number of drafts or try again.",
     "errorGeneric": "Generation failed. Check the key and try again.",
     "meta": "Models: {dnaModel} for DNA · {draftModel} for drafts",
-    "insufficientCredits": "Not enough credits for this run. Upgrade your plan or wait for your balance to refill."
+    "insufficientCredits": "Not enough credits for this run. Upgrade your plan or wait for your balance to refill.",
+    "grounded": "Grounded on your sources"
   },
   "Legal": {
     "termsTitle": "Terms of Service",
