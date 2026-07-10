@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
   // Pin the workspace root (a stray lockfile in $HOME was being inferred).
   turbopack: { root: import.meta.dirname },
 
+  // Allow the dev server's assets/HMR to be requested cross-origin from a phone
+  // on the LAN (Next 16 blocks this by default and prints a warning otherwise).
+  allowedDevOrigins: ["10.207.10.120"],
+
   // Server Actions (login/signup, generation) are CSRF-protected by comparing
   // Origin vs Host. When you open the dev server from a phone via the machine's
   // LAN IP instead of localhost, that check rejects the action and login fails.
