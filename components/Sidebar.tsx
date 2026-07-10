@@ -38,7 +38,7 @@ export function Sidebar({ balance = null }: { balance?: number | null }) {
     >
       <Link href="/" className="app-brand">
         <Logo size={34} />
-        <div style={{ fontWeight: 700, fontSize: 16 }}>
+        <div className="app-brand-text" style={{ fontWeight: 700, fontSize: 16 }}>
           {brand("name")}
           <span style={{ color: "var(--teal-light)" }}> {brand("ai")}</span>
         </div>

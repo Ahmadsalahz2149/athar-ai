@@ -16,7 +16,7 @@ export default async function IngestPage({ params }: { params: Promise<{ locale:
       <h1 style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 700, color: "var(--heading)", letterSpacing: "-.4px" }}>{t("title")}</h1>
       <p style={{ fontSize: 15, color: "var(--muted)", lineHeight: 1.7, marginBlock: "6px 24px" }}>{t("subtitle")}</p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 20 }}>
+      <div className="col-2">
         <div>
           <div style={{ border: "2px dashed var(--border-2)", borderRadius: 16, padding: "40px 20px", textAlign: "center", background: "var(--surface)" }}>
             <div style={{ width: 46, height: 46, margin: "0 auto", borderRadius: 12, display: "grid", placeItems: "center", background: "var(--teal-tint)" }}>
