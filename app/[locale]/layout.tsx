@@ -45,7 +45,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={dir} className={`${plexArabic.variable} ${inter.variable}`}>
-      <body style={{ fontFamily, minHeight: "100vh" }}>
+      <body style={{ fontFamily, minHeight: "100vh" }} suppressHydrationWarning>
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>
