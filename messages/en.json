@@ -113,7 +113,18 @@
     "pipelineTitle": "How it works",
     "pipeline": "Transcribe & analyze,Build Content DNA,Extract ideas,Generate drafts,Review & approve,Publish",
     "pasteCta": "Or paste your posts directly in the Studio",
-    "pasteBtn": "Open the Studio"
+    "pasteBtn": "Open the Studio",
+    "textTitle": "Paste text to import",
+    "titlePlaceholder": "Source title (optional) — e.g. Podcast interview",
+    "textPlaceholder": "Paste an article, posts, or any text of yours (at least 150 characters)…",
+    "ingestBtn": "Import & analyze",
+    "ingesting": "Importing…",
+    "ingestDone": "Added {chunks} chunks · {total} total chunks for your brand.",
+    "needText": "Text is too short. Paste at least 150 characters.",
+    "needEmbedKey": "Voyage key not set. Add VOYAGE_API_KEY to .env.local.",
+    "needSession": "Sign in first to save the source.",
+    "insufficientCredits": "Not enough credits for this run.",
+    "ingestError": "Import failed."
   },
   "Analysis": {
     "title": "File analysis",

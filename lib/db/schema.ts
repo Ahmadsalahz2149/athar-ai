@@ -6,6 +6,8 @@ import {
   jsonb,
   timestamp,
   uniqueIndex,
+  index,
+  vector,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -96,5 +98,46 @@ export const creditLedger = pgTable(
     uniqueIndex("credit_ledger_signup_grant_uq")
       .on(t.orgId)
       .where(sql`${t.reason} = 'signup_grant'`),
+  ],
+);
+
+// A piece of ingested content (pasted text now; URL/PDF/audio in Stage 4).
+export const sources = pgTable("sources", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id")
+    .notNull()
+    .references(() => organizations.id),
+  brandId: uuid("brand_id")
+    .notNull()
+    .references(() => brands.id),
+  // English enum values only (A6): text | url | pdf | audio.
+  kind: text("kind").notNull().default("text"),
+  title: text("title"),
+  // pending | processing | ready | failed.
+  status: text("status").notNull().default("ready"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+// Retrieval unit: a chunk of a source plus its Voyage embedding (ADR-003).
+export const sourceChunks = pgTable(
+  "source_chunks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    brandId: uuid("brand_id").notNull(),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id),
+    idx: integer("idx").notNull(),
+    content: text("content").notNull(),
+    tokens: integer("tokens"),
+    embedding: vector("embedding", { dimensions: 1024 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    // HNSW cosine index for approximate nearest-neighbour retrieval.
+    index("source_chunks_embedding_idx").using("hnsw", t.embedding.op("vector_cosine_ops")),
+    index("source_chunks_brand_idx").on(t.orgId, t.brandId),
   ],
 );

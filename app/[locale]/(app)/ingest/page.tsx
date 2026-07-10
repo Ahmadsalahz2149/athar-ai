@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { IngestText } from "./IngestText";
 
 const split = (s: string) => s.split(/[،,]/).map((x) => x.trim()).filter(Boolean);
 
@@ -18,7 +19,9 @@ export default async function IngestPage({ params }: { params: Promise<{ locale:
 
       <div className="col-2">
         <div>
-          <div style={{ border: "2px dashed var(--border-2)", borderRadius: 16, padding: "40px 20px", textAlign: "center", background: "var(--surface)" }}>
+          <IngestText />
+
+          <div style={{ marginBlockStart: 18, border: "2px dashed var(--border-2)", borderRadius: 16, padding: "26px 20px", textAlign: "center", background: "var(--surface)" }}>
             <div style={{ width: 46, height: 46, margin: "0 auto", borderRadius: 12, display: "grid", placeItems: "center", background: "var(--teal-tint)" }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                 <path d="M12 3v11m0-11 4 4m-4-4-4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="#0E9488" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />

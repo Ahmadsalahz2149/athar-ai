@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 import type { ContentDna } from "@/lib/ai/prompts";
@@ -162,6 +162,74 @@ export function forOrg(db: Db, orgId: string) {
 
     async debit(amount: number, reason: string, refType?: string, refId?: string): Promise<number> {
       return appendLedger(-Math.abs(amount), reason, refType, refId);
+    },
+
+    // --- Sources & retrieval (pgvector; org + brand scoped) ---
+    async saveSource(
+      brandId: string,
+      s: { kind?: string; title?: string | null; status?: string },
+    ): Promise<string> {
+      await assertBrand(brandId);
+      const [row] = await db
+        .insert(schema.sources)
+        .values({
+          orgId,
+          brandId,
+          kind: s.kind ?? "text",
+          title: s.title ?? null,
+          status: s.status ?? "ready",
+        })
+        .returning();
+      return row.id;
+    },
+
+    async saveChunks(
+      brandId: string,
+      sourceId: string,
+      items: { idx: number; content: string; embedding: number[]; tokens?: number }[],
+    ): Promise<number> {
+      await assertBrand(brandId);
+      if (!items.length) return 0;
+      await db.insert(schema.sourceChunks).values(
+        items.map((it) => ({
+          orgId,
+          brandId,
+          sourceId,
+          idx: it.idx,
+          content: it.content,
+          tokens: it.tokens ?? null,
+          embedding: it.embedding,
+        })),
+      );
+      return items.length;
+    },
+
+    /** Cosine-nearest chunks for a query embedding, scoped to this org + brand. */
+    async retrieve(
+      brandId: string,
+      queryEmbedding: number[],
+      k = 6,
+    ): Promise<{ content: string; sourceId: string; distance: number }[]> {
+      const vec = `[${queryEmbedding.join(",")}]`;
+      const distance = sql<number>`${schema.sourceChunks.embedding} <=> ${vec}::vector`;
+      return db
+        .select({
+          content: schema.sourceChunks.content,
+          sourceId: schema.sourceChunks.sourceId,
+          distance,
+        })
+        .from(schema.sourceChunks)
+        .where(and(eq(schema.sourceChunks.orgId, orgId), eq(schema.sourceChunks.brandId, brandId)))
+        .orderBy(distance)
+        .limit(k);
+    },
+
+    async countChunks(brandId: string): Promise<number> {
+      const rows = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(schema.sourceChunks)
+        .where(and(eq(schema.sourceChunks.orgId, orgId), eq(schema.sourceChunks.brandId, brandId)));
+      return rows[0]?.n ?? 0;
     },
   };
 }

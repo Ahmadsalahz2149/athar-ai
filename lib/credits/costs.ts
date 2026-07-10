@@ -6,7 +6,12 @@ export const START_GRANT = 200;
 export const COSTS = {
   dna: 10,
   draft: 2,
+  ingest: 3,
 } as const;
+
+export function estimateIngest(): number {
+  return COSTS.ingest;
+}
 
 export function estimateStudio(count: number): number {
   const n = Math.max(1, Math.min(5, Math.floor(count) || 1));
