@@ -15,9 +15,34 @@ jobs:
       - run: npm ci
       - name: Build (typecheck + compile)
         run: npm run build
-      - name: Tenancy test (requires DATABASE_URL secret to run for real)
+      - name: Tests (tenancy + credits + eval rubric)
         run: npm run test
         env:
           # Add DATABASE_URL as a repo secret (a throwaway/test Postgres) so the
-          # tenancy test runs. Without it the suite skips instead of failing.
+          # tenancy + credit-ledger tests run. Without it those skip; the pure
+          # rubric + credit-math tests always run.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  eval:
+    # Golden-set quality gate. Runs only when the ANTHROPIC_API_KEY secret exists
+    # (it spends tokens), so forks/PRs without the secret don't fail here.
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Golden-set eval (skips if no ANTHROPIC_API_KEY)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Keep the CI eval cheap unless overridden in repo variables.
+          ANTHROPIC_DNA_MODEL: ${{ vars.ANTHROPIC_DNA_MODEL }}
+          ANTHROPIC_DRAFT_MODEL: ${{ vars.ANTHROPIC_DRAFT_MODEL }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "No ANTHROPIC_API_KEY secret — skipping the quality eval."
+            exit 0
+          fi
+          npm run eval
