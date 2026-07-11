@@ -70,7 +70,10 @@
     "postScore": "درجة المنشور",
     "dnaMatchScore": "مطابقة البصمة",
     "submitApproval": "أرسل للموافقة",
-    "submitted": "أُرسل ✓"
+    "submitted": "أُرسل ✓",
+    "guardBlocked": "المسودّة تحتوي ما قد لا يصلح للنشر ({issues}) — عُدّلها قبل التصدير.",
+    "shareLinkedin": "انشر على LinkedIn",
+    "shareX": "انشر على X"
   },
   "Legal": {
     "termsTitle": "شروط الاستخدام",

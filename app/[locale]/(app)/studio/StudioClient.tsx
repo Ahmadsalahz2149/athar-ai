@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { generateStudio, submitForApproval, type GenerateResult } from "./actions";
+import { checkContent } from "@/lib/ai/guardrails";
 import {
   PROVIDERS,
   MODEL_CATALOG,
@@ -12,6 +13,18 @@ import {
 } from "@/lib/ai/catalog";
 
 const PLATFORMS = ["LinkedIn", "X / Twitter", "Instagram"] as const;
+
+const shareLink: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "8px 16px",
+  borderRadius: 10,
+  border: "1px solid var(--border-2)",
+  background: "var(--card)",
+  fontSize: 13,
+  fontWeight: 600,
+  color: "var(--navy)",
+};
 
 export function StudioClient() {
   const t = useTranslations("Studio");
@@ -273,17 +286,35 @@ export function StudioClient() {
                 <div style={{ whiteSpace: "pre-wrap", color: "var(--slate)", fontSize: 14.5, lineHeight: 1.9 }}>
                   {current.body}
                 </div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBlockStart: 14 }}>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard?.writeText(`${current.hook}\n\n${current.body}`);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 1500);
-                    }}
-                    style={{ padding: "8px 16px", borderRadius: 10, border: "1px solid var(--border-2)", background: "var(--card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--navy)" }}
-                  >
-                    {copied ? t("copied") : t("copy")}
-                  </button>
+                {(() => {
+                  const full = `${current.hook}\n\n${current.body}`;
+                  const guard = checkContent(full);
+                  const enc = encodeURIComponent(full);
+                  return (
+                    <>
+                      {!guard.ok && (
+                        <p style={{ marginBlockStart: 12, padding: "10px 14px", borderRadius: 10, background: "var(--coral-tint)", border: "1px solid rgba(224,101,74,.3)", color: "var(--coral)", fontSize: 13 }}>
+                          {t("guardBlocked", { issues: guard.violations.join(", ") })}
+                        </p>
+                      )}
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBlockStart: 14, opacity: guard.ok ? 1 : 0.5, pointerEvents: guard.ok ? "auto" : "none" }}>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard?.writeText(full);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 1500);
+                          }}
+                          style={{ padding: "8px 16px", borderRadius: 10, border: "1px solid var(--border-2)", background: "var(--card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--navy)" }}
+                        >
+                          {copied ? t("copied") : t("copy")}
+                        </button>
+                        <a href={`https://www.linkedin.com/feed/?shareActive=true&text=${enc}`} target="_blank" rel="noopener noreferrer" style={shareLink}>{t("shareLinkedin")}</a>
+                        <a href={`https://twitter.com/intent/tweet?text=${enc}`} target="_blank" rel="noopener noreferrer" style={shareLink}>{t("shareX")}</a>
+                      </div>
+                    </>
+                  );
+                })()}
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBlockStart: 10 }}>
                   {current.id && (
                     <button
                       onClick={() => {

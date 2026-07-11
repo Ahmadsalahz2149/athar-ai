@@ -70,7 +70,10 @@
     "postScore": "Post Score",
     "dnaMatchScore": "DNA Match",
     "submitApproval": "Submit for approval",
-    "submitted": "Submitted ✓"
+    "submitted": "Submitted ✓",
+    "guardBlocked": "This draft contains content that may be unsafe to publish ({issues}) — edit before export.",
+    "shareLinkedin": "Share to LinkedIn",
+    "shareX": "Share to X"
   },
   "Legal": {
     "termsTitle": "Terms of Service",

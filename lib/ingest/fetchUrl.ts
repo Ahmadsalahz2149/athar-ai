@@ -1,54 +1,23 @@
 import "server-only";
 import dns from "node:dns/promises";
-import net from "node:net";
 import { extractPdfText } from "./extractPdf";
+import { isPrivateIp, assertSafeUrl } from "./ssrf";
 
 /**
  * SSRF-safe URL fetch (RISKS #8). Guards: https/http only, standard ports,
- * DNS-resolved private/loopback/link-local IPs blocked, one re-validated redirect
- * hop, size cap + timeout. (Full DNS-rebinding pinning is a later hardening pass.)
+ * internal hostnames + DNS-resolved private/loopback/link-local IPs blocked, one
+ * re-validated redirect hop, size cap + timeout. Pure checks live in ssrf.ts.
  */
 const MAX_BYTES = 5 * 1024 * 1024;
 const TIMEOUT_MS = 12000;
 
-function isPrivateIp(ip: string): boolean {
-  if (net.isIPv4(ip)) {
-    const [a, b] = ip.split(".").map(Number);
-    if (a === 0 || a === 10 || a === 127) return true;
-    if (a === 169 && b === 254) return true; // link-local
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    if (a === 192 && b === 168) return true;
-    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
-    return false;
-  }
-  if (net.isIPv6(ip)) {
-    const l = ip.toLowerCase();
-    if (l === "::1" || l === "::") return true;
-    if (l.startsWith("fc") || l.startsWith("fd")) return true; // unique-local
-    if (l.startsWith("fe80")) return true; // link-local
-    if (l.startsWith("::ffff:")) return isPrivateIp(l.slice(7)); // v4-mapped
-    return false;
-  }
-  return true; // unknown format → block
-}
-
-async function assertPublicHost(hostname: string): Promise<void> {
-  if (net.isIP(hostname)) {
-    if (isPrivateIp(hostname)) throw new Error("blocked private address");
-    return;
-  }
-  const lower = hostname.toLowerCase();
-  if (lower === "localhost" || lower.endsWith(".local") || lower.endsWith(".internal")) {
-    throw new Error("blocked internal host");
-  }
+async function assertPublicDns(hostname: string): Promise<void> {
+  // Literal IPs / internal names are handled by assertSafeUrl; here we resolve
+  // real hostnames and reject any private/loopback answer.
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname) || hostname.includes(":")) return;
   const addrs = await dns.lookup(hostname, { all: true });
   if (!addrs.length) throw new Error("DNS resolution failed");
   for (const a of addrs) if (isPrivateIp(a.address)) throw new Error("host resolves to a private address");
-}
-
-function assertUrl(u: URL): void {
-  if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("only http/https URLs are allowed");
-  if (u.port && !["", "80", "443"].includes(u.port)) throw new Error("non-standard port not allowed");
 }
 
 export async function fetchUrlText(rawUrl: string): Promise<{ text: string; title: string }> {
@@ -58,8 +27,8 @@ export async function fetchUrlText(rawUrl: string): Promise<{ text: string; titl
   } catch {
     throw new Error("invalid URL");
   }
-  assertUrl(url);
-  await assertPublicHost(url.hostname);
+  assertSafeUrl(url);
+  await assertPublicDns(url.hostname);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -73,8 +42,8 @@ export async function fetchUrlText(rawUrl: string): Promise<{ text: string; titl
       const loc = res.headers.get("location");
       if (!loc) throw new Error("redirect without location");
       url = new URL(loc, url);
-      assertUrl(url);
-      await assertPublicHost(url.hostname);
+      assertSafeUrl(url);
+      await assertPublicDns(url.hostname);
       res = await fetch(url, { redirect: "error", signal: controller.signal, headers });
     }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -99,12 +68,10 @@ export async function fetchUrlText(rawUrl: string): Promise<{ text: string; titl
 function fileNameOf(u: URL): string {
   return decodeURIComponent(u.pathname.split("/").filter(Boolean).pop() || u.hostname);
 }
-
 function htmlTitle(html: string): string {
   const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return m ? m[1].replace(/\s+/g, " ").trim() : "";
 }
-
 function htmlToText(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
