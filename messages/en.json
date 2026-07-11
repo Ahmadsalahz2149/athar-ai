@@ -24,7 +24,10 @@
     "noNotifications": "No notifications yet",
     "account": "Account",
     "settings": "Settings",
-    "ideas": "Ideas Bank"
+    "ideas": "Ideas Bank",
+    "calendar": "Calendar",
+    "approvals": "Approvals",
+    "analytics": "Analytics"
   },
   "Home": {
     "badge": "✦ Personal Brand Growth OS",
@@ -259,5 +262,36 @@
     "needKey": "Add a provider key to .env.local.",
     "insufficientCredits": "Not enough credits.",
     "error": "Could not generate ideas."
+  },
+  "Approvals": {
+    "title": "Approvals",
+    "subtitle": "Review submitted drafts and approve or send back for edits.",
+    "pendingBanner": "{n} awaiting review",
+    "approveAll": "Approve all",
+    "tab_pending": "Pending",
+    "tab_approved": "Approved",
+    "tab_scheduled": "Scheduled",
+    "empty": "Nothing here.",
+    "approve": "Approve & schedule",
+    "reject": "Send back"
+  },
+  "Calendar": {
+    "title": "Calendar",
+    "subtitle": "Your scheduled posts across the month.",
+    "weekdays": "Sun،Mon،Tue،Wed،Thu،Fri،Sat",
+    "hint": "Approve a draft in Approvals to see it scheduled here."
+  },
+  "Analytics": {
+    "title": "Analytics",
+    "subtitle": "How your content performs — and what works.",
+    "sampleBadge": "Sample data — activates after publishing + platform integration",
+    "reach": "Reach",
+    "engagement": "Engagement",
+    "followers": "New followers",
+    "rate": "Engagement rate",
+    "engagementOverTime": "Engagement over time",
+    "insightTitle": "What works",
+    "insightBody": "Story posts drove 42% higher engagement — update your DNA with this signal.",
+    "updateDna": "Update DNA"
   }
 }
