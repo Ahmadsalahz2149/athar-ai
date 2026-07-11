@@ -1,4 +1,4 @@
-import type { ContentDna } from "./prompts";
+import type { ContentDna, FileAnalysis } from "./prompts";
 
 export type Draft = { hook: string; body: string };
 
@@ -16,6 +16,19 @@ export function normalizeDna(raw: unknown): ContentDna {
     dos: arr(o.dos),
     donts: arr(o.donts),
     completion_pct: Number.isFinite(pct) ? Math.max(0, Math.min(100, Math.round(pct))) : 0,
+  };
+}
+
+const strArr = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x)).filter(Boolean) : []);
+
+export function normalizeAnalysis(raw: unknown): FileAnalysis {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  return {
+    summary: typeof o.summary === "string" ? o.summary : "",
+    key_ideas: strArr(o.key_ideas),
+    quotes: strArr(o.quotes),
+    audience_problems: strArr(o.audience_problems),
+    content_opportunities: strArr(o.content_opportunities),
   };
 }
 

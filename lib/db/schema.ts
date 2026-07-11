@@ -55,12 +55,17 @@ export const drafts = pgTable("drafts", {
     .notNull()
     .references(() => brands.id),
   dnaVersionId: uuid("dna_version_id").references(() => dnaVersions.id),
+  ideaId: uuid("idea_id"),
   platform: text("platform").notNull(),
   topic: text("topic"),
   hook: text("hook").notNull(),
   body: text("body").notNull(),
   // English enum values only — never store display strings (A6).
+  // status: draft | pending | approved | needs_edit | scheduled | published
   status: text("status").notNull().default("draft"),
+  postScore: integer("post_score").notNull().default(0),
+  dnaMatch: integer("dna_match").notNull().default(0),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
@@ -100,6 +105,36 @@ export const creditLedger = pgTable(
       .where(sql`${t.reason} = 'signup_grant'`),
   ],
 );
+
+// Per-source AI analysis (summary, key ideas, quotes, etc.). One row per source.
+export const analyses = pgTable("analyses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id").notNull(),
+  brandId: uuid("brand_id").notNull(),
+  sourceId: uuid("source_id").notNull(),
+  summary: text("summary").notNull(),
+  keyIdeas: jsonb("key_ideas").notNull(),
+  quotes: jsonb("quotes").notNull(),
+  audience: jsonb("audience"),
+  opportunities: jsonb("opportunities"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// A content idea (from a topic, a source, or trending) with a predicted score.
+export const ideas = pgTable("ideas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id").notNull(),
+  brandId: uuid("brand_id").notNull(),
+  sourceId: uuid("source_id"),
+  title: text("title").notNull(),
+  angle: text("angle"),
+  // bucket: suggested | source | trending  ·  status: new | saved | used
+  bucket: text("bucket").notNull().default("suggested"),
+  status: text("status").notNull().default("new"),
+  postScore: integer("post_score").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
 
 // A piece of ingested content (pasted text now; URL/PDF/audio in Stage 4).
 export const sources = pgTable("sources", {

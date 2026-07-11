@@ -231,5 +231,172 @@ export function forOrg(db: Db, orgId: string) {
         .where(and(eq(schema.sourceChunks.orgId, orgId), eq(schema.sourceChunks.brandId, brandId)));
       return rows[0]?.n ?? 0;
     },
+
+    /** Sources for the brand, each with its chunk count + analyzed flag. */
+    async listSources(brandId: string) {
+      const rows = await db
+        .select()
+        .from(schema.sources)
+        .where(
+          and(
+            eq(schema.sources.orgId, orgId),
+            eq(schema.sources.brandId, brandId),
+            isNull(schema.sources.deletedAt),
+          ),
+        )
+        .orderBy(desc(schema.sources.createdAt));
+      const counts = await db
+        .select({ sourceId: schema.sourceChunks.sourceId, n: sql<number>`count(*)::int` })
+        .from(schema.sourceChunks)
+        .where(and(eq(schema.sourceChunks.orgId, orgId), eq(schema.sourceChunks.brandId, brandId)))
+        .groupBy(schema.sourceChunks.sourceId);
+      const analyzed = await db
+        .select({ sourceId: schema.analyses.sourceId })
+        .from(schema.analyses)
+        .where(and(eq(schema.analyses.orgId, orgId), eq(schema.analyses.brandId, brandId)));
+      const cmap = new Map(counts.map((c) => [c.sourceId, c.n]));
+      const aset = new Set(analyzed.map((a) => a.sourceId));
+      return rows.map((r) => ({ ...r, chunks: cmap.get(r.id) ?? 0, analyzed: aset.has(r.id) }));
+    },
+
+    async getSource(brandId: string, sourceId: string) {
+      const rows = await db
+        .select()
+        .from(schema.sources)
+        .where(
+          and(
+            eq(schema.sources.id, sourceId),
+            eq(schema.sources.orgId, orgId),
+            eq(schema.sources.brandId, brandId),
+          ),
+        )
+        .limit(1);
+      return rows[0] ?? null;
+    },
+
+    async sourceChunkTexts(brandId: string, sourceId: string, limit = 40): Promise<string[]> {
+      const rows = await db
+        .select({ content: schema.sourceChunks.content })
+        .from(schema.sourceChunks)
+        .where(
+          and(
+            eq(schema.sourceChunks.orgId, orgId),
+            eq(schema.sourceChunks.brandId, brandId),
+            eq(schema.sourceChunks.sourceId, sourceId),
+          ),
+        )
+        .orderBy(schema.sourceChunks.idx)
+        .limit(limit);
+      return rows.map((r) => r.content);
+    },
+
+    async getAnalysis(brandId: string, sourceId: string) {
+      const rows = await db
+        .select()
+        .from(schema.analyses)
+        .where(
+          and(
+            eq(schema.analyses.orgId, orgId),
+            eq(schema.analyses.brandId, brandId),
+            eq(schema.analyses.sourceId, sourceId),
+          ),
+        )
+        .limit(1);
+      return rows[0] ?? null;
+    },
+
+    async saveAnalysis(
+      brandId: string,
+      sourceId: string,
+      a: { summary: string; keyIdeas: unknown; quotes: unknown; audience?: unknown; opportunities?: unknown },
+    ): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .delete(schema.analyses)
+        .where(
+          and(
+            eq(schema.analyses.orgId, orgId),
+            eq(schema.analyses.brandId, brandId),
+            eq(schema.analyses.sourceId, sourceId),
+          ),
+        );
+      await db.insert(schema.analyses).values({
+        orgId,
+        brandId,
+        sourceId,
+        summary: a.summary,
+        keyIdeas: a.keyIdeas,
+        quotes: a.quotes,
+        audience: a.audience ?? null,
+        opportunities: a.opportunities ?? null,
+      });
+    },
+
+    // --- Ideas (used from Phase 3) ---
+    async listIdeas(brandId: string, opts?: { status?: string; limit?: number }) {
+      const conds = [
+        eq(schema.ideas.orgId, orgId),
+        eq(schema.ideas.brandId, brandId),
+        isNull(schema.ideas.deletedAt),
+      ];
+      if (opts?.status) conds.push(eq(schema.ideas.status, opts.status));
+      return db
+        .select()
+        .from(schema.ideas)
+        .where(and(...conds))
+        .orderBy(desc(schema.ideas.postScore), desc(schema.ideas.createdAt))
+        .limit(opts?.limit ?? 60);
+    },
+
+    async saveIdeas(
+      brandId: string,
+      items: { title: string; angle?: string; bucket?: string; postScore?: number; sourceId?: string }[],
+    ): Promise<number> {
+      await assertBrand(brandId);
+      if (!items.length) return 0;
+      await db.insert(schema.ideas).values(
+        items.map((it) => ({
+          orgId,
+          brandId,
+          sourceId: it.sourceId ?? null,
+          title: it.title,
+          angle: it.angle ?? null,
+          bucket: it.bucket ?? "suggested",
+          postScore: it.postScore ?? 0,
+        })),
+      );
+      return items.length;
+    },
+
+    async setIdeaStatus(brandId: string, ideaId: string, status: string): Promise<void> {
+      await db
+        .update(schema.ideas)
+        .set({ status })
+        .where(
+          and(
+            eq(schema.ideas.id, ideaId),
+            eq(schema.ideas.orgId, orgId),
+            eq(schema.ideas.brandId, brandId),
+          ),
+        );
+    },
+
+    /** Live counts for the Dashboard KPIs. */
+    async counts(brandId: string) {
+      const one = async (table: typeof schema.sources | typeof schema.ideas | typeof schema.drafts, extra?: ReturnType<typeof eq>) => {
+        const conds = [eq(table.orgId, orgId), eq(table.brandId, brandId)];
+        if (extra) conds.push(extra);
+        const rows = await db.select({ n: sql<number>`count(*)::int` }).from(table).where(and(...conds));
+        return rows[0]?.n ?? 0;
+      };
+      const [sources, ideas, drafts, pending, scheduled] = await Promise.all([
+        one(schema.sources),
+        one(schema.ideas),
+        one(schema.drafts),
+        one(schema.drafts, eq(schema.drafts.status, "pending")),
+        one(schema.drafts, eq(schema.drafts.status, "scheduled")),
+      ]);
+      return { sources, ideas, drafts, pending, scheduled };
+    },
   };
 }

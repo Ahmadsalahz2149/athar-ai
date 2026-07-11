@@ -36,6 +36,13 @@
       "when": 1783712945464,
       "tag": "0004_sources_retrieval",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783732874175,
+      "tag": "0005_ideas_analyses_scoring",
+      "breakpoints": true
     }
   ]
 }

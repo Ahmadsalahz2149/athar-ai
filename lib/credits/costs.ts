@@ -8,7 +8,13 @@ export const COSTS = {
   draft: 2,
   ingest: 3,
   transcribe: 15,
+  analyze: 8,
+  idea: 1,
 } as const;
+
+export function estimateAnalyze(): number {
+  return COSTS.analyze;
+}
 
 export function estimateIngest(): number {
   return COSTS.ingest;

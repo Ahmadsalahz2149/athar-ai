@@ -16,7 +16,8 @@
     "privacy": "Privacy",
     "switchTo": "العربية",
     "creditsLeft": "{n} credits left",
-    "menu": "Menu"
+    "menu": "Menu",
+    "vault": "Knowledge Vault"
   },
   "Home": {
     "badge": "✦ Personal Brand Growth OS",
@@ -152,11 +153,27 @@
     "fileTitle": "Personal Brand Course.pdf",
     "fileMeta": "PDF · 21 Jun 2026 · Analyzed 100%",
     "summaryLabel": "Executive summary",
-    "summary": "A complete method for building an influential personal brand from zero to your first 1,000 real followers, focused on finding your unique angle and building trust before selling.",
+    "summary": "Executive summary",
     "ideasLabel": "Key extracted ideas",
     "ideas": "Your unique angle is discovered, not invented|Trust always precedes the sale|Consistency beats perfection|Educational content alone doesn't sell",
     "quotesLabel": "Strongest quotes",
-    "quotes": "People don't buy what you know — they buy their trust in you.|Content that excludes no one attracts no one."
+    "quotes": "Strong quotes",
+    "backToVault": "Back to vault",
+    "source": "Source",
+    "untitled": "Untitled",
+    "notAnalyzedTitle": "Not analyzed yet",
+    "notAnalyzedBody": "Run analysis to extract the summary, ideas, and quotes.",
+    "analyzeNow": "Analyze now",
+    "reanalyze": "Re-analyze",
+    "analyzing": "Analyzing…",
+    "keyIdeas": "Key ideas",
+    "audienceProblems": "Audience problems",
+    "opportunities": "Content opportunities",
+    "turnIntoPosts": "Turn into drafts",
+    "needKey": "Add a provider key to .env.local.",
+    "insufficientCredits": "Not enough credits.",
+    "noChunks": "This source has no content.",
+    "error": "Analysis failed."
   },
   "Dna": {
     "title": "Content DNA",
@@ -174,5 +191,21 @@
     "completionLabel": "DNA completeness",
     "empty": "No content DNA yet. Build it from a quick interview or by pasting your posts.",
     "emptyCta": "Build your DNA"
+  },
+  "Vault": {
+    "title": "Knowledge Vault",
+    "subtitle": "All your imported sources in one place.",
+    "addSource": "Add source",
+    "emptyTitle": "No sources yet",
+    "emptyBody": "Start by importing audio, text, or a link.",
+    "analyzed": "Analyzed",
+    "needsAnalysis": "Needs analysis",
+    "untitled": "Untitled",
+    "chunks": "{n} chunks",
+    "kind_text": "Text",
+    "kind_audio": "Audio",
+    "kind_video": "Video",
+    "kind_pdf": "PDF",
+    "kind_url": "Link"
   }
 }
