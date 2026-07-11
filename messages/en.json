@@ -17,7 +17,13 @@
     "switchTo": "العربية",
     "creditsLeft": "{n} credits left",
     "menu": "Menu",
-    "vault": "Knowledge Vault"
+    "vault": "Knowledge Vault",
+    "home": "Home",
+    "search": "Search…",
+    "notifications": "Notifications",
+    "noNotifications": "No notifications yet",
+    "account": "Account",
+    "settings": "Settings"
   },
   "Home": {
     "badge": "✦ Personal Brand Growth OS",
@@ -207,5 +213,31 @@
     "kind_video": "Video",
     "kind_pdf": "PDF",
     "kind_url": "Link"
+  },
+  "Dashboard": {
+    "greeting": "Welcome to Athar",
+    "subtitle": "Your command center — from idea to publish.",
+    "kpiDna": "DNA completeness",
+    "kpiSources": "Knowledge sources",
+    "kpiIdeas": "Ready ideas",
+    "kpiPending": "Awaiting approval",
+    "kpiScheduled": "Scheduled posts",
+    "recTitle": "Athar recommends",
+    "recNoSources": "Start by uploading your first source (audio/text/link) so Athar learns your voice.",
+    "recBuildDna": "Your DNA is incomplete — extract it from your sources in the Studio.",
+    "recWrite": "Time to write — create your first 3 drafts in your voice.",
+    "recReview": "Review your drafts and approve them to publish.",
+    "recUpload": "Upload a source",
+    "recStudio": "Open Studio",
+    "recApprovals": "Review approvals",
+    "pipeline": "Content pipeline",
+    "fIdeas": "Ideas",
+    "fWriting": "Drafts",
+    "fReview": "In review",
+    "fScheduled": "Scheduled",
+    "suggested": "Today's suggestions",
+    "qaUpload": "Upload new source",
+    "qaIdeas": "Generate ideas",
+    "qaStudio": "Write a draft"
   }
 }

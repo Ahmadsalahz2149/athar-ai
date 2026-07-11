@@ -149,6 +149,12 @@ select {
 .mobile-only {
   display: none;
 }
+/* Desktop-only controls (e.g. the header search) are hidden on phones. */
+@media (max-width: 640px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
 .nav-burger {
   align-items: center;
   justify-content: center;

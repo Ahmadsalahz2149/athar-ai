@@ -33,7 +33,7 @@ export function AuthForm() {
         setInfo(t("checkEmail"));
         return;
       }
-      router.push("/studio");
+      router.push("/dashboard");
       router.refresh();
     });
   }

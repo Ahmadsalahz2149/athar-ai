@@ -22,11 +22,13 @@ export default async function AppLayout({
   // Gate the app behind auth when Supabase is configured.
   const supabase = await getSupabaseServer();
   let balance: number | null = null;
+  let userEmail: string | undefined;
   if (supabase) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) redirect(`/${locale === "en" ? "en" : "ar"}/login`);
+    userEmail = user.email ?? undefined;
     const ctx = await ensureUserContext(user.id, user.email ?? undefined);
     if (ctx && db) {
       try {
@@ -42,7 +44,7 @@ export default async function AppLayout({
       <NavProvider>
         <Sidebar balance={balance} />
         <div className="app-main">
-          <AppTopBar />
+          <AppTopBar userEmail={userEmail} />
           <div className="app-content scb">{children}</div>
         </div>
       </NavProvider>

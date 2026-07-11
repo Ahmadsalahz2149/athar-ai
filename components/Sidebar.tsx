@@ -16,6 +16,7 @@ function Icon({ d }: { d: string }) {
 }
 
 const NAV: { href: string; key: string; icon: ReactNode }[] = [
+  { href: "/dashboard", key: "home", icon: <Icon d="M3 11l9-8 9 8M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" /> },
   { href: "/studio", key: "studio", icon: <Icon d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /> },
   { href: "/ingest", key: "ingest", icon: <Icon d="M12 3v10m0-10l3.5 3.5M12 3 8.5 6.5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /> },
   { href: "/vault", key: "vault", icon: <Icon d="M4 7a2 2 0 0 1 2-2h5l2 2h5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" /> },
