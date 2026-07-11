@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { signIn, signUp } from "@/lib/auth/actions";
 import { Logo, BrandWord } from "@/components/Logo";
 
@@ -68,6 +68,13 @@ export function AuthForm() {
         >
           {mode === "login" ? t("toSignup") : t("toLogin")}
         </button>
+        {mode === "login" && (
+          <div style={{ textAlign: "center", marginBlockStart: 10 }}>
+            <Link href="/forgot-password" style={{ color: "var(--muted)", fontSize: 13, fontWeight: 500 }}>
+              {t("forgotLink")}
+            </Link>
+          </div>
+        )}
       </form>
     </div>
   );

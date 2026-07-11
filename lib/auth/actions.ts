@@ -32,6 +32,20 @@ export async function signUp(input: { email: string; password: string }): Promis
   return { ok: true };
 }
 
+/** Always report success (don't leak whether the email exists). Real delivery
+ * depends on Supabase SMTP being configured (needs intervention otherwise). */
+export async function requestPasswordReset(email: string): Promise<{ ok: true }> {
+  const supabase = await getSupabaseServer();
+  if (supabase && email.trim()) {
+    try {
+      await supabase.auth.resetPasswordForEmail(email.trim());
+    } catch {
+      /* swallow — never leak existence */
+    }
+  }
+  return { ok: true };
+}
+
 export async function signOut(locale: string): Promise<void> {
   const supabase = await getSupabaseServer();
   if (supabase) await supabase.auth.signOut();

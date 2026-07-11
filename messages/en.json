@@ -92,7 +92,14 @@
     "signOut": "Sign out",
     "working": "One moment…",
     "checkEmail": "Check your email to confirm your account, then sign in.",
-    "genericError": "Couldn't complete that. Check your details."
+    "genericError": "Couldn't complete that. Check your details.",
+    "forgotLink": "Forgot password?",
+    "forgotTitle": "Reset your password",
+    "forgotBody": "Enter your email and we will send a reset link.",
+    "sendReset": "Send reset link",
+    "backToLogin": "Back to login",
+    "resetSentTitle": "Check your inbox",
+    "resetSentBody": "If that email is registered, you'll receive a reset link shortly."
   },
   "Onboarding": {
     "badge": "Quick start",
@@ -293,5 +300,35 @@
     "insightTitle": "What works",
     "insightBody": "Story posts drove 42% higher engagement — update your DNA with this signal.",
     "updateDna": "Update DNA"
+  },
+  "Settings": {
+    "title": "Settings",
+    "tab_profile": "Profile",
+    "tab_brand": "Brand & DNA",
+    "tab_team": "Team",
+    "tab_plan": "Plan & billing",
+    "tab_notifications": "Notifications",
+    "email": "Email",
+    "profileHint": "To change email or password, use the reset page.",
+    "dnaCompleteness": "DNA completeness",
+    "openDna": "Open Content DNA",
+    "addSamples": "Add samples",
+    "owner": "Owner",
+    "teamUpsellTitle": "Team is available on the Agency plan",
+    "teamUpsellBody": "Invite writers and reviewers and enable approval workflows — upgrade to Agency.",
+    "currentPlan": "Your plan",
+    "credits": "Credits",
+    "planFree": "Free",
+    "planPro": "Pro",
+    "planAgency": "Agency",
+    "pricePro": "99 SAR/mo",
+    "priceAgency": "299 SAR/mo",
+    "featPro": "Unlimited sources & platforms, advanced DNA, full analytics.",
+    "featAgency": "Everything in Pro + team, roles, multi-approval.",
+    "billingNote": "Upgrade & payment activate later (billing integration).",
+    "notif_analysis": "Analysis complete",
+    "notif_schedule": "Schedule reminders",
+    "notif_weekly": "Weekly recommendations",
+    "notif_marketing": "Marketing emails"
   }
 }
