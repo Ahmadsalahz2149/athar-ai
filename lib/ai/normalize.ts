@@ -32,6 +32,20 @@ export function normalizeAnalysis(raw: unknown): FileAnalysis {
   };
 }
 
+export function normalizeIdeas(raw: unknown): { title: string; angle: string }[] {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const list = Array.isArray(o.ideas) ? o.ideas : [];
+  return list
+    .map((d) => {
+      const x = (d ?? {}) as Record<string, unknown>;
+      return {
+        title: typeof x.title === "string" ? x.title : "",
+        angle: typeof x.angle === "string" ? x.angle : "",
+      };
+    })
+    .filter((i) => i.title.trim());
+}
+
 export function normalizeDrafts(raw: unknown): Draft[] {
   const o = (raw ?? {}) as Record<string, unknown>;
   const list = Array.isArray(o.drafts) ? o.drafts : [];

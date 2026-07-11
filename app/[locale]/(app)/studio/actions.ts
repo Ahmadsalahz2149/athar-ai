@@ -5,6 +5,7 @@ import { MODELS } from "@/lib/ai/models";
 import { isValidSelection, type ProviderId } from "@/lib/ai/catalog";
 import { extractJson } from "@/lib/ai/json";
 import { normalizeDna, normalizeDrafts, type Draft } from "@/lib/ai/normalize";
+import { postScore, dnaMatch } from "@/lib/ai/score";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { estimateStudio } from "@/lib/credits/costs";
@@ -38,7 +39,7 @@ export type GenerateResult =
   | {
       ok: true;
       dna: ContentDna;
-      drafts: Draft[];
+      drafts: (Draft & { id?: string; postScore: number; dnaMatch: number })[];
       meta: {
         dnaModel: string;
         draftModel: string;
@@ -53,6 +54,19 @@ export type GenerateResult =
       error: "no_key" | "too_few_posts" | "truncated" | "failed" | "insufficient_credits";
       message?: string;
     };
+
+/** Submit a persisted draft into the Approvals queue (status → pending). */
+export async function submitForApproval(draftId: string): Promise<{ ok: boolean }> {
+  try {
+    if (!db) return { ok: false };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false };
+    await forOrg(db, ctx.orgId).setDraftStatus(ctx.brandId, draftId, "pending");
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
 
 export async function generateStudio(input: GenerateInput): Promise<GenerateResult> {
   const posts = (input.posts ?? "").trim();
@@ -141,26 +155,34 @@ export async function generateStudio(input: GenerateInput): Promise<GenerateResu
       model,
     });
     if (draftRes.truncated) return { ok: false, error: "truncated", message: "Drafts output hit the token cap." };
-    const drafts = normalizeDrafts(extractJson<unknown>(draftRes.text));
+    const raw = normalizeDrafts(extractJson<unknown>(draftRes.text));
 
-    if (drafts.length === 0) {
+    if (raw.length === 0) {
       return { ok: false, error: "failed", message: "No drafts were parsed from the model response." };
     }
 
-    // Persist + debit (best-effort) to the signed-in user's brand — never break
-    // generation. The credit debit happens only after a successful generation,
-    // so a failed run never charges the user.
+    // Deterministic, explainable scores (Post Score + DNA Match).
+    const drafts: (Draft & { id?: string; postScore: number; dnaMatch: number })[] = raw.map((d) => ({
+      ...d,
+      postScore: postScore(d.hook, d.body),
+      dnaMatch: dnaMatch(`${d.hook}\n${d.body}`, dna),
+    }));
+
+    // Persist + debit (best-effort) — never break generation. Debit only after a
+    // successful generation, so a failed run never charges the user.
     try {
       if (db && ctx) {
         const t = forOrg(db, ctx.orgId);
         const dnaVersionId = await t.saveDna(ctx.brandId, dna);
         for (const d of drafts) {
-          await t.saveDraft(ctx.brandId, {
+          d.id = await t.saveDraft(ctx.brandId, {
             platform: input.platform,
             topic: input.topic,
             hook: d.hook,
             body: d.body,
             dnaVersionId,
+            postScore: d.postScore,
+            dnaMatch: d.dnaMatch,
           });
         }
         await t.debit(estimate, "studio_generation", "brand", ctx.brandId);

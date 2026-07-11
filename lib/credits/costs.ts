@@ -16,6 +16,10 @@ export function estimateAnalyze(): number {
   return COSTS.analyze;
 }
 
+export function estimateIdeas(count: number): number {
+  return Math.max(1, count) * COSTS.idea;
+}
+
 export function estimateIngest(): number {
   return COSTS.ingest;
 }

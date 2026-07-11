@@ -23,7 +23,8 @@
     "notifications": "Notifications",
     "noNotifications": "No notifications yet",
     "account": "Account",
-    "settings": "Settings"
+    "settings": "Settings",
+    "ideas": "Ideas Bank"
   },
   "Home": {
     "badge": "✦ Personal Brand Growth OS",
@@ -62,7 +63,11 @@
     "errorGeneric": "Generation failed. Check the key and try again.",
     "meta": "Models: {dnaModel} for DNA · {draftModel} for drafts",
     "insufficientCredits": "Not enough credits for this run. Upgrade your plan or wait for your balance to refill.",
-    "grounded": "Grounded on your sources"
+    "grounded": "Grounded on your sources",
+    "postScore": "Post Score",
+    "dnaMatchScore": "DNA Match",
+    "submitApproval": "Submit for approval",
+    "submitted": "Submitted ✓"
   },
   "Legal": {
     "termsTitle": "Terms of Service",
@@ -239,5 +244,20 @@
     "qaUpload": "Upload new source",
     "qaIdeas": "Generate ideas",
     "qaStudio": "Write a draft"
+  },
+  "Ideas": {
+    "title": "Ideas Bank",
+    "subtitle": "Scored post ideas in your voice — generate, save, and write.",
+    "topicPlaceholder": "Type a topic… (or leave blank to derive from your sources)",
+    "generate": "Generate ideas",
+    "generating": "Generating…",
+    "filterAll": "All",
+    "filterSaved": "Saved",
+    "empty": "No ideas yet — generate your first batch.",
+    "write": "Write",
+    "needDna": "Build your DNA first (in Studio or onboarding).",
+    "needKey": "Add a provider key to .env.local.",
+    "insufficientCredits": "Not enough credits.",
+    "error": "Could not generate ideas."
   }
 }

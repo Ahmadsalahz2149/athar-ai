@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { generateStudio, type GenerateResult } from "./actions";
+import { generateStudio, submitForApproval, type GenerateResult } from "./actions";
 import {
   PROVIDERS,
   MODEL_CATALOG,
@@ -27,6 +27,7 @@ export function StudioClient() {
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [activeDraft, setActiveDraft] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [submitted, setSubmitted] = useState<Record<number, boolean>>({});
   const [pending, startTransition] = useTransition();
 
   function onGenerate() {
@@ -262,32 +263,44 @@ export function StudioClient() {
 
             {current && (
               <div style={{ border: "1px solid var(--border)", borderRadius: "var(--r)", padding: 18, background: "var(--surface)" }}>
+                <div style={{ display: "flex", gap: 18, marginBlockEnd: 14, flexWrap: "wrap" }}>
+                  <Meter label={t("postScore")} value={current.postScore} color="var(--teal)" nf={nf} />
+                  <Meter label={t("dnaMatchScore")} value={current.dnaMatch} color="var(--gold)" nf={nf} />
+                </div>
                 <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 16, lineHeight: 1.7, marginBlockEnd: 10 }}>
                   {current.hook}
                 </div>
                 <div style={{ whiteSpace: "pre-wrap", color: "var(--slate)", fontSize: 14.5, lineHeight: 1.9 }}>
                   {current.body}
                 </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard?.writeText(`${current.hook}\n\n${current.body}`);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1500);
-                  }}
-                  style={{
-                    marginBlockStart: 14,
-                    padding: "8px 16px",
-                    borderRadius: 10,
-                    border: "1px solid var(--border-2)",
-                    background: "var(--card)",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "var(--navy)",
-                  }}
-                >
-                  {copied ? t("copied") : t("copy")}
-                </button>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBlockStart: 14 }}>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard?.writeText(`${current.hook}\n\n${current.body}`);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1500);
+                    }}
+                    style={{ padding: "8px 16px", borderRadius: 10, border: "1px solid var(--border-2)", background: "var(--card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--navy)" }}
+                  >
+                    {copied ? t("copied") : t("copy")}
+                  </button>
+                  {current.id && (
+                    <button
+                      onClick={() => {
+                        const idx = activeDraft;
+                        const id = current.id!;
+                        startTransition(async () => {
+                          const r = await submitForApproval(id);
+                          if (r.ok) setSubmitted((s) => ({ ...s, [idx]: true }));
+                        });
+                      }}
+                      disabled={submitted[activeDraft]}
+                      style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: submitted[activeDraft] ? "var(--teal-tint-2)" : "var(--teal)", color: submitted[activeDraft] ? "var(--teal-deep)" : "#fff", cursor: submitted[activeDraft] ? "default" : "pointer", fontSize: 13, fontWeight: 700 }}
+                    >
+                      {submitted[activeDraft] ? t("submitted") : t("submitApproval")}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -298,6 +311,20 @@ export function StudioClient() {
         </>
       )}
     </main>
+  );
+}
+
+function Meter({ label, value, color, nf }: { label: string; value: number; color: string; nf: Intl.NumberFormat }) {
+  return (
+    <div style={{ flex: "1 1 120px", minWidth: 120 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--muted)", marginBlockEnd: 5 }}>
+        <span>{label}</span>
+        <span style={{ fontFamily: "var(--font-latin)", fontWeight: 700, color: "var(--heading)" }}>{nf.format(value)}</span>
+      </div>
+      <div style={{ height: 7, borderRadius: 7, background: "var(--border-3)", overflow: "hidden" }}>
+        <div style={{ width: `${value}%`, height: "100%", background: color }} />
+      </div>
+    </div>
   );
 }
 

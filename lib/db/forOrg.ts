@@ -87,7 +87,16 @@ export function forOrg(db: Db, orgId: string) {
 
     async saveDraft(
       brandId: string,
-      d: { platform: string; topic?: string; hook: string; body: string; dnaVersionId?: string | null },
+      d: {
+        platform: string;
+        topic?: string;
+        hook: string;
+        body: string;
+        dnaVersionId?: string | null;
+        postScore?: number;
+        dnaMatch?: number;
+        ideaId?: string | null;
+      },
     ): Promise<string> {
       await assertBrand(brandId);
       const [row] = await db
@@ -96,13 +105,58 @@ export function forOrg(db: Db, orgId: string) {
           orgId,
           brandId,
           dnaVersionId: d.dnaVersionId ?? null,
+          ideaId: d.ideaId ?? null,
           platform: d.platform,
           topic: d.topic ?? null,
           hook: d.hook,
           body: d.body,
+          postScore: d.postScore ?? 0,
+          dnaMatch: d.dnaMatch ?? 0,
         })
         .returning();
       return row.id;
+    },
+
+    async setDraftStatus(brandId: string, draftId: string, status: string, scheduledAt?: Date): Promise<void> {
+      await db
+        .update(schema.drafts)
+        .set(scheduledAt ? { status, scheduledAt } : { status })
+        .where(
+          and(
+            eq(schema.drafts.id, draftId),
+            eq(schema.drafts.orgId, orgId),
+            eq(schema.drafts.brandId, brandId),
+          ),
+        );
+    },
+
+    async listDraftsByStatus(brandId: string, status?: string) {
+      const conds = [
+        eq(schema.drafts.orgId, orgId),
+        eq(schema.drafts.brandId, brandId),
+        isNull(schema.drafts.deletedAt),
+      ];
+      if (status) conds.push(eq(schema.drafts.status, status));
+      return db
+        .select()
+        .from(schema.drafts)
+        .where(and(...conds))
+        .orderBy(desc(schema.drafts.createdAt))
+        .limit(100);
+    },
+
+    async scheduledDrafts(brandId: string) {
+      return db
+        .select()
+        .from(schema.drafts)
+        .where(
+          and(
+            eq(schema.drafts.orgId, orgId),
+            eq(schema.drafts.brandId, brandId),
+            eq(schema.drafts.status, "scheduled"),
+            isNull(schema.drafts.deletedAt),
+          ),
+        );
     },
 
     async listDrafts(brandId: string, limit = 20) {
