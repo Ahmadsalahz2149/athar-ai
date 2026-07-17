@@ -71,15 +71,24 @@ export const drafts = pgTable("drafts", {
 });
 
 // Links a Supabase auth user to an organization (org → memberships → brands).
-export const memberships = pgTable("memberships", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull(),
-  orgId: uuid("org_id")
-    .notNull()
-    .references(() => organizations.id),
-  role: text("role").notNull().default("owner"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const memberships = pgTable(
+  "memberships",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    role: text("role").notNull().default("owner"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    // MVP invariant: exactly ONE workspace per user. Enforced at the DB level so
+    // concurrent first-requests can't each create an org (bootstrap race).
+    // Relax this when multi-workspace membership ships.
+    uniqueIndex("memberships_user_uq").on(t.userId),
+  ],
+);
 
 // Append-only credit ledger (ADR-004 / A4). Balance is derived (sum of deltas);
 // balance_after is a denormalized convenience. Never UPDATE/DELETE rows.
