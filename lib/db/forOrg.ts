@@ -221,7 +221,7 @@ export function forOrg(db: Db, orgId: string) {
     // --- Sources & retrieval (pgvector; org + brand scoped) ---
     async saveSource(
       brandId: string,
-      s: { kind?: string; title?: string | null; status?: string },
+      s: { kind?: string; title?: string | null; status?: string; language?: string | null; category?: string | null },
     ): Promise<string> {
       await assertBrand(brandId);
       const [row] = await db
@@ -232,6 +232,8 @@ export function forOrg(db: Db, orgId: string) {
           kind: s.kind ?? "text",
           title: s.title ?? null,
           status: s.status ?? "ready",
+          language: s.language ?? null,
+          category: s.category ?? null,
         })
         .returning();
       return row.id;
@@ -299,18 +301,39 @@ export function forOrg(db: Db, orgId: string) {
           ),
         )
         .orderBy(desc(schema.sources.createdAt));
-      const counts = await db
-        .select({ sourceId: schema.sourceChunks.sourceId, n: sql<number>`count(*)::int` })
-        .from(schema.sourceChunks)
-        .where(and(eq(schema.sourceChunks.orgId, orgId), eq(schema.sourceChunks.brandId, brandId)))
-        .groupBy(schema.sourceChunks.sourceId);
-      const analyzed = await db
-        .select({ sourceId: schema.analyses.sourceId })
-        .from(schema.analyses)
-        .where(and(eq(schema.analyses.orgId, orgId), eq(schema.analyses.brandId, brandId)));
+      const [counts, ideaCounts, draftCounts, analyzed] = await Promise.all([
+        db
+          .select({ sourceId: schema.sourceChunks.sourceId, n: sql<number>`count(*)::int` })
+          .from(schema.sourceChunks)
+          .where(and(eq(schema.sourceChunks.orgId, orgId), eq(schema.sourceChunks.brandId, brandId)))
+          .groupBy(schema.sourceChunks.sourceId),
+        db
+          .select({ sourceId: schema.ideas.sourceId, n: sql<number>`count(*)::int` })
+          .from(schema.ideas)
+          .where(and(eq(schema.ideas.orgId, orgId), eq(schema.ideas.brandId, brandId)))
+          .groupBy(schema.ideas.sourceId),
+        db
+          .select({ sourceId: schema.drafts.sourceId, n: sql<number>`count(*)::int` })
+          .from(schema.drafts)
+          .where(and(eq(schema.drafts.orgId, orgId), eq(schema.drafts.brandId, brandId)))
+          .groupBy(schema.drafts.sourceId),
+        db
+          .select({ sourceId: schema.analyses.sourceId, summary: schema.analyses.summary })
+          .from(schema.analyses)
+          .where(and(eq(schema.analyses.orgId, orgId), eq(schema.analyses.brandId, brandId))),
+      ]);
       const cmap = new Map(counts.map((c) => [c.sourceId, c.n]));
-      const aset = new Set(analyzed.map((a) => a.sourceId));
-      return rows.map((r) => ({ ...r, chunks: cmap.get(r.id) ?? 0, analyzed: aset.has(r.id) }));
+      const imap = new Map(ideaCounts.filter((c) => c.sourceId).map((c) => [c.sourceId as string, c.n]));
+      const dmap = new Map(draftCounts.filter((c) => c.sourceId).map((c) => [c.sourceId as string, c.n]));
+      const amap = new Map(analyzed.map((a) => [a.sourceId, a.summary]));
+      return rows.map((r) => ({
+        ...r,
+        chunks: cmap.get(r.id) ?? 0,
+        ideas: imap.get(r.id) ?? 0,
+        drafts: dmap.get(r.id) ?? 0,
+        analyzed: amap.has(r.id),
+        summary: amap.get(r.id) ?? null,
+      }));
     },
 
     async getSource(brandId: string, sourceId: string) {

@@ -50,6 +50,20 @@
       "when": 1784280266923,
       "tag": "0006_memberships_user_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784289858049,
+      "tag": "0007_source_language_category",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784290408338,
+      "tag": "0008_drafts_source_link",
+      "breakpoints": true
     }
   ]
 }

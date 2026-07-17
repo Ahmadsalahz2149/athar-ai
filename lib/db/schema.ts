@@ -56,6 +56,9 @@ export const drafts = pgTable("drafts", {
     .references(() => brands.id),
   dnaVersionId: uuid("dna_version_id").references(() => dnaVersions.id),
   ideaId: uuid("idea_id"),
+  // Which knowledge source this draft came from (via its idea, or the Studio
+  // source picker). Powers the Vault card's "بوست" count.
+  sourceId: uuid("source_id"),
   platform: text("platform").notNull(),
   topic: text("topic"),
   hook: text("hook").notNull(),
@@ -154,9 +157,13 @@ export const sources = pgTable("sources", {
   brandId: uuid("brand_id")
     .notNull()
     .references(() => brands.id),
-  // English enum values only (A6): text | url | pdf | audio.
+  // English enum values only (A6): text | url | pdf | audio | video.
   kind: text("kind").notNull().default("text"),
   title: text("title"),
+  // Captured on the Upload screen (design: لغة المحتوى / تصنيف المصدر).
+  // language: ar | en | mixed · category: course | lecture | book | script | live | interview
+  language: text("language"),
+  category: text("category"),
   // pending | processing | ready | failed.
   status: text("status").notNull().default("ready"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

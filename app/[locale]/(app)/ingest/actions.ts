@@ -10,8 +10,16 @@ import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { estimateIngest, estimateTranscribe } from "@/lib/credits/costs";
 
+/** Options captured on the Upload screen (design parity, really stored/applied). */
+export type IngestOptions = {
+  language?: string;
+  category?: string;
+  /** analyze_only | ideas | posts | dna | campaign — drives post-ingest steps. */
+  actions?: string[];
+};
+
 export type IngestResult =
-  | { ok: true; chunks: number; totalChunks: number; cost: number }
+  | { ok: true; chunks: number; totalChunks: number; cost: number; sourceId: string }
   | {
       ok: false;
       error:
@@ -34,14 +42,19 @@ async function storeText(
   orgId: string,
   brandId: string,
   text: string,
-  meta: { kind: string; title: string | null; cost: number; reason: string },
+  meta: { kind: string; title: string | null; cost: number; reason: string; opts?: IngestOptions },
 ): Promise<IngestResult> {
   if (!hasEmbeddingKey()) return { ok: false, error: "no_embed_key" };
   const t = forOrg(db!, orgId);
   const chunks = chunkArabic(text);
   if (!chunks.length) return { ok: false, error: "empty" };
   const vectors = await embed(chunks.map((c) => c.content), "document");
-  const sourceId = await t.saveSource(brandId, { kind: meta.kind, title: meta.title });
+  const sourceId = await t.saveSource(brandId, {
+    kind: meta.kind,
+    title: meta.title,
+    language: meta.opts?.language ?? null,
+    category: meta.opts?.category ?? null,
+  });
   await t.saveChunks(
     brandId,
     sourceId,
@@ -49,12 +62,12 @@ async function storeText(
   );
   await t.debit(meta.cost, meta.reason, "source", sourceId);
   const totalChunks = await t.countChunks(brandId);
-  return { ok: true, chunks: chunks.length, totalChunks, cost: meta.cost };
+  return { ok: true, chunks: chunks.length, totalChunks, cost: meta.cost, sourceId };
 }
 
 /** Ingest pasted text: chunk (Arabic-aware) → embed (Voyage) → store as a source
  * with per-chunk vectors, scoped to the signed-in user's brand. */
-export async function ingestText(input: { title?: string; text: string }): Promise<IngestResult> {
+export async function ingestText(input: { title?: string; text: string; opts?: IngestOptions }): Promise<IngestResult> {
   const text = (input.text ?? "").trim();
   if (text.length < 150) return { ok: false, error: "too_few" };
   if (!hasEmbeddingKey()) return { ok: false, error: "no_embed_key" };
@@ -74,6 +87,7 @@ export async function ingestText(input: { title?: string; text: string }): Promi
       title: input.title?.trim() || null,
       cost: estimate,
       reason: "ingest_text",
+      opts: input.opts,
     });
   } catch (e) {
     return { ok: false, error: "failed", message: e instanceof Error ? e.message : String(e) };
@@ -84,6 +98,10 @@ export async function ingestText(input: { title?: string; text: string }): Promi
  * read directly. Then the shared chunk→embed→store tail. */
 export async function ingestFile(form: FormData): Promise<IngestResult> {
   try {
+    const opts: IngestOptions = {
+      language: (form.get("language") as string) || undefined,
+      category: (form.get("category") as string) || undefined,
+    };
     const file = form.get("file");
     if (!(file instanceof File)) return { ok: false, error: "failed", message: "no file received" };
     if (file.size > MAX_FILE_BYTES) return { ok: false, error: "too_big" };
@@ -127,6 +145,7 @@ export async function ingestFile(form: FormData): Promise<IngestResult> {
       title: file.name,
       cost: estimate,
       reason: isAudio ? "ingest_audio" : isPdf ? "ingest_pdf" : "ingest_file",
+      opts,
     });
   } catch (e) {
     return { ok: false, error: "failed", message: e instanceof Error ? e.message : String(e) };
@@ -134,7 +153,7 @@ export async function ingestFile(form: FormData): Promise<IngestResult> {
 }
 
 /** Ingest a public URL: SSRF-safe fetch → HTML/PDF/text extraction → store. */
-export async function ingestUrl(input: { url: string }): Promise<IngestResult> {
+export async function ingestUrl(input: { url: string; opts?: IngestOptions }): Promise<IngestResult> {
   try {
     const url = (input.url ?? "").trim();
     if (!url) return { ok: false, error: "too_few" };
@@ -155,6 +174,7 @@ export async function ingestUrl(input: { url: string }): Promise<IngestResult> {
       title,
       cost: estimate,
       reason: "ingest_url",
+      opts: input.opts,
     });
   } catch (e) {
     return { ok: false, error: "failed", message: e instanceof Error ? e.message : String(e) };

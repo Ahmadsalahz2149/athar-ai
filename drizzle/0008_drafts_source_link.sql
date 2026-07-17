@@ -1,0 +1,1 @@
+ALTER TABLE "drafts" ADD COLUMN "source_id" uuid;
