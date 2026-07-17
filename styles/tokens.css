@@ -138,6 +138,43 @@ select {
   margin-block-start: auto;
 }
 
+/* ---- Auth split (Sign up / Login / Forgot) ---- */
+.auth-split {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.auth-form-pane {
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 5vw, 56px);
+  background: var(--surface);
+}
+.auth-brand-pane {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 5vw, 56px);
+  background: linear-gradient(160deg, #102a43, #0b1f33 60%, #081826);
+  color: #fff;
+}
+@media (max-width: 900px) {
+  .auth-split {
+    grid-template-columns: 1fr;
+  }
+  /* On phones the brand pane moves below the form and shrinks. */
+  .auth-brand-pane {
+    order: 2;
+    min-height: auto;
+    padding-block: 36px;
+  }
+  .auth-form-pane {
+    order: 1;
+    min-height: 100vh;
+  }
+}
+
 /* Two-column content layout that collapses to one column on small screens. */
 .col-2 {
   display: grid;

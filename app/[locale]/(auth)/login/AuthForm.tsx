@@ -1,87 +1,95 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
-import { signIn, signUp } from "@/lib/auth/actions";
-import { Logo, BrandWord } from "@/components/Logo";
+import { signIn } from "@/lib/auth/actions";
+import { Logo } from "@/components/Logo";
+import { OAuthButtons } from "@/components/auth/OAuthButtons";
+import { btnNavy } from "@/components/ui/display";
 
 export function AuthForm() {
   const t = useTranslations("Auth");
   const brand = useTranslations("Brand");
   const router = useRouter();
-
-  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
-  function submit(e: FormEvent) {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setInfo(null);
     start(async () => {
-      const fn = mode === "login" ? signIn : signUp;
-      const r = await fn({ email, password });
-      if (!r.ok) {
-        setError(r.error || t("genericError"));
-        return;
-      }
-      if (r.needsConfirm) {
-        setInfo(t("checkEmail"));
-        return;
-      }
+      const r = await signIn({ email, password });
+      if (!r.ok) return setError(r.error);
       router.push("/dashboard");
       router.refresh();
     });
-  }
+  };
 
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>
-      <form onSubmit={submit} style={{ width: "100%", maxWidth: 400, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 18, padding: 28, animation: "floatUp .4s ease" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBlockEnd: 22 }}>
-          <Logo size={38} />
-          <BrandWord name={brand("name")} ai={brand("ai")} tagline={brand("tagline")} />
-        </div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--heading)", marginBlockEnd: 18 }}>
-          {mode === "login" ? t("loginTitle") : t("signupTitle")}
-        </h1>
-
-        <label style={label}>{t("email")}</label>
-        <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} style={{ ...field, direction: "ltr", textAlign: "start", fontFamily: "var(--font-latin)" }} />
-
-        <label style={{ ...label, marginBlockStart: 14 }}>{t("password")}</label>
-        <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} style={{ ...field, direction: "ltr", textAlign: "start", fontFamily: "var(--font-latin)" }} />
-
-        {error && <p style={errStyle}>{error}</p>}
-        {info && <p style={infoStyle}>{info}</p>}
-
-        <button type="submit" disabled={pending} style={{ ...primaryBtn, opacity: pending ? 0.7 : 1 }}>
-          {pending ? t("working") : mode === "login" ? t("login") : t("signup")}
-        </button>
-        <button
-          type="button"
-          onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(null); setInfo(null); }}
-          style={{ width: "100%", marginBlockStart: 12, background: "none", border: "none", color: "var(--teal-deep)", fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}
-        >
-          {mode === "login" ? t("toSignup") : t("toLogin")}
-        </button>
-        {mode === "login" && (
-          <div style={{ textAlign: "center", marginBlockStart: 10 }}>
-            <Link href="/forgot-password" style={{ color: "var(--muted)", fontSize: 13, fontWeight: 500 }}>
-              {t("forgotLink")}
-            </Link>
+    <form onSubmit={submit}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBlockEnd: 26 }}>
+        <Logo size={38} />
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 17, color: "var(--heading)" }}>
+            {brand("name")}
+            <span style={{ color: "var(--teal-deep)" }}> {brand("ai")}</span>
           </div>
-        )}
-      </form>
-    </div>
+          <div style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-latin)" }}>Personal Brand Growth OS</div>
+        </div>
+      </div>
+
+      <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--heading)", letterSpacing: "-.4px" }}>{t("loginTitle")}</h1>
+      <p style={{ color: "var(--muted)", marginBlock: "8px 20px", lineHeight: 1.7, fontSize: 14.5 }}>{t("loginSub")}</p>
+
+      <OAuthButtons />
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBlock: 18 }}>
+        <span style={{ flex: 1, height: 1, background: "var(--border-2)" }} />
+        <span style={{ fontSize: 12, color: "var(--subtle)" }}>{t("or")}</span>
+        <span style={{ flex: 1, height: 1, background: "var(--border-2)" }} />
+      </div>
+
+      <label style={label}>{t("email")}</label>
+      <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={{ ...field, direction: "ltr", textAlign: "start", fontFamily: "var(--font-latin)" }} />
+
+      <label style={{ ...label, marginBlockStart: 14 }}>{t("password")}</label>
+      <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} style={{ ...field, direction: "ltr", textAlign: "start" }} />
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBlockStart: 14 }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13.5, color: "var(--slate)", cursor: "pointer" }}>
+          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ width: 17, height: 17, accentColor: "var(--navy)" }} />
+          {t("rememberMe")}
+        </label>
+        <Link href="/forgot-password" style={{ fontSize: 13.5, color: "var(--teal-deep)", fontWeight: 600 }}>{t("forgotLink")}</Link>
+      </div>
+
+      {error && <p style={errStyle}>{error}</p>}
+
+      <button type="submit" disabled={pending} style={{ ...btnNavy, width: "100%", height: 50, marginBlockStart: 18, fontSize: 15, opacity: pending ? 0.7 : 1 }}>
+        {pending ? t("working") : t("login")}
+      </button>
+
+      <p style={{ textAlign: "center", fontSize: 13.5, color: "var(--muted)", marginBlockStart: 16 }}>
+        {t("noAccount")}{" "}
+        <Link href="/signup" style={{ color: "var(--gold-dark)", fontWeight: 700, textDecoration: "underline" }}>{t("signupTitle")}</Link>
+      </p>
+    </form>
   );
 }
 
-const label: React.CSSProperties = { display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--slate)", marginBlockEnd: 7 };
-const field: React.CSSProperties = { width: "100%", height: 46, border: "1px solid var(--border-2)", borderRadius: "var(--r)", background: "var(--card)", padding: "0 14px", fontSize: 14.5, color: "var(--text)", outline: "none" };
-const primaryBtn: React.CSSProperties = { marginBlockStart: 18, width: "100%", height: 50, background: "linear-gradient(135deg,#102A43,#0B1F33)", color: "#fff", border: "none", borderRadius: 13, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 12px 26px -12px rgba(11,31,51,.7)" };
-const errStyle: React.CSSProperties = { marginBlockStart: 12, fontSize: 13, color: "var(--coral)", background: "var(--coral-tint)", border: "1px solid rgba(224,101,74,.25)", borderRadius: 10, padding: "10px 14px", lineHeight: 1.7 };
-const infoStyle: React.CSSProperties = { marginBlockStart: 12, fontSize: 13, color: "var(--teal-deep)", background: "var(--teal-tint-2)", border: "1px solid rgba(20,184,166,.3)", borderRadius: 10, padding: "10px 14px", lineHeight: 1.7 };
+const label: React.CSSProperties = { display: "block", fontSize: 13, fontWeight: 600, color: "var(--slate)", marginBlockEnd: 7 };
+const field: React.CSSProperties = {
+  width: "100%",
+  height: 46,
+  padding: "0 14px",
+  borderRadius: 12,
+  border: "1px solid var(--border-2)",
+  background: "var(--card)",
+  fontSize: 14.5,
+  outline: "none",
+};
+const errStyle: React.CSSProperties = { marginBlockStart: 14, padding: "10px 13px", borderRadius: 10, background: "var(--coral-tint)", color: "var(--coral)", fontSize: 13.5 };

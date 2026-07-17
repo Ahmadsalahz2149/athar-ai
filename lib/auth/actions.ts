@@ -18,17 +18,32 @@ export async function signIn(input: { email: string; password: string }): Promis
   return { ok: true };
 }
 
-export async function signUp(input: { email: string; password: string }): Promise<AuthResult> {
+export async function signUp(input: {
+  email: string;
+  password: string;
+  fullName?: string;
+  accountType?: string;
+}): Promise<AuthResult> {
   const supabase = await getSupabaseServer();
   if (!supabase) return { ok: false, error: "Auth is not configured." };
   const { data, error } = await supabase.auth.signUp({
     email: input.email.trim(),
     password: input.password,
+    // Persist profile bits on the auth user so the app chrome can show a real
+    // name/role without another table (Settings can edit these later).
+    options: {
+      data: {
+        full_name: input.fullName?.trim() || undefined,
+        account_type: input.accountType || undefined,
+      },
+    },
   });
   if (error) return { ok: false, error: error.message };
   // With email confirmation ON, there is no session yet.
   if (!data.session) return { ok: true, needsConfirm: true };
-  if (data.user) await ensureUserContext(data.user.id, data.user.email ?? undefined);
+  if (data.user) {
+    await ensureUserContext(data.user.id, input.fullName?.trim() || data.user.email || undefined);
+  }
   return { ok: true };
 }
 
