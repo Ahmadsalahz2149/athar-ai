@@ -82,7 +82,7 @@ export default async function Home({
           {t("cta")}
         </Link>
         <div style={{ marginBlockStart: 14 }}>
-          <Link href="/onboarding" style={{ color: "var(--teal-deep)", fontWeight: 600, fontSize: 14 }}>
+          <Link href="/onboarding/1" style={{ color: "var(--teal-deep)", fontWeight: 600, fontSize: 14 }}>
             {t("startLink")}
           </Link>
         </div>

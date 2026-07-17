@@ -22,7 +22,7 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "clamp(40px,8vw,90px) clamp(16px,4vw,32px)", textAlign: "center", animation: "floatUp .4s ease" }}>
         <h1 style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 700, color: "var(--heading)" }}>{t("title")}</h1>
         <p style={{ fontSize: 15, color: "var(--muted)", lineHeight: 1.8, marginBlock: "10px 22px" }}>{t("empty")}</p>
-        <Link href="/onboarding" style={{ display: "inline-flex", alignItems: "center", height: 50, padding: "0 26px", borderRadius: 13, background: "linear-gradient(135deg,#102A43,#0B1F33)", color: "#fff", fontWeight: 700, fontSize: 15, boxShadow: "0 12px 26px -12px rgba(11,31,51,.7)" }}>
+        <Link href="/onboarding/1" style={{ display: "inline-flex", alignItems: "center", height: 50, padding: "0 26px", borderRadius: 13, background: "linear-gradient(135deg,#102A43,#0B1F33)", color: "#fff", fontWeight: 700, fontSize: 15, boxShadow: "0 12px 26px -12px rgba(11,31,51,.7)" }}>
           {t("emptyCta")}
         </Link>
       </main>
