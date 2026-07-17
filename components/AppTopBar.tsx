@@ -18,6 +18,7 @@ export function AppTopBar({ userEmail }: { userEmail?: string }) {
   const [pending, start] = useTransition();
   const [q, setQ] = useState("");
   const initial = (userEmail?.[0] ?? "A").toUpperCase();
+  const displayName = userEmail?.split("@")[0] ?? nav("account");
 
   return (
     <header
@@ -81,9 +82,31 @@ export function AppTopBar({ userEmail }: { userEmail?: string }) {
 
         <Link href={pathname} locale={other} style={langBtn(other)}>{nav("switchTo")}</Link>
 
-        {/* Account */}
+        {/* Account chip: avatar + name + sub-line (design parity) */}
         <div style={{ position: "relative", zIndex: 31 }}>
-          <button onClick={() => setMenu(menu === "account" ? null : "account")} aria-label={nav("account")} style={{ width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: "linear-gradient(135deg,var(--teal),var(--teal-deep))", color: "#fff", fontWeight: 700, fontFamily: "var(--font-latin)" }}>{initial}</button>
+          <button
+            onClick={() => setMenu(menu === "account" ? null : "account")}
+            aria-label={nav("account")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              height: 42,
+              padding: "0 6px 0 10px",
+              borderRadius: 999,
+              border: "1px solid var(--border-2)",
+              background: "var(--card)",
+              cursor: "pointer",
+            }}
+          >
+            <span style={{ width: 32, height: 32, flex: "none", borderRadius: "50%", display: "grid", placeItems: "center", background: "linear-gradient(135deg,var(--navy-2),var(--navy))", color: "#fff", fontWeight: 700, fontSize: 13 }}>
+              {initial}
+            </span>
+            <span className="desktop-only" style={{ textAlign: "start", lineHeight: 1.25 }}>
+              <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--heading)", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</span>
+              <span style={{ display: "block", fontSize: 10.5, color: "var(--muted)", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userEmail ?? ""}</span>
+            </span>
+          </button>
           {menu === "account" && (
             <div style={{ ...dropdown, insetInlineEnd: 0 }}>
               {userEmail && <div style={{ fontSize: 12.5, color: "var(--muted)", padding: "2px 6px 10px", borderBottom: "1px solid var(--border)", overflow: "hidden", textOverflow: "ellipsis" }}>{userEmail}</div>}

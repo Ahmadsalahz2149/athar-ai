@@ -27,7 +27,9 @@
     "ideas": "بنك الأفكار",
     "calendar": "التقويم",
     "approvals": "الموافقات",
-    "analytics": "التحليلات"
+    "analytics": "التحليلات",
+    "planUsageReal": "استهلكت {used} من {limit} ملفات معرفة",
+    "upgrade": "ترقية الخطة"
   },
   "Home": {
     "badge": "✦ منصّة نمو البراند الشخصي",

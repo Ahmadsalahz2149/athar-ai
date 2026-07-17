@@ -27,7 +27,9 @@
     "ideas": "Ideas Bank",
     "calendar": "Calendar",
     "approvals": "Approvals",
-    "analytics": "Analytics"
+    "analytics": "Analytics",
+    "planUsageReal": "{used} of {limit} knowledge files used",
+    "upgrade": "Upgrade plan"
   },
   "Home": {
     "badge": "✦ Personal Brand Growth OS",

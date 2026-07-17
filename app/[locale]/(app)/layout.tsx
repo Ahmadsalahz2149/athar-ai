@@ -23,6 +23,7 @@ export default async function AppLayout({
   const supabase = await getSupabaseServer();
   let balance: number | null = null;
   let userEmail: string | undefined;
+  let counts = { sources: 0, ideas: 0, drafts: 0, pending: 0, scheduled: 0 };
   if (supabase) {
     const {
       data: { user },
@@ -32,9 +33,10 @@ export default async function AppLayout({
     const ctx = await ensureUserContext(user.id, user.email ?? undefined);
     if (ctx && db) {
       try {
-        balance = await forOrg(db, ctx.orgId).balance();
+        const org = forOrg(db, ctx.orgId);
+        [balance, counts] = await Promise.all([org.balance(), org.counts(ctx.brandId)]);
       } catch {
-        /* balance is display-only — never block the app */
+        /* shell chrome is display-only — never block the app */
       }
     }
   }
@@ -42,7 +44,7 @@ export default async function AppLayout({
   return (
     <div className="app-shell">
       <NavProvider>
-        <Sidebar balance={balance} />
+        <Sidebar balance={balance} sourcesUsed={counts.sources} pendingCount={counts.pending} />
         <div className="app-main">
           <AppTopBar userEmail={userEmail} />
           <div className="app-content scb">{children}</div>
