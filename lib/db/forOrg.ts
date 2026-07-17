@@ -435,7 +435,7 @@ export function forOrg(db: Db, orgId: string) {
         );
     },
 
-    /** Live counts for the Dashboard KPIs. */
+    /** Live counts for the Dashboard KPIs + pipeline funnel. */
     async counts(brandId: string) {
       const one = async (table: typeof schema.sources | typeof schema.ideas | typeof schema.drafts, extra?: ReturnType<typeof eq>) => {
         const conds = [eq(table.orgId, orgId), eq(table.brandId, brandId)];
@@ -443,14 +443,28 @@ export function forOrg(db: Db, orgId: string) {
         const rows = await db.select({ n: sql<number>`count(*)::int` }).from(table).where(and(...conds));
         return rows[0]?.n ?? 0;
       };
-      const [sources, ideas, drafts, pending, scheduled] = await Promise.all([
+      const [sources, ideas, drafts, writing, pending, scheduled, published] = await Promise.all([
         one(schema.sources),
         one(schema.ideas),
         one(schema.drafts),
+        one(schema.drafts, eq(schema.drafts.status, "draft")),
         one(schema.drafts, eq(schema.drafts.status, "pending")),
         one(schema.drafts, eq(schema.drafts.status, "scheduled")),
+        one(schema.drafts, eq(schema.drafts.status, "published")),
       ]);
-      return { sources, ideas, drafts, pending, scheduled };
+      return { sources, ideas, drafts, writing, pending, scheduled, published };
+    },
+
+    /** When the brand's most recent source analysis finished (for the
+     * "آخر تحليل قبل ..." chip). Null when nothing has been analyzed yet. */
+    async lastAnalysisAt(brandId: string): Promise<Date | null> {
+      const rows = await db
+        .select({ at: schema.analyses.createdAt })
+        .from(schema.analyses)
+        .where(and(eq(schema.analyses.orgId, orgId), eq(schema.analyses.brandId, brandId)))
+        .orderBy(desc(schema.analyses.createdAt))
+        .limit(1);
+      return rows[0]?.at ?? null;
     },
   };
 }
