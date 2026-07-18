@@ -35,8 +35,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   let completeness = 0;
   let ideas: Awaited<ReturnType<ReturnType<typeof forOrg>["listIdeas"]>> = [];
   let sources: Awaited<ReturnType<ReturnType<typeof forOrg>["listSources"]>> = [];
+  let allSources: Awaited<ReturnType<ReturnType<typeof forOrg>["listSources"]>> = [];
   let scheduled: Awaited<ReturnType<ReturnType<typeof forOrg>["scheduledDrafts"]>> = [];
   let lastAnalysis: Date | null = null;
+  let dnaDelta: number | null = null;
   let firstName = "";
 
   const supabase = await getSupabaseServer();
@@ -49,22 +51,27 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     const ctx = await currentContext();
     if (ctx) {
       const org = forOrg(db, ctx.orgId);
-      const [c, dna, ii, ss, sc, la] = await Promise.all([
+      const [c, dna, ii, ss, sc, la, dd] = await Promise.all([
         org.counts(ctx.brandId),
         org.currentDna(ctx.brandId),
         org.listIdeas(ctx.brandId, { limit: 3 }),
         org.listSources(ctx.brandId),
         org.scheduledDrafts(ctx.brandId),
         org.lastAnalysisAt(ctx.brandId),
+        org.dnaCompletionDelta(ctx.brandId),
       ]);
       counts = c;
       completeness = dna?.completion_pct ?? 0;
       ideas = ii;
+      allSources = ss;
       sources = ss.slice(0, 3);
       scheduled = sc;
       lastAnalysis = la;
+      dnaDelta = dd;
     }
   }
+
+  const awaiting = allSources.filter((s) => !s.analyzed).length;
 
   // Next-best-action derived from real state.
   const rec =
@@ -113,10 +120,16 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       {/* KPI row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(168px,1fr))", gap: 14, marginBlockStart: 22 }}>
         <div style={{ background: "linear-gradient(160deg,#102A43,#0B1F33)", borderRadius: 16, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
-          <ScoreRadial value={completeness} size={74} suffix="%" track="rgba(255,255,255,.14)" valueColor="#fff" />
+          <ScoreRadial value={completeness} size={74} suffix="%" track="rgba(255,255,255,.14)" valueColor="#fff" label={t("kpiDna")} />
           <div>
             <div style={{ fontSize: 12.5, color: "#9FB3C8" }}>{t("kpiDna")}</div>
-            {completeness > 0 && <div style={{ fontSize: 12, color: "var(--teal-light)", fontWeight: 700, marginBlockStart: 4 }}>{t("kpiDnaHint")}</div>}
+            {dnaDelta !== null && dnaDelta !== 0 ? (
+              <div style={{ fontSize: 12, color: dnaDelta > 0 ? "var(--teal-light)" : "#F0A38A", fontWeight: 700, marginBlockStart: 4 }}>
+                {dnaDelta > 0 ? "▲" : "▼"} {t("kpiDnaDelta", { n: nf.format(Math.abs(dnaDelta)) })}
+              </div>
+            ) : completeness > 0 ? (
+              <div style={{ fontSize: 12, color: "var(--teal-light)", fontWeight: 700, marginBlockStart: 4 }}>{t("kpiDnaHint")}</div>
+            ) : null}
           </div>
         </div>
         <StatCard label={t("kpiSources")} value={nf.format(counts.sources)} tint="var(--blue-tint)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7" stroke="var(--blue)" strokeWidth="1.7" /></svg>} />
@@ -203,6 +216,20 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
               <QuickAction href="/approvals" label={t("qaApprovals")} badge={counts.pending || undefined} />
             </div>
           </section>
+
+          {/* Awaiting analysis — sources uploaded but not yet analyzed */}
+          {awaiting > 0 && (
+            <Link href="/vault" style={{ ...card, display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
+              <span style={{ flex: "none", display: "grid", placeItems: "center", width: 40, height: 40, borderRadius: 11, background: "var(--gold-tint)", color: "var(--gold-dark)" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
+              </span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "var(--heading)" }}>{t("awaitingTitle", { n: nf.format(awaiting) })}</div>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginBlockStart: 2 }}>{t("awaitingBody")}</div>
+              </div>
+              <span style={{ color: "var(--subtle)" }}>‹</span>
+            </Link>
+          )}
 
           {/* Latest files */}
           <section style={card}>

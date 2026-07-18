@@ -434,6 +434,20 @@ export function Skeleton({ h = 16, w = "100%", r = 10, style }: { h?: number | s
   return <span className="skeleton" aria-hidden style={{ display: "block", height: h, width: w, borderRadius: r, ...style }} />;
 }
 
+/** A generic page-loading fallback: a title line + a grid of card blocks.
+ * Used by route-level loading.tsx files so navigation feels instant. */
+export function PageSkeleton({ cards = 6, minColW = 280 }: { cards?: number; minColW?: number }) {
+  return (
+    <main style={{ maxWidth: 1120, margin: "0 auto", padding: "clamp(20px,3.4vw,32px) clamp(16px,4vw,32px) 90px" }} aria-busy="true">
+      <Skeleton h={28} w={220} />
+      <div style={{ marginBlockStart: 8 }}><Skeleton h={16} w={300} /></div>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill,minmax(${minColW}px,1fr))`, gap: 16, marginBlockStart: 22 }}>
+        {Array.from({ length: cards }, (_, i) => <Skeleton key={i} h={150} r={16} />)}
+      </div>
+    </main>
+  );
+}
+
 /* ---------------- SelectableCard (with check circle) ---------------- */
 export function SelectableCard({
   title,

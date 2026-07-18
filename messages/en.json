@@ -611,7 +611,10 @@
     "fileNeedsAnalysis": "Needs analysis",
     "thisWeek": "This week's schedule",
     "weekPosts": "{n} posts",
-    "weekdays": "Sat،Sun،Mon،Tue،Wed،Thu،Fri"
+    "weekdays": "Sat،Sun،Mon،Tue،Wed،Thu،Fri",
+    "kpiDnaDelta": "{n}% vs previous version",
+    "awaitingTitle": "{n} sources awaiting analysis",
+    "awaitingBody": "Run analysis to extract ideas & quotes."
   },
   "Ideas": {
     "title": "Ideas Bank",

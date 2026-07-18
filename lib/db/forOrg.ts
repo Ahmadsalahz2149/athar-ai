@@ -88,6 +88,19 @@ export function forOrg(db: Db, orgId: string) {
       return rows.length ? normalizeDna(rows[0].payload) : null;
     },
 
+    /** Change in DNA completeness vs the previous version (for a real delta badge).
+     * Returns null when there's no prior version to compare against. */
+    async dnaCompletionDelta(brandId: string): Promise<number | null> {
+      const rows = await db
+        .select({ pct: schema.dnaVersions.completionPct })
+        .from(schema.dnaVersions)
+        .where(and(eq(schema.dnaVersions.orgId, orgId), eq(schema.dnaVersions.brandId, brandId)))
+        .orderBy(desc(schema.dnaVersions.version))
+        .limit(2);
+      if (rows.length < 2) return null;
+      return rows[0].pct - rows[1].pct;
+    },
+
     /** Version metadata for the current DNA: which version, when it was built,
      * and how many versions exist (for the "version N · updated …" line). */
     async dnaMeta(brandId: string): Promise<{ version: number; createdAt: Date; count: number } | null> {
