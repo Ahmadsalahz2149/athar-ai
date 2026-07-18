@@ -420,6 +420,63 @@ export function forOrg(db: Db, orgId: string) {
         .where(and(eq(schema.sources.id, sourceId), eq(schema.sources.orgId, orgId), eq(schema.sources.brandId, brandId)));
     },
 
+    /** Enqueue a background job scoped to this org/brand (INFRA phase 1). The
+     * user-facing entry point; the worker claims/runs it cross-org via lib/jobs. */
+    async enqueueJob(
+      brandId: string,
+      type: string,
+      payload: Record<string, unknown> = {},
+      opts: { maxAttempts?: number } = {},
+    ): Promise<string> {
+      await assertBrand(brandId);
+      const rows = await db
+        .insert(schema.jobs)
+        .values({ orgId, brandId, type, payload, maxAttempts: opts.maxAttempts ?? 3 })
+        .returning({ id: schema.jobs.id });
+      return rows[0].id;
+    },
+
+    /** Read one job's status (tenancy-scoped) for the live-progress UI. */
+    async getJob(brandId: string, jobId: string) {
+      const rows = await db
+        .select({
+          id: schema.jobs.id,
+          type: schema.jobs.type,
+          status: schema.jobs.status,
+          progress: schema.jobs.progress,
+          phase: schema.jobs.phase,
+          lastError: schema.jobs.lastError,
+          result: schema.jobs.result,
+        })
+        .from(schema.jobs)
+        .where(and(eq(schema.jobs.id, jobId), eq(schema.jobs.orgId, orgId), eq(schema.jobs.brandId, brandId)))
+        .limit(1);
+      return rows[0] ?? null;
+    },
+
+    /** Active (queued/running) jobs for this brand — powers dashboard/vault
+     * "processing" indicators without exposing other tenants' work. */
+    async activeJobs(brandId: string) {
+      return db
+        .select({
+          id: schema.jobs.id,
+          type: schema.jobs.type,
+          status: schema.jobs.status,
+          progress: schema.jobs.progress,
+          phase: schema.jobs.phase,
+          payload: schema.jobs.payload,
+        })
+        .from(schema.jobs)
+        .where(
+          and(
+            eq(schema.jobs.orgId, orgId),
+            eq(schema.jobs.brandId, brandId),
+            sql`${schema.jobs.status} in ('queued','running')`,
+          ),
+        )
+        .orderBy(desc(schema.jobs.createdAt));
+    },
+
     async getSource(brandId: string, sourceId: string) {
       const rows = await db
         .select()

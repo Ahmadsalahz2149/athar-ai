@@ -174,6 +174,40 @@ export const sources = pgTable("sources", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
+// Background job queue (INFRA phase 1). Durable, tenancy-scoped work items that
+// run outside the request lifetime: transcription, embedding, analysis. Claimed
+// with FOR UPDATE SKIP LOCKED so concurrent workers never grab the same job.
+export const jobs = pgTable(
+  "jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    brandId: uuid("brand_id").notNull(),
+    // Handler key, e.g. ingest_source | analyze_source.
+    type: text("type").notNull(),
+    // queued | running | done | failed | dead
+    status: text("status").notNull().default("queued"),
+    payload: jsonb("payload").notNull().default(sql`'{}'::jsonb`),
+    progress: integer("progress").notNull().default(0),
+    phase: text("phase"),
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(3),
+    lastError: text("last_error"),
+    result: jsonb("result"),
+    // Concurrency control + retry scheduling.
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    lockedBy: text("locked_by"),
+    runAfter: timestamp("run_after", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    // Worker claim path: pending jobs whose run_after has arrived, oldest first.
+    index("jobs_claim_idx").on(t.status, t.runAfter),
+    index("jobs_brand_idx").on(t.orgId, t.brandId),
+  ],
+);
+
 // Retrieval unit: a chunk of a source plus its Voyage embedding (ADR-003).
 export const sourceChunks = pgTable(
   "source_chunks",
