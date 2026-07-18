@@ -15,7 +15,6 @@ export function AuthForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -24,7 +23,11 @@ export function AuthForm() {
     setError(null);
     start(async () => {
       const r = await signIn({ email, password });
-      if (!r.ok) return setError(r.error);
+      if (!r.ok) {
+        // Prefer a specific, localized message; fall back to the raw error.
+        const key = r.code && r.code !== "other" ? `err_${r.code}` : null;
+        return setError(key ? t(key) : r.error);
+      }
       router.push("/dashboard");
       router.refresh();
     });
@@ -60,11 +63,7 @@ export function AuthForm() {
       <label style={{ ...label, marginBlockStart: 14 }}>{t("password")}</label>
       <PasswordInput value={password} onChange={setPassword} showLabel={t("showPassword")} hideLabel={t("hidePassword")} />
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBlockStart: 14 }}>
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13.5, color: "var(--slate)", cursor: "pointer" }}>
-          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} style={{ width: 17, height: 17, accentColor: "var(--navy)" }} />
-          {t("rememberMe")}
-        </label>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, marginBlockStart: 14 }}>
         <Link href="/forgot-password" style={{ fontSize: 13.5, color: "var(--teal-deep)", fontWeight: 600 }}>{t("forgotLink")}</Link>
       </div>
 

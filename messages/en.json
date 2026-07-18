@@ -200,7 +200,13 @@
     "panelForgotCardBody": "For extra safety, never share the link.",
     "confirmEmail": "We sent a confirmation link to your email. Open it to activate your account, then sign in.",
     "showPassword": "Show password",
-    "hidePassword": "Hide password"
+    "hidePassword": "Hide password",
+    "err_invalid": "Email or password is incorrect.",
+    "err_unconfirmed": "Your email isn't confirmed yet — check your activation email.",
+    "err_not_configured": "Sign-in isn't configured right now.",
+    "err_rate_limited": "Too many attempts, wait a moment and try again.",
+    "resend": "Resend link",
+    "resendIn": "Resend in {s}s"
   },
   "Onboarding": {
     "badge": "Quick start",
@@ -305,7 +311,9 @@
     "s3_dna": "Build Content DNA",
     "s3_suggest": "Suggest first 10 posts",
     "s3Added": "Added {chunks} chunks to your knowledge.",
-    "s3Enter": "Enter the dashboard"
+    "s3Enter": "Enter the dashboard",
+    "selectAllHint": "Choose one option in each section to continue.",
+    "selectMinHint": "Pick at least one goal, one platform, and a frequency to continue."
   },
   "Ingest": {
     "title": "Upload your raw content",

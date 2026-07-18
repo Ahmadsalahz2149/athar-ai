@@ -19,12 +19,16 @@ export function Step1Form({ initial }: { initial: OnboardingAnswers }) {
   const [brandType, setBrandType] = useState(initial.brandType ?? "");
   const [dialect, setDialect] = useState(initial.dialect ?? "");
   const [pending, start] = useTransition();
+  const [showErr, setShowErr] = useState(false);
 
-  const next = () =>
+  const valid = !!field && !!audience && !!brandType && !!dialect;
+  const next = () => {
+    if (!valid) { setShowErr(true); return; }
     start(async () => {
       await saveOnboarding({ field, audience, brandType, dialect });
       router.push("/onboarding/2");
     });
+  };
 
   return (
     <>
@@ -67,9 +71,13 @@ export function Step1Form({ initial }: { initial: OnboardingAnswers }) {
         </div>
       </div>
 
+      {showErr && !valid && (
+        <p style={{ marginBlockStart: 20, padding: "10px 14px", borderRadius: 11, background: "var(--coral-tint)", color: "var(--coral)", fontSize: 13.5 }}>{t("selectAllHint")}</p>
+      )}
+
       <div style={{ height: 1, background: "var(--border)", marginBlock: "30px 20px" }} />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <button onClick={next} disabled={pending} style={{ ...btnNavy, height: 48, padding: "0 26px", fontSize: 14.5, opacity: pending ? 0.7 : 1 }}>
+        <button onClick={next} disabled={pending} style={{ ...btnNavy, height: 48, padding: "0 26px", fontSize: 14.5, opacity: pending ? 0.7 : !valid ? 0.85 : 1 }}>
           {t("next")} ←
         </button>
         <button onClick={() => router.push("/signup")} style={{ background: "none", border: "none", fontSize: 13.5, color: "var(--muted)", cursor: "pointer" }}>{t("back")}</button>

@@ -4,16 +4,29 @@ import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { ensureUserContext } from "./bootstrap";
 
-export type AuthResult = { ok: true; needsConfirm?: boolean } | { ok: false; error: string };
+/** `code` lets the client show a specific, localized message; `error` is the raw
+ * fallback text for anything unmapped. */
+export type SignInCode = "invalid" | "unconfirmed" | "not_configured" | "rate_limited" | "other";
+export type AuthResult = { ok: true; needsConfirm?: boolean } | { ok: false; error: string; code?: SignInCode };
 
 export async function signIn(input: { email: string; password: string }): Promise<AuthResult> {
   const supabase = await getSupabaseServer();
-  if (!supabase) return { ok: false, error: "Auth is not configured." };
+  if (!supabase) return { ok: false, error: "Auth is not configured.", code: "not_configured" };
   const { data, error } = await supabase.auth.signInWithPassword({
     email: input.email.trim(),
     password: input.password,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    const m = error.message.toLowerCase();
+    const code: SignInCode = m.includes("invalid login") || m.includes("invalid credentials")
+      ? "invalid"
+      : m.includes("not confirmed") || m.includes("confirm")
+      ? "unconfirmed"
+      : m.includes("rate") || error.status === 429
+      ? "rate_limited"
+      : "other";
+    return { ok: false, error: error.message, code };
+  }
   if (data.user) await ensureUserContext(data.user.id, data.user.email ?? undefined);
   return { ok: true };
 }

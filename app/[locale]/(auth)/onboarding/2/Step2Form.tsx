@@ -19,15 +19,19 @@ export function Step2Form({ initial }: { initial: OnboardingAnswers }) {
   const [frequency, setFrequency] = useState(initial.frequency ?? "");
   const [styles, setStyles] = useState<string[]>(initial.styles ?? []);
   const [pending, start] = useTransition();
+  const [showErr, setShowErr] = useState(false);
 
   const toggle = (list: string[], set: (v: string[]) => void, v: string) =>
     set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
-  const next = () =>
+  const valid = goals.length > 0 && platforms.length > 0 && !!frequency;
+  const next = () => {
+    if (!valid) { setShowErr(true); return; }
     start(async () => {
       await saveOnboarding({ goals, platforms, frequency, styles });
       router.push("/onboarding/3");
     });
+  };
 
   return (
     <>
@@ -74,9 +78,13 @@ export function Step2Form({ initial }: { initial: OnboardingAnswers }) {
         </div>
       </div>
 
+      {showErr && !valid && (
+        <p style={{ marginBlockStart: 20, padding: "10px 14px", borderRadius: 11, background: "var(--coral-tint)", color: "var(--coral)", fontSize: 13.5 }}>{t("selectMinHint")}</p>
+      )}
+
       <div style={{ height: 1, background: "var(--border)", marginBlock: "30px 20px" }} />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <button onClick={next} disabled={pending} style={{ ...btnNavy, height: 48, padding: "0 26px", fontSize: 14.5, opacity: pending ? 0.7 : 1 }}>
+        <button onClick={next} disabled={pending} style={{ ...btnNavy, height: 48, padding: "0 26px", fontSize: 14.5, opacity: pending ? 0.7 : !valid ? 0.85 : 1 }}>
           {t("next")} ←
         </button>
         <button onClick={() => router.push("/onboarding/1")} style={{ background: "none", border: "none", fontSize: 13.5, color: "var(--muted)", cursor: "pointer" }}>

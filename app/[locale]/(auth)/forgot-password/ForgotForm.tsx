@@ -1,15 +1,31 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { requestPasswordReset } from "@/lib/auth/actions";
+
+const RESEND_SECONDS = 30;
 
 export function ForgotForm() {
   const t = useTranslations("Auth");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [pending, start] = useTransition();
+  const [cooldown, setCooldown] = useState(0); // seconds until resend is allowed
+
+  // Tick the resend cooldown down to zero.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cooldown]);
+
+  const send = () => start(async () => {
+    await requestPasswordReset(email);
+    setSent(true);
+    setCooldown(RESEND_SECONDS);
+  });
 
   return (
     <div style={{ width: "100%", maxWidth: 400 }}>
@@ -20,16 +36,20 @@ export function ForgotForm() {
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--heading)" }}>{t("resetSentTitle")}</h1>
           <p style={{ color: "var(--muted)", marginBlock: "8px 20px", lineHeight: 1.7 }}>{t("resetSentBody")}</p>
+          <button
+            onClick={send}
+            disabled={pending || cooldown > 0}
+            style={{ width: "100%", height: 44, borderRadius: 12, border: "1px solid var(--border-2)", background: "var(--card)", color: cooldown > 0 ? "var(--muted)" : "var(--navy)", fontWeight: 600, fontSize: 14, cursor: pending || cooldown > 0 ? "default" : "pointer", marginBlockEnd: 14 }}
+          >
+            {cooldown > 0 ? t("resendIn", { s: cooldown }) : pending ? "…" : t("resend")}
+          </button>
           <Link href="/login" style={{ color: "var(--teal-deep)", fontWeight: 700 }}>{t("backToLogin")}</Link>
         </div>
       ) : (
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            start(async () => {
-              await requestPasswordReset(email);
-              setSent(true);
-            });
+            send();
           }}
         >
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--heading)" }}>{t("forgotTitle")}</h1>
