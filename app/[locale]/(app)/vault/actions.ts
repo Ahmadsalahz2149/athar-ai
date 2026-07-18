@@ -23,6 +23,41 @@ export type AnalyzeResult =
       message?: string;
     };
 
+/** Turn a source's extracted key-ideas into reusable Ideas Bank entries (linked
+ * to the source). Powers "أضف لبنك الأفكار" on the File Analysis screen. */
+export async function ideasFromAnalysis(sourceId: string): Promise<{ ok: boolean; n: number }> {
+  try {
+    if (!db) return { ok: false, n: 0 };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false, n: 0 };
+    const t = forOrg(db, ctx.orgId);
+    const row = await t.getAnalysis(ctx.brandId, sourceId);
+    const keyIdeas = (row?.keyIdeas as string[]) ?? [];
+    if (!keyIdeas.length) return { ok: false, n: 0 };
+    const { ideaScore } = await import("@/lib/ai/score");
+    const n = await t.saveIdeas(
+      ctx.brandId,
+      keyIdeas.slice(0, 10).map((title) => ({ title, bucket: "source", sourceId, postScore: ideaScore(title) })),
+    );
+    return { ok: true, n };
+  } catch {
+    return { ok: false, n: 0 };
+  }
+}
+
+/** Soft-delete a source (Vault management). */
+export async function deleteSource(sourceId: string): Promise<{ ok: boolean }> {
+  try {
+    if (!db) return { ok: false };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false };
+    await forOrg(db, ctx.orgId).deleteSource(ctx.brandId, sourceId);
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
 /** Run (or re-run) AI analysis over one source's chunks and persist the result. */
 export async function analyzeSource(sourceId: string): Promise<AnalyzeResult> {
   try {

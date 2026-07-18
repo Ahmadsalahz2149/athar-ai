@@ -365,6 +365,18 @@ export function forOrg(db: Db, orgId: string) {
       }));
     },
 
+    async deleteSource(brandId: string, sourceId: string): Promise<void> {
+      // Soft-delete the source; hard-remove its chunks/analysis so it leaves
+      // retrieval + the vault immediately (tenancy-scoped).
+      await assertBrand(brandId);
+      await db
+        .update(schema.sources)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(schema.sources.id, sourceId), eq(schema.sources.orgId, orgId), eq(schema.sources.brandId, brandId)));
+      await db.delete(schema.sourceChunks).where(and(eq(schema.sourceChunks.orgId, orgId), eq(schema.sourceChunks.sourceId, sourceId)));
+      await db.delete(schema.analyses).where(and(eq(schema.analyses.orgId, orgId), eq(schema.analyses.sourceId, sourceId)));
+    },
+
     async getSource(brandId: string, sourceId: string) {
       const rows = await db
         .select()

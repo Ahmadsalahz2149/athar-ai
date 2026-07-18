@@ -410,7 +410,11 @@
     "dnaImpact": "Impact on Content DNA",
     "audienceHelper": "What this source solves for your audience:",
     "createCampaign": "Create a campaign from this file",
-    "addToDna": "Add to Content DNA"
+    "addToDna": "Add to Content DNA",
+    "writeThis": "Write",
+    "addAllToIdeas": "Add all to Ideas Bank",
+    "adding": "Adding…",
+    "addedToIdeas": "Added to bank ✓"
   },
   "Dna": {
     "title": "Content DNA",
@@ -499,7 +503,16 @@
     "cat_interview": "Interview",
     "lang_ar": "Arabic",
     "lang_en": "English",
-    "lang_mixed": "Mixed"
+    "lang_mixed": "Mixed",
+    "select": "Select",
+    "delete": "Delete",
+    "selectedN": "{n} selected",
+    "clearSel": "Clear",
+    "deleteSel": "Delete selected",
+    "deleteTitle": "Delete source?",
+    "deleteBody": "{n} source(s) with their analysis and chunks will be removed. This cannot be undone.",
+    "cancel": "Cancel",
+    "confirmDelete": "Delete"
   },
   "Dashboard": {
     "greeting": "Ready to make a new mark today?",

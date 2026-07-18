@@ -410,7 +410,11 @@
     "dnaImpact": "تأثير على Content DNA",
     "audienceHelper": "ما الذي يعالجه هذا المصدر لدى جمهورك:",
     "createCampaign": "أنشئ حملة من هذا الملف",
-    "addToDna": "أضف إلى Content DNA"
+    "addToDna": "أضف إلى Content DNA",
+    "writeThis": "اكتب",
+    "addAllToIdeas": "أضِف الكل لبنك الأفكار",
+    "adding": "جارٍ الإضافة…",
+    "addedToIdeas": "أُضيفت للبنك ✓"
   },
   "Dna": {
     "title": "بصمة المحتوى",
@@ -499,7 +503,16 @@
     "cat_interview": "مقابلة",
     "lang_ar": "عربي",
     "lang_en": "إنجليزي",
-    "lang_mixed": "مختلط"
+    "lang_mixed": "مختلط",
+    "select": "تحديد",
+    "delete": "حذف",
+    "selectedN": "{n} محدّد",
+    "clearSel": "إلغاء التحديد",
+    "deleteSel": "حذف المحدّد",
+    "deleteTitle": "حذف المصدر؟",
+    "deleteBody": "سيُحذف {n} مصدر مع تحليله ومقاطعه. لا يمكن التراجع.",
+    "cancel": "إلغاء",
+    "confirmDelete": "حذف"
   },
   "Dashboard": {
     "greeting": "جاهز لصناعة أثر جديد اليوم؟",

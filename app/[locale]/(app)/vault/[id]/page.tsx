@@ -4,8 +4,9 @@ import { Link } from "@/i18n/navigation";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
-import { FileTypeBadge, kindToLabel, StatusPill, btnTeal, btnGhost } from "@/components/ui/display";
+import { FileTypeBadge, kindToLabel, btnTeal, btnGhost } from "@/components/ui/display";
 import { AnalyzeButton } from "./AnalyzeButton";
+import { IdeasFromAnalysis } from "./IdeasFromAnalysis";
 
 const OPP_TINTS = [
   { bg: "var(--gold-tint)", fg: "var(--gold-dark)" },
@@ -103,16 +104,24 @@ export default async function AnalysisDetail({ params }: { params: Promise<{ loc
             </Card>
 
             {a.keyIdeas.length > 0 && (
-              <Card title={t("keyIdeas")} icon={<Dot c="var(--gold)" />}>
+              <section style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBlockEnd: 13 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 9, fontWeight: 700, color: "var(--heading)", fontSize: 15 }}>
+                    <Dot c="var(--gold)" />
+                    {t("keyIdeas")}
+                  </div>
+                  <IdeasFromAnalysis sourceId={id} />
+                </div>
                 <div style={{ display: "grid", gap: 11 }}>
                   {a.keyIdeas.map((it, i) => (
                     <div key={i} style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
                       <span style={{ width: 24, height: 24, flex: "none", borderRadius: 7, display: "grid", placeItems: "center", background: "var(--navy)", color: "#fff", fontSize: 12, fontWeight: 800, fontFamily: "var(--font-latin)" }}>{i + 1}</span>
-                      <span style={{ fontSize: 14.5, color: "var(--slate)", lineHeight: 1.8 }}>{it}</span>
+                      <span style={{ flex: 1, fontSize: 14.5, color: "var(--slate)", lineHeight: 1.8 }}>{it}</span>
+                      <Link href={`/studio?prompt=${encodeURIComponent(it)}`} style={{ fontSize: 12, fontWeight: 700, color: "var(--teal-deep)", flex: "none", marginBlockStart: 3 }}>{t("writeThis")}</Link>
                     </div>
                   ))}
                 </div>
-              </Card>
+              </section>
             )}
 
             {a.quotes.length > 0 && (
@@ -146,13 +155,13 @@ export default async function AnalysisDetail({ params }: { params: Promise<{ loc
             {a.opportunities.length > 0 && (
               <Card title={t("opportunities")}>
                 <div style={{ display: "grid", gap: 8 }}>
-                  {a.opportunities.slice(0, 5).map((o, i) => {
+                  {a.opportunities.slice(0, 6).map((o, i) => {
                     const tint = OPP_TINTS[i % OPP_TINTS.length];
                     return (
-                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 13px", borderRadius: 11, background: tint.bg }}>
+                      <Link key={i} href={`/studio?prompt=${encodeURIComponent(o)}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 13px", borderRadius: 11, background: tint.bg }}>
                         <span style={{ fontSize: 13.5, color: "var(--slate)", fontWeight: 600 }}>{o}</span>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: tint.fg, fontFamily: "var(--font-latin)" }}>{nf.format(1)}</span>
-                      </div>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: tint.fg }}>›</span>
+                      </Link>
                     );
                   })}
                 </div>
@@ -160,8 +169,8 @@ export default async function AnalysisDetail({ params }: { params: Promise<{ loc
             )}
 
             <div style={{ background: "linear-gradient(160deg,#102A43,#0B1F33)", borderRadius: 16, padding: 18, display: "grid", gap: 9 }}>
-              <Link href="/studio" style={{ ...btnTeal, width: "100%" }}>{t("turnIntoPosts")}</Link>
-              <Link href="/ideas" style={{ ...btnGhost, width: "100%", background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.18)", color: "#fff" }}>{t("createCampaign")}</Link>
+              <Link href={`/studio?source=${id}`} style={{ ...btnTeal, width: "100%" }}>{t("turnIntoPosts")}</Link>
+              <Link href={`/ideas?source=${id}`} style={{ ...btnGhost, width: "100%", background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.18)", color: "#fff" }}>{t("createCampaign")}</Link>
               <Link href="/dna" style={{ ...btnGhost, width: "100%", background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.18)", color: "#fff" }}>{t("addToDna")}</Link>
               <AnalyzeButton sourceId={id} hasAnalysis />
             </div>

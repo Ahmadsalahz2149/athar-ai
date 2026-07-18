@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
-import { Chip, FileTypeBadge, StatusPill, EmptyState, btnNavy, btnGhost } from "@/components/ui/display";
+import { Link, useRouter } from "@/i18n/navigation";
+import { Chip, FileTypeBadge, StatusPill, EmptyState, btnNavy, btnGhost, btnTeal } from "@/components/ui/display";
+import { deleteSource } from "./actions";
 
 export type VaultSource = {
   id: string;
@@ -26,8 +27,36 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
   const locale = useLocale();
   const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
   const df = new Intl.DateTimeFormat(locale === "ar" ? "ar" : "en", { day: "numeric", month: "long", year: "numeric" });
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [confirmDel, setConfirmDel] = useState<string[] | null>(null);
+  const [pending, start] = useTransition();
+
+  const count = (f: (typeof FILTERS)[number]) =>
+    sources.filter((s) => {
+      switch (f) {
+        case "all": return true;
+        case "analyzed": return s.analyzed;
+        case "needs": return !s.analyzed;
+        case "video": return s.kind === "video";
+        case "audio": return s.kind === "audio";
+        case "pdf": return s.kind === "pdf";
+        case "link": return s.kind === "url";
+        case "posts": return s.kind === "text";
+        default: return true;
+      }
+    }).length;
+
+  const selIds = Object.keys(selected).filter((k) => selected[k]);
+  const runDelete = (ids: string[]) =>
+    start(async () => {
+      for (const id of ids) await deleteSource(id);
+      setSelected({});
+      setConfirmDel(null);
+      router.refresh();
+    });
 
   const shown = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -62,14 +91,28 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
         </svg>
       </div>
 
-      {/* Filters */}
+      {/* Filters with counts */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBlockStart: 14 }}>
-        {FILTERS.map((f) => (
-          <Chip key={f} variant="fill" size="sm" active={filter === f} onClick={() => setFilter(f)}>
-            {t(`f_${f}`)}
-          </Chip>
-        ))}
+        {FILTERS.map((f) => {
+          const n = count(f);
+          return (
+            <Chip key={f} variant="fill" size="sm" active={filter === f} onClick={() => setFilter(f)}>
+              {t(`f_${f}`)} {n > 0 && <span style={{ fontFamily: "var(--font-latin)", opacity: 0.7 }}>{nf.format(n)}</span>}
+            </Chip>
+          );
+        })}
       </div>
+
+      {/* Bulk bar */}
+      {selIds.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBlockStart: 14, padding: "10px 16px", borderRadius: 12, background: "var(--teal-tint-2)", border: "1px solid rgba(20,184,166,.3)" }}>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--teal-deep)" }}>{t("selectedN", { n: nf.format(selIds.length) })}</span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => setSelected({})} style={{ ...btnGhost, height: 34, fontSize: 12.5 }}>{t("clearSel")}</button>
+            <button onClick={() => setConfirmDel(selIds)} disabled={pending} style={{ ...btnGhost, height: 34, fontSize: 12.5, color: "var(--coral)", borderColor: "rgba(224,101,74,.3)" }}>{t("deleteSel")}</button>
+          </div>
+        </div>
+      )}
 
       {shown.length === 0 ? (
         <div style={{ marginBlockStart: 24 }}>
@@ -82,8 +125,9 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
       ) : (
         <div style={{ marginBlockStart: 20, display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
           {shown.map((s) => (
-            <div key={s.id} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div key={s.id} style={{ background: "var(--card)", border: selected[s.id] ? "1.5px solid var(--teal)" : "1px solid var(--border)", borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
+                <input type="checkbox" checked={!!selected[s.id]} onChange={(e) => setSelected((v) => ({ ...v, [s.id]: e.target.checked }))} aria-label={t("select")} style={{ width: 16, height: 16, marginBlockStart: 4, accentColor: "var(--teal)", flex: "none" }} />
                 <FileTypeBadge label={s.label} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 14.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -91,6 +135,9 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
                   </div>
                   <div style={{ fontSize: 11.5, color: "var(--muted)", marginBlockStart: 3 }}>{df.format(new Date(s.createdAt))}</div>
                 </div>
+                <button onClick={() => setConfirmDel([s.id])} aria-label={t("delete")} style={{ width: 30, height: 30, flex: "none", borderRadius: 8, border: "1px solid var(--border-2)", background: "var(--card)", cursor: "pointer", color: "var(--subtle)" }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ margin: "0 auto" }}><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
               </div>
 
               {s.summary && (
@@ -121,6 +168,19 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {confirmDel && (
+        <div onClick={() => setConfirmDel(null)} style={{ position: "fixed", inset: 0, zIndex: 70, background: "rgba(8,24,38,.5)", backdropFilter: "blur(2px)", display: "grid", placeItems: "center", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 420, background: "var(--card)", borderRadius: 18, padding: 24 }}>
+            <div style={{ fontWeight: 700, fontSize: 17, color: "var(--heading)", marginBlockEnd: 8 }}>{t("deleteTitle")}</div>
+            <p style={{ fontSize: 14, color: "var(--slate)", lineHeight: 1.7, marginBlockEnd: 18 }}>{t("deleteBody", { n: nf.format(confirmDel.length) })}</p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button onClick={() => setConfirmDel(null)} style={{ ...btnGhost, height: 40 }}>{t("cancel")}</button>
+              <button onClick={() => runDelete(confirmDel)} disabled={pending} style={{ ...btnTeal, height: 40, background: "var(--coral)" }}>{t("confirmDelete")}</button>
+            </div>
+          </div>
         </div>
       )}
     </>
