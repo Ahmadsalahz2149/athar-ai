@@ -205,6 +205,17 @@ select {
   }
 }
 
+/* Approval card: content + action rail side by side; stacks on phones. */
+@media (max-width: 640px) {
+  .approval-card {
+    grid-template-columns: 1fr !important;
+  }
+  .approval-card > div:last-child {
+    border-inline-start: none !important;
+    border-block-start: 1px solid var(--border);
+  }
+}
+
 /* Mobile-only controls (the ☰ button) are hidden on desktop. */
 .mobile-only {
   display: none;
