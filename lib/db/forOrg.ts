@@ -120,6 +120,19 @@ export function forOrg(db: Db, orgId: string) {
       return row.id;
     },
 
+    async setDraftSource(brandId: string, draftId: string, sourceId: string): Promise<void> {
+      await db
+        .update(schema.drafts)
+        .set({ sourceId })
+        .where(
+          and(
+            eq(schema.drafts.id, draftId),
+            eq(schema.drafts.orgId, orgId),
+            eq(schema.drafts.brandId, brandId),
+          ),
+        );
+    },
+
     async setDraftStatus(brandId: string, draftId: string, status: string, scheduledAt?: Date): Promise<void> {
       await db
         .update(schema.drafts)

@@ -4,207 +4,211 @@ import { generateText, hasKeyFor, currentProvider } from "@/lib/ai/generate";
 import { MODELS } from "@/lib/ai/models";
 import { isValidSelection, type ProviderId } from "@/lib/ai/catalog";
 import { extractJson } from "@/lib/ai/json";
-import { normalizeDna, normalizeDrafts, type Draft } from "@/lib/ai/normalize";
-import { postScore, dnaMatch } from "@/lib/ai/score";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
-import { estimateStudio } from "@/lib/credits/costs";
+import { estimateCompose, estimateRewrite } from "@/lib/credits/costs";
 import { embedOne, hasEmbeddingKey } from "@/lib/ai/embed";
+import { postScore, dnaMatch } from "@/lib/ai/score";
 import { currentContext } from "@/lib/auth/current";
 import {
-  DNA_SYSTEM,
-  DNA_SCHEMA,
-  buildDnaUserMessage,
-  DRAFT_SYSTEM,
-  DRAFTS_SCHEMA,
-  buildDraftUserMessage,
-  DNA_PROMPT_ID,
-  DNA_PROMPT_VERSION,
-  DRAFT_PROMPT_ID,
-  DRAFT_PROMPT_VERSION,
+  STUDIO_SYSTEM,
+  STUDIO_SCHEMA,
+  buildStudioMessage,
+  REWRITE_SYSTEM,
+  REWRITE_SCHEMA,
+  buildRewriteMessage,
+  STUDIO_PROMPT_ID,
+  STUDIO_PROMPT_VERSION,
   type ContentDna,
 } from "@/lib/ai/prompts";
 
-export type GenerateInput = {
-  posts: string;
-  topic: string;
+export type StudioSource = { id: string; title: string; label: string };
+
+export type StudioInput = {
+  prompt: string;
   platform: string;
-  count?: number;
-  /** UI-chosen provider + model (validated server-side). */
+  format: string;
+  tone: string;
+  length: string;
+  sourceId?: string;
   provider?: string;
   model?: string;
 };
 
-export type GenerateResult =
+export type StudioResult =
   | {
       ok: true;
+      id?: string;
       dna: ContentDna;
-      drafts: (Draft & { id?: string; postScore: number; dnaMatch: number })[];
-      meta: {
-        dnaModel: string;
-        draftModel: string;
-        dnaPrompt: string;
-        draftPrompt: string;
-        cost: number;
-        grounded: boolean;
-      };
+      hooks: string[];
+      body: string;
+      postScore: number;
+      dnaMatch: number;
+      bestTime: string;
+      grounded: boolean;
+      meta: { model: string; prompt: string; cost: number };
     }
   | {
       ok: false;
-      error: "no_key" | "too_few_posts" | "truncated" | "failed" | "insufficient_credits";
+      error: "no_key" | "no_dna" | "insufficient_credits" | "truncated" | "failed";
       message?: string;
     };
 
-/** Submit a persisted draft into the Approvals queue (status → pending). */
-export async function submitForApproval(draftId: string): Promise<{ ok: boolean }> {
-  try {
-    if (!db) return { ok: false };
-    const ctx = await currentContext();
-    if (!ctx) return { ok: false };
-    await forOrg(db, ctx.orgId).setDraftStatus(ctx.brandId, draftId, "pending");
-    return { ok: true };
-  } catch {
-    return { ok: false };
-  }
-}
-
-export async function generateStudio(input: GenerateInput): Promise<GenerateResult> {
-  const posts = (input.posts ?? "").trim();
-  const paragraphs = posts.split(/\n\s*\n/).filter((p) => p.trim().length > 0);
-  if (paragraphs.length < 3 && posts.length < 200) {
-    return { ok: false, error: "too_few_posts" };
-  }
-
-  // Resolve provider/model: use the UI selection if valid, else env defaults.
+function resolveProvider(input: { provider?: string; model?: string }): { provider: ProviderId; model?: string } {
   let provider: ProviderId = currentProvider();
   let model: string | undefined;
   if (input.provider && input.model && isValidSelection(input.provider, input.model)) {
     provider = input.provider as ProviderId;
     model = input.model;
   }
-  if (!hasKeyFor(provider)) {
-    return { ok: false, error: "no_key" };
-  }
+  return { provider, model };
+}
 
-  const count = Math.min(Math.max(input.count ?? 3, 1), 5);
+const BEST_TIME = "الأحد ٩:٠٠ ص";
 
-  // Pre-flight credit check (ADR-004): estimate cost, refuse if the org can't
-  // cover it. Resolve the tenant context once; reuse it for debit + persistence.
-  const estimate = estimateStudio(count);
-  let ctx: Awaited<ReturnType<typeof currentContext>> = null;
-  if (db) {
-    ctx = await currentContext();
-    if (ctx) {
-      const bal = await forOrg(db, ctx.orgId).balance();
-      if (bal < estimate) {
-        return { ok: false, error: "insufficient_credits", message: `${bal}/${estimate}` };
-      }
-    }
-  }
+export async function studioGenerate(input: StudioInput): Promise<StudioResult> {
+  const { provider, model } = resolveProvider(input);
+  if (!hasKeyFor(provider)) return { ok: false, error: "no_key" };
+  if (!db) return { ok: false, error: "no_dna" };
+  const ctx = await currentContext();
+  if (!ctx) return { ok: false, error: "no_dna" };
 
-  // Anthropic fallback tiers (used only when no explicit model is chosen).
-  const dnaFallback = process.env.ANTHROPIC_DNA_MODEL || MODELS.OPUS;
-  const draftFallback = process.env.ANTHROPIC_DRAFT_MODEL || MODELS.SONNET;
+  const t = forOrg(db, ctx.orgId);
+  const dna = await t.currentDna(ctx.brandId);
+  if (!dna) return { ok: false, error: "no_dna" };
+
+  const estimate = estimateCompose();
+  if ((await t.balance()) < estimate) return { ok: false, error: "insufficient_credits" };
 
   try {
-    // 1) Content DNA.
-    const dnaRes = await generateText({
-      system: DNA_SYSTEM,
-      user: buildDnaUserMessage(posts),
-      maxTokens: 4096,
-      anthropicModel: dnaFallback,
-      schema: DNA_SCHEMA,
-      provider,
-      model,
-    });
-    if (dnaRes.truncated) return { ok: false, error: "truncated", message: "DNA output hit the token cap." };
-    const dna = normalizeDna(extractJson<unknown>(dnaRes.text));
-
-    // 1.5) Retrieval grounding: if the brand has ingested sources, pull the
-    // chunks most relevant to the topic and feed them as <SOURCE> data so drafts
-    // draw on the person's real material (best-effort — never breaks generation).
-    const queryText = input.topic?.trim() || dna.summary;
-    let sourceContext: string | undefined;
-    if (db && ctx && hasEmbeddingKey()) {
+    // Grounding: from the chosen source's chunks, else RAG on the prompt.
+    let source: string | undefined;
+    if (hasEmbeddingKey()) {
       try {
-        const t = forOrg(db, ctx.orgId);
-        if ((await t.countChunks(ctx.brandId)) > 0) {
-          const qv = await embedOne(queryText, "query");
-          const hits = await t.retrieve(ctx.brandId, qv, 6);
-          if (hits.length) sourceContext = hits.map((h, i) => `[${i + 1}] ${h.content}`).join("\n\n");
+        if (input.sourceId) {
+          const texts = await t.sourceChunkTexts(ctx.brandId, input.sourceId, 6);
+          if (texts.length) source = texts.map((c, i) => `[${i + 1}] ${c}`).join("\n\n");
+        } else if (input.prompt.trim() && (await t.countChunks(ctx.brandId)) > 0) {
+          const qv = await embedOne(input.prompt.trim(), "query");
+          const hits = await t.retrieve(ctx.brandId, qv, 5);
+          if (hits.length) source = hits.map((h, i) => `[${i + 1}] ${h.content}`).join("\n\n");
         }
       } catch {
         /* grounding is best-effort */
       }
     }
 
-    // 2) Drafts.
-    const draftRes = await generateText({
-      system: DRAFT_SYSTEM,
-      user: buildDraftUserMessage({
+    const res = await generateText({
+      system: STUDIO_SYSTEM,
+      user: buildStudioMessage({
         dna,
-        topic: queryText,
+        prompt: input.prompt.trim() || dna.summary,
         platform: input.platform,
-        count,
-        source: sourceContext,
+        format: input.format,
+        tone: input.tone,
+        length: input.length,
+        source,
       }),
-      maxTokens: 8192,
-      anthropicModel: draftFallback,
-      schema: DRAFTS_SCHEMA,
+      maxTokens: 4096,
+      anthropicModel: process.env.ANTHROPIC_DRAFT_MODEL || MODELS.SONNET,
+      schema: STUDIO_SCHEMA,
       provider,
       model,
     });
-    if (draftRes.truncated) return { ok: false, error: "truncated", message: "Drafts output hit the token cap." };
-    const raw = normalizeDrafts(extractJson<unknown>(draftRes.text));
+    if (res.truncated) return { ok: false, error: "truncated", message: "Output hit the token cap." };
 
-    if (raw.length === 0) {
-      return { ok: false, error: "failed", message: "No drafts were parsed from the model response." };
-    }
+    const parsed = extractJson<{ hooks?: unknown; body?: unknown }>(res.text);
+    const hooks = Array.isArray(parsed?.hooks) ? parsed.hooks.map((h) => String(h)).filter(Boolean).slice(0, 3) : [];
+    const body = typeof parsed?.body === "string" ? parsed.body : "";
+    if (!hooks.length || !body) return { ok: false, error: "failed", message: "No draft parsed." };
+    while (hooks.length < 3) hooks.push(hooks[hooks.length - 1]);
 
-    // Deterministic, explainable scores (Post Score + DNA Match).
-    const drafts: (Draft & { id?: string; postScore: number; dnaMatch: number })[] = raw.map((d) => ({
-      ...d,
-      postScore: postScore(d.hook, d.body),
-      dnaMatch: dnaMatch(`${d.hook}\n${d.body}`, dna),
-    }));
+    const ps = postScore(hooks[0], body);
+    const dm = dnaMatch(`${hooks[0]}\n${body}`, dna);
 
-    // Persist + debit (best-effort) — never break generation. Debit only after a
-    // successful generation, so a failed run never charges the user.
+    let id: string | undefined;
     try {
-      if (db && ctx) {
-        const t = forOrg(db, ctx.orgId);
-        const dnaVersionId = await t.saveDna(ctx.brandId, dna);
-        for (const d of drafts) {
-          d.id = await t.saveDraft(ctx.brandId, {
-            platform: input.platform,
-            topic: input.topic,
-            hook: d.hook,
-            body: d.body,
-            dnaVersionId,
-            postScore: d.postScore,
-            dnaMatch: d.dnaMatch,
-          });
-        }
-        await t.debit(estimate, "studio_generation", "brand", ctx.brandId);
-      }
+      id = await t.saveDraft(ctx.brandId, {
+        platform: input.platform,
+        topic: input.prompt,
+        hook: hooks[0],
+        body,
+        postScore: ps,
+        dnaMatch: dm,
+      });
+      if (input.sourceId) await t.setDraftSource(ctx.brandId, id, input.sourceId);
+      await t.debit(estimate, "studio_compose", "brand", ctx.brandId);
     } catch {
-      /* persistence is best-effort */
+      /* persistence best-effort */
     }
 
     return {
       ok: true,
+      id,
       dna,
-      drafts,
-      meta: {
-        dnaModel: dnaRes.model,
-        draftModel: draftRes.model,
-        dnaPrompt: `${DNA_PROMPT_ID}@${DNA_PROMPT_VERSION}`,
-        draftPrompt: `${DRAFT_PROMPT_ID}@${DRAFT_PROMPT_VERSION}`,
-        cost: estimate,
-        grounded: !!sourceContext,
-      },
+      hooks,
+      body,
+      postScore: ps,
+      dnaMatch: dm,
+      bestTime: BEST_TIME,
+      grounded: !!source,
+      meta: { model: res.model, prompt: `${STUDIO_PROMPT_ID}@${STUDIO_PROMPT_VERSION}`, cost: estimate },
     };
   } catch (e) {
     return { ok: false, error: "failed", message: e instanceof Error ? e.message : String(e) };
   }
+}
+
+export type RewriteResult = { ok: true; body: string } | { ok: false; error: string };
+
+export async function studioRewrite(input: { body: string; tool: string; provider?: string; model?: string }): Promise<RewriteResult> {
+  const { provider, model } = resolveProvider(input);
+  if (!hasKeyFor(provider)) return { ok: false, error: "no_key" };
+  if (!db) return { ok: false, error: "no_dna" };
+  const ctx = await currentContext();
+  if (!ctx) return { ok: false, error: "no_dna" };
+  const t = forOrg(db, ctx.orgId);
+  const dna = await t.currentDna(ctx.brandId);
+  if (!dna) return { ok: false, error: "no_dna" };
+  const estimate = estimateRewrite();
+  if ((await t.balance()) < estimate) return { ok: false, error: "insufficient_credits" };
+  try {
+    const res = await generateText({
+      system: REWRITE_SYSTEM,
+      user: buildRewriteMessage({ body: input.body, tool: input.tool, dna }),
+      maxTokens: 3072,
+      anthropicModel: process.env.ANTHROPIC_DRAFT_MODEL || MODELS.HAIKU,
+      schema: REWRITE_SCHEMA,
+      provider,
+      model,
+    });
+    if (res.truncated) return { ok: false, error: "truncated" };
+    const parsed = extractJson<{ body?: unknown }>(res.text);
+    const body = typeof parsed?.body === "string" ? parsed.body : "";
+    if (!body) return { ok: false, error: "failed" };
+    await t.debit(estimate, "studio_rewrite", "brand", ctx.brandId);
+    return { ok: true, body };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Header actions: save / schedule / submit — all operate on a persisted draft. */
+export async function setDraftState(
+  draftId: string,
+  state: "draft" | "pending" | "scheduled",
+): Promise<{ ok: boolean }> {
+  try {
+    if (!db) return { ok: false };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false };
+    await forOrg(db, ctx.orgId).setDraftStatus(ctx.brandId, draftId, state, state === "scheduled" ? new Date() : undefined);
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+export async function submitForApproval(draftId: string): Promise<{ ok: boolean }> {
+  return setDraftState(draftId, "pending");
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { generateStudio, submitForApproval, type GenerateResult } from "./actions";
+import { studioGenerate, studioRewrite, setDraftState, type StudioResult, type StudioSource } from "./actions";
+import { postScore, dnaMatch } from "@/lib/ai/score";
 import { checkContent } from "@/lib/ai/guardrails";
 import {
   PROVIDERS,
@@ -11,438 +12,296 @@ import {
   DEFAULT_MODEL,
   type ProviderId,
 } from "@/lib/ai/catalog";
+import {
+  ScoreRadial,
+  ProgressMeter,
+  FileTypeBadge,
+  StatusPill,
+  btnTeal,
+  btnGhost,
+} from "@/components/ui/display";
 
 const PLATFORMS = ["LinkedIn", "X / Twitter", "Instagram"] as const;
+const FORMATS = ["post", "thread", "carousel", "reel"] as const;
+const LENGTHS = ["short", "medium", "long"] as const;
+const TOOLS = ["regenerate", "longer", "shorter", "emoji", "tone"] as const;
 
-const shareLink: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  padding: "8px 16px",
-  borderRadius: 10,
-  border: "1px solid var(--border-2)",
-  background: "var(--card)",
-  fontSize: 13,
-  fontWeight: 600,
-  color: "var(--navy)",
-};
-
-export function StudioClient() {
+export function StudioClient({ sources, tones }: { sources: StudioSource[]; tones: string[] }) {
   const t = useTranslations("Studio");
   const locale = useLocale();
   const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
 
-  const [posts, setPosts] = useState("");
-  const [topic, setTopic] = useState("");
+  const toneOptions = tones.length ? tones : [t("toneFallback")];
+  const [prompt, setPrompt] = useState("");
   const [platform, setPlatform] = useState<string>(PLATFORMS[0]);
-  const [count, setCount] = useState(3);
+  const [format, setFormat] = useState<string>("post");
+  const [tone, setTone] = useState<string>(toneOptions[0]);
+  const [length, setLength] = useState<string>("medium");
+  const [sourceId, setSourceId] = useState<string>(sources[0]?.id ?? "");
   const [provider, setProvider] = useState<ProviderId>(DEFAULT_PROVIDER);
   const [model, setModel] = useState<string>(DEFAULT_MODEL);
-  const [result, setResult] = useState<GenerateResult | null>(null);
-  const [activeDraft, setActiveDraft] = useState(0);
+
+  const [result, setResult] = useState<StudioResult | null>(null);
+  const [hookIdx, setHookIdx] = useState(0);
+  const [body, setBody] = useState("");
+  const [pending, start] = useTransition();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [submitted, setSubmitted] = useState<Record<number, boolean>>({});
-  const [pending, startTransition] = useTransition();
 
-  function onGenerate() {
+  const ok = result?.ok ? result : null;
+  const hook = ok ? ok.hooks[hookIdx] ?? ok.hooks[0] : "";
+  const dna = ok?.dna ?? null;
+
+  // Scores recompute live on hook swap / body edit (design behavior).
+  const scores = useMemo(() => {
+    if (!ok) return { ps: 0, dm: 0 };
+    return { ps: postScore(hook, body), dm: dnaMatch(`${hook}\n${body}`, dna) };
+  }, [ok, hook, body, dna]);
+
+  const guard = ok ? checkContent(`${hook}\n${body}`) : { ok: true, violations: [] };
+  const src = sources.find((s) => s.id === sourceId);
+
+  const generate = () => {
     setResult(null);
-    setActiveDraft(0);
-    startTransition(async () => {
-      const r = await generateStudio({ posts, topic, platform, count, provider, model });
+    setSaved(null);
+    start(async () => {
+      const r = await studioGenerate({ prompt, platform, format, tone, length, sourceId: sourceId || undefined, provider, model });
       setResult(r);
+      if (r.ok) {
+        setHookIdx(0);
+        setBody(r.body);
+      }
     });
-  }
+  };
 
-  const drafts = result?.ok ? result.drafts : [];
-  const current = drafts[activeDraft];
+  const rewrite = (tool: string) => {
+    if (!ok) return;
+    setBusy(tool);
+    start(async () => {
+      const r = await studioRewrite({ body, tool, provider, model });
+      setBusy(null);
+      if (r.ok) setBody(r.body);
+    });
+  };
+
+  const act = (state: "draft" | "pending" | "scheduled", labelKey: string) => {
+    if (!ok?.id) return;
+    start(async () => {
+      const r = await setDraftState(ok.id!, state);
+      if (r.ok) setSaved(labelKey);
+    });
+  };
 
   return (
-    <main
-      style={{
-        maxWidth: 900,
-        margin: "0 auto",
-        padding: "clamp(24px,5vw,44px) clamp(16px,5vw,32px) 90px",
-        animation: "floatUp .4s ease",
-      }}
-    >
-      <h1 style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 700, color: "var(--heading)", letterSpacing: "-.4px" }}>
-        {t("title")}
-      </h1>
-      <p style={{ fontSize: 15, color: "var(--muted)", lineHeight: 1.7, marginBlock: "6px 24px" }}>
-        {t("subtitle")}
-      </p>
-
-      {/* Input card */}
-      <section style={card}>
-        <label style={labelStyle}>{t("postsLabel")}</label>
-        <textarea
-          value={posts}
-          onChange={(e) => setPosts(e.target.value)}
-          placeholder={t("postsPlaceholder")}
-          className="scb"
-          rows={7}
-          style={{ ...field, resize: "vertical", lineHeight: 1.8 }}
-        />
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12, marginBlockStart: 14 }}>
-          <div>
-            <label style={labelStyle}>{t("topicLabel")}</label>
-            <input
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder={t("topicPlaceholder")}
-              style={field}
-            />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr .6fr", gap: 12 }}>
-            <div>
-              <label style={labelStyle}>{t("platformLabel")}</label>
-              <select value={platform} onChange={(e) => setPlatform(e.target.value)} style={field}>
-                {PLATFORMS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>{t("countLabel")}</label>
-              <select value={count} onChange={(e) => setCount(Number(e.target.value))} style={field}>
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <option key={n} value={n}>
-                    {nf.format(n)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+    <main style={{ maxWidth: 1240, margin: "0 auto", padding: "clamp(18px,3vw,28px) clamp(14px,3vw,28px) 90px", animation: "floatUp .4s ease" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBlockEnd: 18 }}>
+        <div>
+          {ok && <StatusPill tone="teal">✦ {t("voiceBadge", { pct: nf.format(scores.dm) })}</StatusPill>}
+          <h1 style={{ fontSize: "clamp(21px,3vw,26px)", fontWeight: 700, color: "var(--heading)", marginBlockStart: 8 }}>{t("title")}</h1>
+          <p style={{ fontSize: 14, color: "var(--muted)", marginBlockStart: 4 }}>{t("subtitle")}</p>
         </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBlockStart: 14 }}>
-          <div>
-            <label style={labelStyle}>{t("providerLabel")}</label>
-            <select
-              value={provider}
-              onChange={(e) => {
-                const p = e.target.value as ProviderId;
-                setProvider(p);
-                setModel(MODEL_CATALOG[p][0].id);
-              }}
-              style={field}
-            >
-              {PROVIDERS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={labelStyle}>{t("modelLabel")}</label>
-            <select value={model} onChange={(e) => setModel(e.target.value)} style={field}>
-              {MODEL_CATALOG[provider].map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={() => act("pending", "submitted")} disabled={!ok?.id || pending} style={{ ...btnTeal, opacity: !ok?.id ? 0.5 : 1 }}>{t("submit")}</button>
+          <button onClick={() => act("scheduled", "scheduled")} disabled={!ok?.id || pending} style={{ ...btnGhost, opacity: !ok?.id ? 0.5 : 1 }}>{t("schedule")}</button>
+          <button onClick={() => act("draft", "savedDraft")} disabled={!ok?.id || pending} style={{ ...btnGhost, opacity: !ok?.id ? 0.5 : 1 }}>{t("saveDraft")}</button>
         </div>
+      </div>
+      {saved && <p style={{ marginBlockEnd: 12, color: "var(--teal-deep)", fontWeight: 600, fontSize: 13.5 }}>{t(saved)}</p>}
 
-        <button onClick={onGenerate} disabled={pending} style={{ ...primaryBtn, opacity: pending ? 0.7 : 1 }}>
-          {pending ? t("generating") : t("generate")}
-        </button>
-
-        {result && !result.ok && (
-          <p style={noticeStyle}>
-            {result.error === "no_key"
-              ? t("needKey")
-              : result.error === "too_few_posts"
-                ? t("needPosts")
-                : result.error === "truncated"
-                  ? t("truncated")
-                  : result.error === "insufficient_credits"
-                    ? t("insufficientCredits")
-                    : `${t("errorGeneric")}${result.message ? ` (${result.message})` : ""}`}
-          </p>
-        )}
-      </section>
-
-      {result?.ok && (
-        <>
-          {/* DNA card */}
-          <section style={{ ...card, marginBlockStart: 22 }}>
-            <div style={sectionHead}>
-              <span style={dot("var(--teal)")} />
-              {t("dnaTitle")}
-            </div>
-            <p style={{ fontSize: 14.5, color: "var(--slate)", lineHeight: 1.85, marginBlockEnd: 16 }}>
-              {result.dna.summary}
-            </p>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14 }}>
-              <Field label={t("dnaDialect")}>
-                <span style={pill("var(--teal-tint)", "var(--teal-deep)")}>{result.dna.dialect}</span>
-              </Field>
-              <Field label={t("dnaAudience")}>
-                <span style={{ fontSize: 13.5, color: "var(--slate)" }}>{result.dna.audience}</span>
-              </Field>
-            </div>
-
-            <Field label={t("dnaTone")}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                {(result.dna.tone_traits ?? []).map((tr, i) => (
-                  <span key={i} style={pill("var(--gold-tint)", "var(--gold-dark)")}>
-                    {tr}
-                  </span>
-                ))}
+      <div className="studio-grid">
+        {/* RIGHT rail — settings */}
+        <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
+          <div style={card}>
+            <div style={label}>{t("source")}</div>
+            {sources.length ? (
+              <div style={{ display: "grid", gap: 8, marginBlockStart: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", borderRadius: 11, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                  {src && <FileTypeBadge label={src.label} size={28} />}
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--heading)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{src?.title ?? t("noSource")}</span>
+                </div>
+                <select value={sourceId} onChange={(e) => setSourceId(e.target.value)} style={field}>
+                  <option value="">{t("noSource")}</option>
+                  {sources.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
+                </select>
               </div>
-            </Field>
-
-            <Field label={t("dnaHooks")}>
-              <ul style={{ margin: 0, paddingInlineStart: 18, color: "var(--slate)", fontSize: 13.5, lineHeight: 1.9 }}>
-                {(result.dna.hook_patterns ?? []).map((h, i) => (
-                  <li key={i}>{h}</li>
-                ))}
-              </ul>
-            </Field>
-
-            <Field label={t("dnaCompletion")}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ flex: 1, height: 8, background: "var(--border)", borderRadius: 8, overflow: "hidden" }}>
-                  <div
-                    style={{
-                      width: `${Math.max(0, Math.min(100, result.dna.completion_pct))}%`,
-                      height: "100%",
-                      background: "linear-gradient(90deg,var(--teal),var(--teal-dark))",
-                    }}
-                  />
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--teal-deep)" }}>
-                  {nf.format(result.dna.completion_pct)}%
-                </span>
-              </div>
-            </Field>
-          </section>
-
-          {/* Drafts */}
-          <section style={{ ...card, marginBlockStart: 22 }}>
-            <div style={{ ...sectionHead, flexWrap: "wrap", gap: 8 }}>
-              <span style={dot("var(--gold)")} />
-              {t("draftsTitle")}
-              {result.ok && result.meta.grounded && (
-                <span
-                  style={{
-                    marginInlineStart: "auto",
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    color: "var(--teal-deep)",
-                    background: "var(--teal-tint-2)",
-                    border: "1px solid rgba(20,184,166,.3)",
-                    borderRadius: 999,
-                    padding: "4px 11px",
-                  }}
-                >
-                  ✦ {t("grounded")}
-                </span>
-              )}
-            </div>
-
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBlockEnd: 14 }}>
-              {drafts.map((_, i) => {
-                const on = i === activeDraft;
-                return (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      setActiveDraft(i);
-                      setCopied(false);
-                    }}
-                    style={{
-                      padding: "8px 14px",
-                      borderRadius: 10,
-                      cursor: "pointer",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      border: on ? "1.5px solid var(--teal)" : "1.5px solid var(--border-2)",
-                      background: on ? "var(--teal-tint-2)" : "var(--card)",
-                      color: on ? "var(--navy)" : "var(--slate)",
-                    }}
-                  >
-                    {t("draftLabel")} {nf.format(i + 1)}
-                  </button>
-                );
-              })}
-            </div>
-
-            {current && (
-              <div style={{ border: "1px solid var(--border)", borderRadius: "var(--r)", padding: 18, background: "var(--surface)" }}>
-                <div style={{ display: "flex", gap: 18, marginBlockEnd: 14, flexWrap: "wrap" }}>
-                  <Meter label={t("postScore")} value={current.postScore} color="var(--teal)" nf={nf} />
-                  <Meter label={t("dnaMatchScore")} value={current.dnaMatch} color="var(--gold)" nf={nf} />
-                </div>
-                <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 16, lineHeight: 1.7, marginBlockEnd: 10 }}>
-                  {current.hook}
-                </div>
-                <div style={{ whiteSpace: "pre-wrap", color: "var(--slate)", fontSize: 14.5, lineHeight: 1.9 }}>
-                  {current.body}
-                </div>
-                {(() => {
-                  const full = `${current.hook}\n\n${current.body}`;
-                  const guard = checkContent(full);
-                  const enc = encodeURIComponent(full);
-                  return (
-                    <>
-                      {!guard.ok && (
-                        <p style={{ marginBlockStart: 12, padding: "10px 14px", borderRadius: 10, background: "var(--coral-tint)", border: "1px solid rgba(224,101,74,.3)", color: "var(--coral)", fontSize: 13 }}>
-                          {t("guardBlocked", { issues: guard.violations.join(", ") })}
-                        </p>
-                      )}
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBlockStart: 14, opacity: guard.ok ? 1 : 0.5, pointerEvents: guard.ok ? "auto" : "none" }}>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard?.writeText(full);
-                            setCopied(true);
-                            setTimeout(() => setCopied(false), 1500);
-                          }}
-                          style={{ padding: "8px 16px", borderRadius: 10, border: "1px solid var(--border-2)", background: "var(--card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--navy)" }}
-                        >
-                          {copied ? t("copied") : t("copy")}
-                        </button>
-                        <a href={`https://www.linkedin.com/feed/?shareActive=true&text=${enc}`} target="_blank" rel="noopener noreferrer" style={shareLink}>{t("shareLinkedin")}</a>
-                        <a href={`https://twitter.com/intent/tweet?text=${enc}`} target="_blank" rel="noopener noreferrer" style={shareLink}>{t("shareX")}</a>
-                      </div>
-                    </>
-                  );
-                })()}
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBlockStart: 10 }}>
-                  {current.id && (
-                    <button
-                      onClick={() => {
-                        const idx = activeDraft;
-                        const id = current.id!;
-                        startTransition(async () => {
-                          const r = await submitForApproval(id);
-                          if (r.ok) setSubmitted((s) => ({ ...s, [idx]: true }));
-                        });
-                      }}
-                      disabled={submitted[activeDraft]}
-                      style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: submitted[activeDraft] ? "var(--teal-tint-2)" : "var(--teal)", color: submitted[activeDraft] ? "var(--teal-deep)" : "#fff", cursor: submitted[activeDraft] ? "default" : "pointer", fontSize: 13, fontWeight: 700 }}
-                    >
-                      {submitted[activeDraft] ? t("submitted") : t("submitApproval")}
-                    </button>
-                  )}
-                </div>
-              </div>
+            ) : (
+              <p style={{ fontSize: 12.5, color: "var(--muted)", marginBlockStart: 8 }}>{t("noSources")}</p>
             )}
+          </div>
 
-            <p style={{ marginBlockStart: 14, fontSize: 11.5, color: "var(--subtle)", fontFamily: "var(--font-latin)" }}>
-              {t("meta", { dnaModel: result.meta.dnaModel, draftModel: result.meta.draftModel })}
+          <div style={card}>
+            <Group title={t("platform")}>
+              {PLATFORMS.map((p) => <Pill key={p} on={platform === p} onClick={() => setPlatform(p)}>{p}</Pill>)}
+            </Group>
+            <Group title={t("format")}>
+              {FORMATS.map((f) => <Pill key={f} on={format === f} onClick={() => setFormat(f)}>{t(`fmt_${f}`)}</Pill>)}
+            </Group>
+            <Group title={t("tone")} hint={t("fromDna")}>
+              {toneOptions.map((tn) => <Pill key={tn} on={tone === tn} onClick={() => setTone(tn)}>{tn}</Pill>)}
+            </Group>
+            <Group title={t("length")}>
+              {LENGTHS.map((l) => <Pill key={l} on={length === l} onClick={() => setLength(l)}>{t(`len_${l}`)}</Pill>)}
+            </Group>
+          </div>
+
+          <div style={card}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div>
+                <div style={label}>{t("providerLabel")}</div>
+                <select value={provider} onChange={(e) => { const p = e.target.value as ProviderId; setProvider(p); setModel(MODEL_CATALOG[p][0].id); }} style={field}>
+                  {PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={label}>{t("modelLabel")}</div>
+                <select value={model} onChange={(e) => setModel(e.target.value)} style={field}>
+                  {MODEL_CATALOG[provider].map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* CENTER — compose */}
+        <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
+          <div style={{ background: "linear-gradient(160deg,#102A43,#0B1F33)", borderRadius: 14, padding: 12, display: "flex", gap: 10, alignItems: "center" }}>
+            <span style={{ display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: 9, background: "rgba(20,184,166,.18)", color: "var(--teal-light)", flex: "none" }}>✦</span>
+            <input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t("promptPh")} onKeyDown={(e) => e.key === "Enter" && !pending && generate()} style={{ flex: 1, height: 40, background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: 14 }} />
+            <button onClick={generate} disabled={pending} style={{ ...btnTeal, height: 40, opacity: pending ? 0.7 : 1 }}>{pending && !busy ? t("generating") : t("generate")}</button>
+          </div>
+
+          {result && !result.ok && (
+            <p style={notice}>
+              {result.error === "no_dna" ? t("needDna") : result.error === "no_key" ? t("needKey") : result.error === "insufficient_credits" ? t("insufficientCredits") : `${t("error")}${result.message ? ` (${result.message})` : ""}`}
             </p>
-          </section>
-        </>
-      )}
+          )}
+
+          {ok && (
+            <>
+              {/* Hook chooser */}
+              <div style={card}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBlockEnd: 12 }}>
+                  <span style={{ fontWeight: 700, color: "var(--heading)", fontSize: 14.5 }}>{t("hookChooser")}</span>
+                  <button onClick={() => generate()} style={{ background: "none", border: "none", color: "var(--teal-deep)", fontWeight: 600, fontSize: 12.5, cursor: "pointer" }}>{t("otherVariants")}</button>
+                </div>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {ok.hooks.map((h, i) => {
+                    const on = i === hookIdx;
+                    return (
+                      <button key={i} onClick={() => setHookIdx(i)} style={{ textAlign: "start", display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", borderRadius: 11, cursor: "pointer", background: on ? "var(--teal-tint-2)" : "var(--surface)", border: on ? "1.5px solid var(--teal)" : "1px solid var(--border)" }}>
+                        <span style={{ width: 18, height: 18, flex: "none", marginBlockStart: 2, borderRadius: "50%", display: "grid", placeItems: "center", background: on ? "var(--teal)" : "transparent", border: on ? "none" : "1.5px solid var(--border-2)" }}>
+                          {on && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff" }} />}
+                        </span>
+                        <span style={{ fontSize: 14, color: "var(--slate)", lineHeight: 1.7 }}>{h}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Editor toolbar */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {TOOLS.map((tool) => (
+                  <button key={tool} onClick={() => rewrite(tool)} disabled={pending} style={{ ...btnGhost, height: 36, fontSize: 12.5, opacity: busy === tool ? 0.6 : 1 }}>
+                    {tool === "regenerate" ? "↺ " : ""}{t(`tool_${tool}`)}
+                  </button>
+                ))}
+              </div>
+
+              {/* Editor */}
+              <div style={card}>
+                <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 15.5, lineHeight: 1.7, marginBlockEnd: 10 }}>{hook}</div>
+                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={9} className="scb" style={{ width: "100%", border: "none", outline: "none", background: "transparent", resize: "vertical", fontSize: 14.5, color: "var(--slate)", lineHeight: 1.95, fontFamily: "inherit" }} />
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBlockStart: 10, fontSize: 12, color: "var(--muted)" }}>
+                  <span>{t("wordCount", { n: nf.format(body.trim().split(/\s+/).filter(Boolean).length) })}</span>
+                  <span style={{ color: "var(--teal-deep)", fontWeight: 600 }}>{t("dnaMatchInline", { pct: nf.format(scores.dm) })}</span>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* LEFT rail — preview + scores */}
+        {ok && (
+          <aside style={{ display: "grid", gap: 16, alignContent: "start" }}>
+            <div style={card}>
+              <div style={label}>{t("livePreview")}</div>
+              <div style={{ marginBlockStart: 12, padding: 14, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 9, marginBlockEnd: 10 }}>
+                  <span style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg,var(--navy-2),var(--navy))", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 13 }}>{t("previewInitial")}</span>
+                  <div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--heading)" }}>{t("previewName")}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--muted)" }}>{t("previewMeta")}</div>
+                  </div>
+                </div>
+                <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 13.5, lineHeight: 1.6, marginBlockEnd: 6 }}>{hook}</div>
+                <div style={{ fontSize: 12.5, color: "var(--slate-2)", lineHeight: 1.75, display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden", whiteSpace: "pre-wrap" }}>{body}</div>
+                <div style={{ display: "flex", gap: 16, marginBlockStart: 12, fontSize: 11.5, color: "var(--muted)", fontFamily: "var(--font-latin)" }}>
+                  <span>👍 {nf.format(Math.round(scores.ps * 2.6))}</span>
+                  <span>💬 {nf.format(Math.round(scores.ps / 3))}</span>
+                  <span>♻ {nf.format(Math.round(scores.ps / 5))}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ ...card, textAlign: "center" }}>
+              <div style={{ ...label, textAlign: "start", fontFamily: "var(--font-latin)" }}>Post Score</div>
+              <div style={{ display: "grid", placeItems: "center", marginBlockStart: 8 }}>
+                <ScoreRadial value={scores.ps} size={96} color="var(--teal)" />
+              </div>
+              <p style={{ fontSize: 12.5, color: "var(--muted)", marginBlockStart: 6, lineHeight: 1.6 }}>{t("scoreHint")}</p>
+            </div>
+
+            <div style={card}>
+              <div style={{ ...label, fontFamily: "var(--font-ar)" }}>{t("dnaMatchTitle")}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBlock: "10px 8px" }}>
+                <span style={{ fontSize: 22, fontWeight: 800, color: "var(--teal-deep)", fontFamily: "var(--font-latin)" }}>{scores.dm}%</span>
+                <div style={{ flex: 1 }}><ProgressMeter pct={scores.dm} /></div>
+              </div>
+              <p style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.6 }}>{t("dnaMatchHint")}</p>
+            </div>
+
+            <div style={{ ...card, display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ display: "grid", placeItems: "center", width: 32, height: 32, borderRadius: 9, background: "var(--gold-tint)", color: "var(--gold-dark)" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
+              </span>
+              <span style={{ fontSize: 13, color: "var(--slate)" }}>{t("bestTime")}: <b style={{ color: "var(--heading)" }}>{ok.bestTime}</b></span>
+            </div>
+
+            {!guard.ok && <p style={notice}>{t("guardBlocked", { issues: guard.violations.join(", ") })}</p>}
+            <div style={{ display: "flex", gap: 8, opacity: guard.ok ? 1 : 0.5, pointerEvents: guard.ok ? "auto" : "none" }}>
+              <button onClick={() => { navigator.clipboard?.writeText(`${hook}\n\n${body}`); setCopied(true); setTimeout(() => setCopied(false), 1400); }} style={{ ...btnGhost, flex: 1, height: 40 }}>{copied ? t("copied") : t("copy")}</button>
+              <a href={`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(`${hook}\n\n${body}`)}`} target="_blank" rel="noopener noreferrer" style={{ ...btnGhost, flex: 1, height: 40 }}>{t("shareLinkedin")}</a>
+            </div>
+          </aside>
+        )}
+      </div>
     </main>
   );
 }
 
-function Meter({ label, value, color, nf }: { label: string; value: number; color: string; nf: Intl.NumberFormat }) {
+function Group({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div style={{ flex: "1 1 120px", minWidth: 120 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--muted)", marginBlockEnd: 5 }}>
-        <span>{label}</span>
-        <span style={{ fontFamily: "var(--font-latin)", fontWeight: 700, color: "var(--heading)" }}>{nf.format(value)}</span>
+    <div style={{ marginBlockEnd: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBlockEnd: 9 }}>
+        <span style={label}>{title}</span>
+        {hint && <span style={{ fontSize: 11.5, color: "var(--teal-deep)", fontWeight: 600 }}>{hint}</span>}
       </div>
-      <div style={{ height: 7, borderRadius: 7, background: "var(--border-3)", overflow: "hidden" }}>
-        <div style={{ width: `${value}%`, height: "100%", background: color }} />
-      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{children}</div>
     </div>
   );
 }
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Pill({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <div style={{ marginBlockStart: 14 }}>
-      <div style={{ ...labelStyle, marginBlockEnd: 8 }}>{label}</div>
+    <button onClick={onClick} style={{ padding: "7px 13px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer", border: on ? "1.5px solid var(--navy)" : "1.5px solid var(--border-2)", background: on ? "var(--navy)" : "var(--card)", color: on ? "#fff" : "var(--slate)" }}>
       {children}
-    </div>
+    </button>
   );
 }
 
-const card: React.CSSProperties = {
-  background: "var(--card)",
-  border: "1px solid var(--border)",
-  borderRadius: "var(--r-lg)",
-  padding: "clamp(16px,3vw,24px)",
-  boxShadow: "0 1px 0 rgba(0,0,0,.02)",
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: 12.5,
-  fontWeight: 600,
-  color: "var(--slate)",
-  marginBlockEnd: 7,
-};
-
-const field: React.CSSProperties = {
-  width: "100%",
-  minHeight: 44,
-  border: "1px solid var(--border-2)",
-  borderRadius: "var(--r)",
-  background: "var(--card)",
-  padding: "10px 14px",
-  fontSize: 14.5,
-  color: "var(--text)",
-  outline: "none",
-};
-
-const primaryBtn: React.CSSProperties = {
-  marginBlockStart: 18,
-  width: "100%",
-  height: 50,
-  background: "linear-gradient(135deg,#102A43,#0B1F33)",
-  color: "#fff",
-  border: "none",
-  borderRadius: 13,
-  fontSize: 15,
-  fontWeight: 700,
-  cursor: "pointer",
-  boxShadow: "0 12px 26px -12px rgba(11,31,51,.7)",
-};
-
-const noticeStyle: React.CSSProperties = {
-  marginBlockStart: 12,
-  fontSize: 13,
-  color: "var(--coral)",
-  background: "var(--coral-tint)",
-  border: "1px solid rgba(224,101,74,.25)",
-  borderRadius: 10,
-  padding: "10px 14px",
-  lineHeight: 1.7,
-};
-
-const sectionHead: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 9,
-  fontSize: 15,
-  fontWeight: 700,
-  color: "var(--heading)",
-  marginBlockEnd: 14,
-};
-
-function dot(color: string): React.CSSProperties {
-  return { width: 9, height: 9, borderRadius: 999, background: color, display: "inline-block" };
-}
-
-function pill(bg: string, color: string): React.CSSProperties {
-  return {
-    display: "inline-block",
-    padding: "5px 11px",
-    borderRadius: 999,
-    background: bg,
-    color,
-    fontSize: 12.5,
-    fontWeight: 600,
-  };
-}
+const card: React.CSSProperties = { background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 16 };
+const label: React.CSSProperties = { fontSize: 12.5, fontWeight: 700, color: "var(--heading)" };
+const field: React.CSSProperties = { width: "100%", height: 40, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border-2)", background: "var(--card)", fontSize: 13, outline: "none" };
+const notice: React.CSSProperties = { padding: "11px 14px", borderRadius: 12, background: "var(--coral-tint)", border: "1px solid rgba(224,101,74,.3)", color: "var(--coral)", fontSize: 13.5 };

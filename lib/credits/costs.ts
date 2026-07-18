@@ -20,6 +20,14 @@ export function estimateIdeas(count: number): number {
   return Math.max(1, count) * COSTS.idea;
 }
 
+/** Studio compose (1 body + 3 hook variants) and each rewrite tool. */
+export function estimateCompose(): number {
+  return COSTS.draft * 3;
+}
+export function estimateRewrite(): number {
+  return COSTS.draft;
+}
+
 export function estimateIngest(): number {
   return COSTS.ingest;
 }

@@ -182,6 +182,29 @@ select {
   gap: 20px;
 }
 
+/* Studio 3-column workspace: settings (right) · compose (center) · preview (left).
+   In RTL the first grid column sits on the right automatically. */
+.studio-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 300px;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .studio-grid {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+  /* Preview rail drops below the composer on medium screens. */
+  .studio-grid > aside:last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 760px) {
+  .studio-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Mobile-only controls (the ☰ button) are hidden on desktop. */
 .mobile-only {
   display: none;
