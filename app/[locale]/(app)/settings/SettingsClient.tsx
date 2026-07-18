@@ -3,8 +3,18 @@
 import { useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { updateProfile } from "@/lib/auth/actions";
+import { updateProfile, updateNotifications } from "@/lib/auth/actions";
 import { ProgressMeter, btnNavy, btnTeal, btnGhost, btnGold } from "@/components/ui/display";
+
+/** Small "coming soon" affordance for actions that need external integration. */
+function Soon({ children, label }: { children: React.ReactNode; label: string }) {
+  return (
+    <span style={{ position: "relative", display: "inline-flex", opacity: 0.85 }}>
+      {children}
+      <span style={{ position: "absolute", insetBlockStart: -8, insetInlineEnd: -6, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 999, background: "var(--gold)", color: "#3a2b0c", whiteSpace: "nowrap" }}>{label}</span>
+    </span>
+  );
+}
 
 type Props = {
   email: string;
@@ -19,6 +29,7 @@ type Props = {
   field: string;
   audience: string;
   dialect: string;
+  initialNotif: Record<string, boolean> | null;
 };
 
 const TABS = ["profile", "brand", "platforms", "team", "plan", "notifications"] as const;
@@ -41,6 +52,7 @@ export function SettingsClient(p: Props) {
   const [bio, setBio] = useState(p.bio);
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
+  const dirty = name !== p.fullName || title !== p.title || bio !== p.bio;
   const save = () =>
     start(async () => {
       const r = await updateProfile({ fullName: name, title, bio });
@@ -48,24 +60,17 @@ export function SettingsClient(p: Props) {
       setTimeout(() => setSaved(false), 2000);
     });
 
-  const [notif, setNotif] = useState<Record<string, boolean>>(() => {
-    const base = { analysis: true, schedule: true, weekly: false, marketing: false };
-    if (typeof window === "undefined") return base;
-    try {
-      const raw = localStorage.getItem("athar-notif");
-      return raw ? { ...base, ...JSON.parse(raw) } : base;
-    } catch {
-      return base;
-    }
-  });
+  const [notif, setNotif] = useState<Record<string, boolean>>(
+    () => p.initialNotif ?? { analysis: true, schedule: true, weekly: false, marketing: false },
+  );
   const toggle = (k: string) =>
     setNotif((n) => {
       const next = { ...n, [k]: !n[k] };
-      try {
-        localStorage.setItem("athar-notif", JSON.stringify(next));
-      } catch {}
+      updateNotifications(next); // persists cross-device to the Supabase user
       return next;
     });
+  const soon = t("soon");
+  const usageNear = p.sourcesUsed >= p.sourcesLimit - 1;
 
   return (
     <div className="settings-grid" style={{ display: "grid", gridTemplateColumns: "190px 1fr", gap: 20, alignItems: "start" }}>
@@ -83,7 +88,7 @@ export function SettingsClient(p: Props) {
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBlockEnd: 18 }}>
               <span style={{ width: 60, height: 60, borderRadius: "50%", display: "grid", placeItems: "center", background: "linear-gradient(135deg,var(--navy-2),var(--navy))", color: "#fff", fontWeight: 800, fontSize: 22 }}>{(name || p.email || "A")[0].toUpperCase()}</span>
               <div>
-                <button style={{ ...btnNavy, height: 38 }}>{t("changePhoto")}</button>
+                <Soon label={soon}><button disabled style={{ ...btnNavy, height: 38 }}>{t("changePhoto")}</button></Soon>
                 <div style={{ fontSize: 11.5, color: "var(--muted)", marginBlockStart: 7 }}>{t("photoHint")}</div>
               </div>
             </div>
@@ -94,7 +99,7 @@ export function SettingsClient(p: Props) {
             </div>
             <Field label={t("bio")}><textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} style={{ ...inp, height: "auto", padding: 12, lineHeight: 1.8, resize: "vertical" }} /></Field>
             <Field label={t("email")}><input value={p.email} disabled style={{ ...inp, opacity: 0.65, direction: "ltr", textAlign: "start" }} /></Field>
-            <button onClick={save} disabled={pending} style={{ ...btnTeal, marginBlockStart: 16, opacity: pending ? 0.7 : 1 }}>{saved ? t("savedOk") : t("saveChanges")}</button>
+            <button onClick={save} disabled={pending || !dirty} style={{ ...btnTeal, marginBlockStart: 16, opacity: pending || !dirty ? 0.55 : 1 }}>{saved ? t("savedOk") : t("saveChanges")}</button>
           </Panel>
         )}
 
@@ -127,7 +132,7 @@ export function SettingsClient(p: Props) {
                     <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 14 }}>{t(`pf_${pl.key}`)}</div>
                     <div style={{ fontSize: 12, color: "var(--muted)", marginBlockStart: 2 }}>{t("notConnected")}</div>
                   </div>
-                  <button style={{ ...btnNavy, height: 36, fontSize: 12.5 }}>{t("connect")}</button>
+                  <Soon label={soon}><button disabled style={{ ...btnNavy, height: 36, fontSize: 12.5 }}>{t("connect")}</button></Soon>
                 </div>
               ))}
             </div>
@@ -148,7 +153,7 @@ export function SettingsClient(p: Props) {
             <div style={{ marginBlockStart: 16, padding: 22, borderRadius: 14, border: "1px dashed var(--border-2)", textAlign: "center" }}>
               <div style={{ fontWeight: 700, color: "var(--heading)", marginBlockEnd: 6 }}>{t("teamUpsellTitle")}</div>
               <div style={{ fontSize: 13.5, color: "var(--slate-2)", marginBlockEnd: 16, lineHeight: 1.7 }}>{t("teamUpsellBody")}</div>
-              <button style={{ ...btnGold, height: 42 }}>{t("upgradeAgency")}</button>
+              <Soon label={soon}><button disabled style={{ ...btnGold, height: 42 }}>{t("upgradeAgency")}</button></Soon>
             </div>
           </Panel>
         )}
@@ -165,12 +170,17 @@ export function SettingsClient(p: Props) {
                   <span>{t("knowledgeFiles")}</span>
                   <span style={{ fontFamily: "var(--font-latin)", fontWeight: 700 }}>{nf.format(p.sourcesUsed)} / {nf.format(p.sourcesLimit)}</span>
                 </div>
-                <ProgressMeter pct={(p.sourcesUsed / Math.max(1, p.sourcesLimit)) * 100} />
+                <ProgressMeter pct={(p.sourcesUsed / Math.max(1, p.sourcesLimit)) * 100} color={usageNear ? "var(--gold)" : undefined} />
               </div>
             </div>
+            {usageNear && (
+              <div style={{ marginBlockStart: 12, padding: "10px 14px", borderRadius: 11, background: "var(--gold-tint)", border: "1px solid rgba(214,168,79,.35)", fontSize: 13, color: "var(--gold-dark)", fontWeight: 600 }}>
+                ⚠ {t("usageAlert", { used: nf.format(p.sourcesUsed), limit: nf.format(p.sourcesLimit) })}
+              </div>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBlockStart: 16 }}>
-              <PlanCard name={t("planPro")} price="99" unit={t("perMonth")} feats={t("featPro")} cta={<button style={{ ...btnNavy, width: "100%" }}>{t("upgrade")}</button>} />
-              <PlanCard name={t("planAgency")} price="299" unit={t("perMonth")} feats={t("featAgency")} highlight cta={<button style={{ ...btnTeal, width: "100%" }}>{t("upgrade")}</button>} />
+              <PlanCard name={t("planPro")} price="99" unit={t("perMonth")} feats={t("featPro")} cta={<Soon label={soon}><button disabled style={{ ...btnNavy, width: "100%" }}>{t("upgrade")}</button></Soon>} />
+              <PlanCard name={t("planAgency")} price="299" unit={t("perMonth")} feats={t("featAgency")} highlight cta={<Soon label={soon}><button disabled style={{ ...btnTeal, width: "100%" }}>{t("upgrade")}</button></Soon>} />
             </div>
             <p style={{ fontSize: 12, color: "var(--muted)", marginBlockStart: 12 }}>{t("billingNote")}</p>
           </Panel>
@@ -184,7 +194,7 @@ export function SettingsClient(p: Props) {
                   <div style={{ fontSize: 14, fontWeight: 600, color: "var(--heading)" }}>{t(`ntitle_${k}`)}</div>
                   <div style={{ fontSize: 12.5, color: "var(--muted)", marginBlockStart: 2 }}>{t(`ndesc_${k}`)}</div>
                 </div>
-                <button onClick={() => toggle(k)} aria-label={k} style={{ width: 46, height: 26, flex: "none", borderRadius: 999, border: "none", cursor: "pointer", background: notif[k] ? "var(--teal)" : "var(--border-2)", position: "relative" }}>
+                <button onClick={() => toggle(k)} role="switch" aria-checked={!!notif[k]} aria-label={t(`ntitle_${k}`)} style={{ width: 46, height: 26, flex: "none", borderRadius: 999, border: "none", cursor: "pointer", background: notif[k] ? "var(--teal)" : "var(--border-2)", position: "relative" }}>
                   <span style={{ position: "absolute", insetBlockStart: 3, insetInlineStart: notif[k] ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "inset-inline-start .15s" }} />
                 </button>
               </div>

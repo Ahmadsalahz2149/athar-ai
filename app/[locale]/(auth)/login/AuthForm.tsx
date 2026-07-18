@@ -6,6 +6,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { signIn } from "@/lib/auth/actions";
 import { Logo } from "@/components/Logo";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 import { btnNavy } from "@/components/ui/display";
 
 export function AuthForm() {
@@ -57,7 +58,7 @@ export function AuthForm() {
       <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={{ ...field, direction: "ltr", textAlign: "start", fontFamily: "var(--font-latin)" }} />
 
       <label style={{ ...label, marginBlockStart: 14 }}>{t("password")}</label>
-      <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} style={{ ...field, direction: "ltr", textAlign: "start" }} />
+      <PasswordInput value={password} onChange={setPassword} showLabel={t("showPassword")} hideLabel={t("hidePassword")} />
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBlockStart: 14 }}>
         <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13.5, color: "var(--slate)", cursor: "pointer" }}>

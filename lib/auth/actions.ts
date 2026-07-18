@@ -72,6 +72,14 @@ export async function updateProfile(input: { fullName: string; title: string; bi
   return { ok: !error };
 }
 
+/** Persist notification preferences to the Supabase user (cross-device). */
+export async function updateNotifications(prefs: Record<string, boolean>): Promise<{ ok: boolean }> {
+  const supabase = await getSupabaseServer();
+  if (!supabase) return { ok: false };
+  const { error } = await supabase.auth.updateUser({ data: { notifications: prefs } });
+  return { ok: !error };
+}
+
 export async function signOut(locale: string): Promise<void> {
   const supabase = await getSupabaseServer();
   if (supabase) await supabase.auth.signOut();

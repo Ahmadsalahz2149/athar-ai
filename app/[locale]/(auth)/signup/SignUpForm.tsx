@@ -6,6 +6,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { signUp } from "@/lib/auth/actions";
 import { Logo } from "@/components/Logo";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
+import { PasswordInput, strength } from "@/components/auth/PasswordInput";
 import { SelectableCard, btnNavy } from "@/components/ui/display";
 
 const TYPES = ["course_owner", "coach", "creator", "agency"] as const;
@@ -70,11 +71,21 @@ export function SignUpForm() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBlockStart: 14 }}>
         <div>
           <label style={label}>{t("password")}</label>
-          <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} style={{ ...field, direction: "ltr", textAlign: "start" }} />
+          <PasswordInput value={password} onChange={setPassword} showLabel={t("showPassword")} hideLabel={t("hidePassword")} />
+          {password.length > 0 && (
+            <div style={{ display: "flex", gap: 4, marginBlockStart: 7 }}>
+              {[0, 1, 2].map((i) => (
+                <span key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i < strength(password) ? ["var(--coral)", "var(--gold)", "var(--teal)"][strength(password) - 1] : "var(--border-2)" }} />
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <label style={label}>{t("confirmPassword")}</label>
-          <input type="password" required minLength={6} value={confirm} onChange={(e) => setConfirm(e.target.value)} style={{ ...field, direction: "ltr", textAlign: "start" }} />
+          <PasswordInput value={confirm} onChange={setConfirm} showLabel={t("showPassword")} hideLabel={t("hidePassword")} />
+          {confirm.length > 0 && confirm !== password && (
+            <div style={{ fontSize: 11.5, color: "var(--coral)", marginBlockStart: 6 }}>{t("passwordMismatch")}</div>
+          )}
         </div>
       </div>
 

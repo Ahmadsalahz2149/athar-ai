@@ -187,7 +187,9 @@
     "panelForgotCardEyebrow": "حماية حسابك",
     "panelForgotCardTitle": "رابط الاستعادة صالح لمدة ٣٠ دقيقة فقط",
     "panelForgotCardBody": "لأمان إضافي، لا تشارك الرابط مع أحد.",
-    "confirmEmail": "أرسلنا رابط تأكيد إلى بريدك. افتحه لتفعيل حسابك ثم سجّل الدخول."
+    "confirmEmail": "أرسلنا رابط تأكيد إلى بريدك. افتحه لتفعيل حسابك ثم سجّل الدخول.",
+    "showPassword": "إظهار كلمة المرور",
+    "hidePassword": "إخفاء كلمة المرور"
   },
   "Onboarding": {
     "badge": "البداية السريعة",
@@ -735,6 +737,8 @@
     "ntitle_weekly": "توصيات أثر الأسبوعية",
     "ndesc_weekly": "ملخّص أداء واقتراحات كل أحد",
     "ntitle_marketing": "رسائل تسويقية",
-    "ndesc_marketing": "أخبار المنتج والعروض"
+    "ndesc_marketing": "أخبار المنتج والعروض",
+    "soon": "قريبًا",
+    "usageAlert": "اقتربت من الحد ({used}/{limit}). رقِّ خطتك لرفع الحد."
   }
 }

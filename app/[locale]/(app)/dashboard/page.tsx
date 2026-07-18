@@ -77,11 +77,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
           : { body: t("recReview"), cta: t("recApprovals"), href: "/approvals" };
 
   const funnel = [
-    { label: t("fIdeas"), n: counts.ideas, tint: "var(--gold-tint)", fg: "var(--gold-dark)" },
-    { label: t("fWriting"), n: counts.writing, tint: "var(--blue-tint)", fg: "var(--blue)" },
-    { label: t("fReview"), n: counts.pending, tint: "var(--coral-tint)", fg: "var(--coral)" },
-    { label: t("fScheduled"), n: counts.scheduled, tint: "var(--teal-tint-2)", fg: "var(--teal-deep)" },
-    { label: t("fPublished"), n: counts.published, tint: "var(--border-3)", fg: "var(--slate-2)" },
+    { label: t("fIdeas"), n: counts.ideas, tint: "var(--gold-tint)", fg: "var(--gold-dark)", href: "/ideas" },
+    { label: t("fWriting"), n: counts.writing, tint: "var(--blue-tint)", fg: "var(--blue)", href: "/studio" },
+    { label: t("fReview"), n: counts.pending, tint: "var(--coral-tint)", fg: "var(--coral)", href: "/approvals" },
+    { label: t("fScheduled"), n: counts.scheduled, tint: "var(--teal-tint-2)", fg: "var(--teal-deep)", href: "/calendar" },
+    { label: t("fPublished"), n: counts.published, tint: "var(--border-3)", fg: "var(--slate-2)", href: "/analytics" },
   ];
 
   // This week strip (Sat → Fri), marking days that carry scheduled posts.
@@ -150,10 +150,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             <div style={{ display: "flex", alignItems: "stretch", gap: 6, flexWrap: "wrap" }}>
               {funnel.map((f, i) => (
                 <div key={f.label} style={{ display: "contents" }}>
-                  <div style={{ flex: "1 1 90px", minWidth: 84, background: f.tint, borderRadius: 12, padding: "12px 10px", textAlign: "center" }}>
+                  <Link href={f.href} style={{ flex: "1 1 90px", minWidth: 84, background: f.tint, borderRadius: 12, padding: "12px 10px", textAlign: "center" }}>
                     <div style={{ fontSize: 20, fontWeight: 800, color: f.fg, fontFamily: "var(--font-latin)" }}>{nf.format(f.n)}</div>
                     <div style={{ fontSize: 11.5, color: "var(--slate-2)", marginBlockStart: 3 }}>{f.label}</div>
-                  </div>
+                  </Link>
                   {i < funnel.length - 1 && (
                     <span style={{ alignSelf: "center", color: "var(--subtle)", fontSize: 13 }}>‹</span>
                   )}

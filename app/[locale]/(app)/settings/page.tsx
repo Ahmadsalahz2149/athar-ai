@@ -15,6 +15,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   let title = "";
   let bio = "";
   let onboarding: Record<string, string> = {};
+  let notif: Record<string, boolean> | null = null;
   let balance = 0;
   let completeness = 0;
   let sourcesUsed = 0;
@@ -28,6 +29,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
     title = (m.title as string) || "";
     bio = (m.bio as string) || "";
     onboarding = (m.onboarding as Record<string, string>) ?? {};
+    notif = (m.notifications as Record<string, boolean>) ?? null;
   }
   if (db) {
     const ctx = await currentContext();
@@ -61,6 +63,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
         field={safe(to, "field_", onboarding.field)}
         audience={safe(to, "aud_", onboarding.audience)}
         dialect={safe(to, "dia_", onboarding.dialect)}
+        initialNotif={notif}
       />
     </main>
   );
