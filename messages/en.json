@@ -387,7 +387,17 @@
     "st4": "Suggest posts",
     "st4d": "Generate drafts in your voice directly",
     "st5": "Update Content DNA",
-    "st5d": "Merge the new learning into your Content DNA"
+    "st5d": "Merge the new learning into your Content DNA",
+    "maxSize": "Max {mb} MB per file",
+    "pickFiles": "Choose files",
+    "tooBigClient": "File exceeds {mb} MB — split or compress it",
+    "qQueued": "Queued",
+    "qUploading": "Uploading & extracting…",
+    "qAnalyzing": "Analyzing…",
+    "qDone": "Done · {chunks} chunks",
+    "removeFile": "Remove file",
+    "charCount": "{n} chars · min {min}",
+    "queueSummary": "{done} of {total} complete"
   },
   "Analysis": {
     "title": "File analysis",

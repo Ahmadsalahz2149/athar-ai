@@ -14,6 +14,11 @@ import {
   btnTeal,
 } from "@/components/ui/display";
 
+const MAX_FILE_MB = 30; // mirrors MAX_FILE_BYTES in actions.ts / next.config bodySizeLimit
+
+type QStatus = "queued" | "uploading" | "analyzing" | "done" | "error" | "toobig";
+type QItem = { id: number; file: File; status: QStatus; error?: string; chunks?: number };
+
 type TypeKey = "video" | "audio" | "pdf" | "book" | "doc" | "link" | "posts";
 const TYPES: { key: TypeKey; accept?: string; input: "file" | "url" | "text" }[] = [
   { key: "video", input: "file", accept: "video/*,audio/*" },
@@ -56,7 +61,8 @@ export function IngestPanel() {
 
   const [typeKey, setTypeKey] = useState<TypeKey>("video");
   const type = TYPES.find((x) => x.key === typeKey)!;
-  const [file, setFile] = useState<File | null>(null);
+  const [queue, setQueue] = useState<QItem[]>([]);
+  const idSeq = useRef(0);
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
   const [actions, setActions] = useState<string[]>(["dna", "ideas"]);
@@ -69,7 +75,22 @@ export function IngestPanel() {
 
   const toggleAction = (a: string) => setActions((s) => (s.includes(a) ? s.filter((x) => x !== a) : [...s, a]));
 
-  const ready = type.input === "file" ? !!file : type.input === "url" ? !!url.trim() : text.trim().length >= 150;
+  // Append picked/dropped files to the queue, flagging over-size ones up front.
+  const addFiles = (list: FileList | File[]) => {
+    const items: QItem[] = Array.from(list).map((f) => ({
+      id: idSeq.current++,
+      file: f,
+      status: f.size > MAX_FILE_MB * 1048576 ? "toobig" : "queued",
+    }));
+    setQueue((q) => [...q, ...items]);
+    setRes(null);
+  };
+  const removeItem = (id: number) => setQueue((q) => q.filter((i) => i.id !== id));
+  const setItem = (id: number, patch: Partial<QItem>) => setQueue((q) => q.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+
+  const runnable = queue.filter((i) => i.status === "queued" || i.status === "error");
+  const ready = type.input === "file" ? runnable.length > 0 : type.input === "url" ? !!url.trim() : text.trim().length >= 150;
+  const doAnalyze = actions.includes("ideas") && !actions.includes("analyze_only");
 
   const run = () => {
     setRes(null);
@@ -77,26 +98,39 @@ export function IngestPanel() {
     start(async () => {
       try {
         const opts = { language, category, actions };
-        let r: IngestResult;
-        if (type.input === "file" && file) {
-          const fd = new FormData();
-          fd.append("file", file);
-          fd.append("language", language);
-          fd.append("category", category);
-          r = await ingestFile(fd);
-        } else if (type.input === "url") {
-          r = await ingestUrl({ url, opts });
-        } else {
-          r = await ingestText({ text, title: t("pastedTitle"), opts });
+
+        // FILE MODE — process the queue sequentially, tracking per-file status.
+        if (type.input === "file") {
+          let last: IngestResult | null = null;
+          for (const item of runnable) {
+            setItem(item.id, { status: "uploading", error: undefined });
+            const fd = new FormData();
+            fd.append("file", item.file);
+            fd.append("language", language);
+            fd.append("category", category);
+            const r = await ingestFile(fd);
+            if (!r.ok) { setItem(item.id, { status: "error", error: errorMessage(r, t) }); continue; }
+            if (doAnalyze) {
+              setItem(item.id, { status: "analyzing", chunks: r.chunks });
+              try { await analyzeSource(r.sourceId); } catch { /* analysis is best-effort */ }
+            }
+            setItem(item.id, { status: "done", chunks: r.chunks });
+            last = r;
+          }
+          setRes(last);
+          setPhase("done");
+          router.refresh();
+          if (last?.ok && actions.includes("posts")) router.push("/studio");
+          return;
         }
+
+        // URL / TEXT MODE — single item.
+        let r: IngestResult;
+        if (type.input === "url") r = await ingestUrl({ url, opts });
+        else r = await ingestText({ text, title: t("pastedTitle"), opts });
         setRes(r);
         if (!r.ok) return setPhase("idle");
-
-        // Selected actions genuinely drive what happens next.
-        if (actions.includes("ideas") && !actions.includes("analyze_only")) {
-          setPhase("analyzing");
-          await analyzeSource(r.sourceId);
-        }
+        if (doAnalyze) { setPhase("analyzing"); await analyzeSource(r.sourceId); }
         setPhase("done");
         router.refresh();
         if (actions.includes("posts")) router.push("/studio");
@@ -121,8 +155,7 @@ export function IngestPanel() {
           onDrop={(e) => {
             e.preventDefault();
             setDrag(false);
-            const f = e.dataTransfer.files?.[0];
-            if (f && !pending) setFile(f);
+            if (e.dataTransfer.files?.length && !pending) addFiles(e.dataTransfer.files);
           }}
           style={{
             border: `2px dashed ${drag ? "var(--teal)" : "var(--border-2)"}`,
@@ -133,24 +166,49 @@ export function IngestPanel() {
             cursor: pending ? "default" : "pointer",
           }}
         >
-          <input ref={inputRef} type="file" accept={type.accept} hidden onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) setFile(f);
+          <input ref={inputRef} type="file" accept={type.accept} multiple hidden onChange={(e) => {
+            if (e.target.files?.length) addFiles(e.target.files);
             e.target.value = "";
           }} />
           <div style={{ width: 52, height: 52, margin: "0 auto", borderRadius: 14, display: "grid", placeItems: "center", background: "var(--teal-tint)" }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3v11m0-11 4 4m-4-4-4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="#0E9488" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </div>
           <div style={{ fontWeight: 700, color: "var(--heading)", marginBlockStart: 12, fontSize: 16 }}>{t("dropTitle")}</div>
-          <div style={{ fontSize: 13, color: "var(--muted)", marginBlockStart: 6 }}>{t("dropHelper")}</div>
-          <span style={{ ...btnTeal, marginBlockStart: 14 }}>{t("pickFile")}</span>
-          {file && (
-            <div style={{ marginBlockStart: 14, display: "inline-flex", alignItems: "center", gap: 9, padding: "8px 12px", borderRadius: 10, background: "var(--card)", border: "1px solid var(--border)" }}>
-              <FileTypeBadge label={(file.name.split(".").pop() ?? "TXT").toUpperCase()} size={26} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--heading)" }}>{file.name}</span>
-              <span style={{ fontSize: 11.5, color: "var(--muted)", fontFamily: "var(--font-latin)" }}>{(file.size / 1048576).toFixed(1)} MB</span>
-            </div>
-          )}
+          <div style={{ fontSize: 13, color: "var(--muted)", marginBlockStart: 6 }}>{t("dropHelper")} · {t("maxSize", { mb: nf.format(MAX_FILE_MB) })}</div>
+          <span style={{ ...btnTeal, marginBlockStart: 14 }}>{t("pickFiles")}</span>
+        </div>
+      )}
+
+      {/* Upload queue — independent per-file status */}
+      {type.input === "file" && queue.length > 0 && (
+        <div style={{ display: "grid", gap: 8, marginBlockStart: 14 }}>
+          {queue.map((it) => {
+            const tone = it.status === "done" ? "var(--teal-deep)" : it.status === "error" || it.status === "toobig" ? "var(--coral)" : "var(--muted)";
+            const statusText = it.status === "toobig" ? t("tooBigClient", { mb: nf.format(MAX_FILE_MB) })
+              : it.status === "error" ? (it.error ?? t("ingestError"))
+              : it.status === "uploading" ? t("qUploading")
+              : it.status === "analyzing" ? t("qAnalyzing")
+              : it.status === "done" ? t("qDone", { chunks: nf.format(it.chunks ?? 0) })
+              : t("qQueued");
+            const active = it.status === "uploading" || it.status === "analyzing";
+            return (
+              <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, background: "var(--card)", border: "1px solid var(--border)" }}>
+                <FileTypeBadge label={(it.file.name.split(".").pop() ?? "TXT").toUpperCase()} size={30} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--heading)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.file.name}</div>
+                  <div style={{ fontSize: 11.5, color: tone, marginBlockStart: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                    {active && <span className="skeleton" style={{ width: 10, height: 10, borderRadius: "50%" }} />}
+                    {statusText}
+                    <span style={{ color: "var(--subtle)", fontFamily: "var(--font-latin)" }}>· {(it.file.size / 1048576).toFixed(1)} MB</span>
+                  </div>
+                </div>
+                {(it.status === "queued" || it.status === "toobig" || it.status === "error") && !pending && (
+                  <button onClick={() => removeItem(it.id)} aria-label={t("removeFile")} style={{ flex: "none", width: 26, height: 26, borderRadius: 8, border: "none", background: "var(--surface)", color: "var(--muted)", cursor: "pointer", fontSize: 15 }}>×</button>
+                )}
+                {it.status === "done" && <span style={{ color: "var(--teal-deep)", fontWeight: 800 }}>✓</span>}
+              </div>
+            );
+          })}
         </div>
       )}
       {type.input === "url" && (
@@ -163,6 +221,9 @@ export function IngestPanel() {
         <div style={cardBox}>
           <div style={label}>{t("textTitle")}</div>
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={7} placeholder={t("textPlaceholder")} className="scb" style={{ ...inp, height: "auto", padding: 12, lineHeight: 1.8, resize: "vertical" }} />
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBlockStart: 6, fontSize: 12, fontWeight: 600, color: text.trim().length >= 150 ? "var(--teal-deep)" : "var(--muted)" }}>
+            {t("charCount", { n: nf.format(text.trim().length), min: nf.format(150) })}
+          </div>
         </div>
       )}
 
@@ -177,7 +238,7 @@ export function IngestPanel() {
                 key={ty.key}
                 onClick={() => {
                   setTypeKey(ty.key);
-                  setFile(null);
+                  setQueue([]);
                   setRes(null);
                 }}
                 style={{
@@ -246,10 +307,20 @@ export function IngestPanel() {
       {phase !== "idle" && (
         <div style={{ ...cardBox, marginBlockStart: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBlockEnd: 10 }}>
-            {phase === "done" ? <StatusPill tone="teal" dot>{t("donePill")}</StatusPill> : <StatusPill tone="amber" dot>{t("workingPill")}</StatusPill>}
+            {phase === "done" ? <StatusPill tone="teal" dot>{t("donePill")}</StatusPill> : <StatusPill tone="amber" dot>{phase === "analyzing" ? t("analyzingNow") : t("workingPill")}</StatusPill>}
           </div>
-          <ProgressMeter pct={phase === "done" ? 100 : phase === "analyzing" ? 75 : 40} />
-          {res && res.ok && phase === "done" && (
+          <ProgressMeter
+            pct={type.input === "file"
+              ? Math.round((queue.filter((i) => i.status === "done").length / Math.max(1, queue.filter((i) => i.status !== "toobig").length)) * 100)
+              : phase === "done" ? 100 : phase === "analyzing" ? 75 : 40}
+            label={t("workingPill")}
+          />
+          {type.input === "file" && (
+            <p style={{ marginBlockStart: 12, fontSize: 13.5, color: phase === "done" ? "var(--teal-deep)" : "var(--muted)", fontWeight: 600 }}>
+              {t("queueSummary", { done: nf.format(queue.filter((i) => i.status === "done").length), total: nf.format(queue.filter((i) => i.status !== "toobig").length) })}
+            </p>
+          )}
+          {type.input !== "file" && res && res.ok && phase === "done" && (
             <p style={{ marginBlockStart: 12, fontSize: 13.5, color: "var(--teal-deep)", fontWeight: 600 }}>
               {t("ingestDone", { chunks: nf.format(res.chunks), total: nf.format(res.totalChunks) })}
             </p>
