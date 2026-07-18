@@ -2,6 +2,7 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 import type { ContentDna } from "@/lib/ai/prompts";
+import { normalizeDna } from "@/lib/ai/normalize";
 
 /**
  * Tenancy façade (ADR-005). ALL tenant-table access must go through forOrg(db, orgId):
@@ -82,7 +83,9 @@ export function forOrg(db: Db, orgId: string) {
         .from(schema.dnaVersions)
         .where(and(eq(schema.dnaVersions.id, b[0].currentDnaVersionId), eq(schema.dnaVersions.orgId, orgId)))
         .limit(1);
-      return rows.length ? (rows[0].payload as ContentDna) : null;
+      // Normalize on read so DNA stored before newer fields existed (pillars,
+      // meters, …) always comes back well-shaped and never crashes a screen.
+      return rows.length ? normalizeDna(rows[0].payload) : null;
     },
 
     async saveDraft(

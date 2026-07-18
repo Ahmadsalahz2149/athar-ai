@@ -13,6 +13,13 @@ const goodDna: ContentDna = {
   audience: "رواد الأعمال الشباب",
   dos: ["استخدم أمثلة"],
   donts: ["لا تعقّد"],
+  explanation_style: "خطوات + أمثلة",
+  sentence_length: 2,
+  boldness: 2,
+  awareness: "يعرفون المشكلة",
+  cares_about: ["الانتشار", "البيع"],
+  cta_patterns: ["دعوة للتعليق"],
+  pillars: { educational: 35, story: 20, proof: 15, soft_sell: 12, thought_leadership: 10, engagement: 8 },
   completion_pct: 60,
 };
 

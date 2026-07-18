@@ -29,7 +29,10 @@ const db = sql ? drizzle(sql, { schema }) : null;
 
 const DNA: ContentDna = {
   summary: "s", dialect: "d", tone_traits: ["t"], hook_patterns: ["h"],
-  audience: "a", dos: [], donts: [], completion_pct: 50,
+  audience: "a", dos: [], donts: [], explanation_style: "e", sentence_length: 2,
+  boldness: 2, awareness: "aw", cares_about: [], cta_patterns: [],
+  pillars: { educational: 35, story: 20, proof: 15, soft_sell: 12, thought_leadership: 10, engagement: 8 },
+  completion_pct: 50,
 };
 
 // A 2-brand-org tenancy proof: org A (2 brands) and org B (1 brand).
