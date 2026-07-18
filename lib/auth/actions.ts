@@ -61,6 +61,17 @@ export async function requestPasswordReset(email: string): Promise<{ ok: true }>
   return { ok: true };
 }
 
+/** Update the signed-in user's display profile (name + title + bio) — stored on
+ * the Supabase user, so the app chrome reflects real values. */
+export async function updateProfile(input: { fullName: string; title: string; bio: string }): Promise<{ ok: boolean }> {
+  const supabase = await getSupabaseServer();
+  if (!supabase) return { ok: false };
+  const { error } = await supabase.auth.updateUser({
+    data: { full_name: input.fullName.trim(), title: input.title.trim(), bio: input.bio.trim() },
+  });
+  return { ok: !error };
+}
+
 export async function signOut(locale: string): Promise<void> {
   const supabase = await getSupabaseServer();
   if (supabase) await supabase.auth.signOut();
