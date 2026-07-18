@@ -826,5 +826,10 @@
     "ndesc_marketing": "Product news and offers",
     "soon": "soon",
     "usageAlert": "You're near your limit ({used}/{limit}). Upgrade to raise it."
+  },
+  "NotFound": {
+    "title": "Page not found",
+    "body": "The page you're looking for doesn't exist or was moved.",
+    "cta": "Back to dashboard"
   }
 }

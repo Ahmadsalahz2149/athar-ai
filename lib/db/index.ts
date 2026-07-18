@@ -13,7 +13,19 @@ const url = process.env.DATABASE_URL;
 const needsSsl = !!url && /supabase\.(co|com)|sslmode=require/.test(url);
 
 export const db = url
-  ? drizzle(postgres(url, { prepare: false, ssl: needsSsl ? "require" : undefined }), { schema })
+  ? drizzle(
+      postgres(url, {
+        prepare: false,
+        ssl: needsSsl ? "require" : undefined,
+        // Resilience (INFRA phase 5): cap the pool and recycle idle connections so
+        // a long-running server + background worker kicks don't accrete connections
+        // against the pooler's client limit. Fail fast rather than hang on connect.
+        max: 8,
+        idle_timeout: 20,
+        connect_timeout: 10,
+      }),
+      { schema },
+    )
   : null;
 
 export function hasDb(): boolean {

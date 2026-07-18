@@ -1,0 +1,2 @@
+ALTER TABLE "credit_ledger" ADD COLUMN "idempotency_key" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "credit_ledger_idem_uq" ON "credit_ledger" USING btree ("org_id","idempotency_key") WHERE "credit_ledger"."idempotency_key" is not null;

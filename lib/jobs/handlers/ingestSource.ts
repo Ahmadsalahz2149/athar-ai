@@ -53,7 +53,7 @@ export const ingestSourceHandler: JobHandler = async ({ db, job, progress }) => 
     await org.clearChunks(brandId, p.sourceId); // idempotent re-run
     await org.saveChunks(brandId, p.sourceId, chunks.map((c, i) => ({ idx: c.idx, content: c.content, embedding: vectors[i] })));
     await org.setSourceStatus(brandId, p.sourceId, "ready");
-    await org.debit(p.cost, p.reason, "source", p.sourceId); // last: retries never double-charge
+    await org.debitOnce(p.cost, p.reason, `ingest:${p.sourceId}`, "source", p.sourceId); // idempotent: never double-charges
 
     if (p.mode === "file") {
       try { await removeObject(p.storagePath); } catch { /* best-effort cleanup */ }

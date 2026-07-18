@@ -109,6 +109,9 @@ export const creditLedger = pgTable(
     refType: text("ref_type"),
     refId: uuid("ref_id"),
     balanceAfter: integer("balance_after").notNull(),
+    // Optional idempotency key: a retried background job debits at most once
+    // (INFRA phase 5). Enforced by the partial unique index below.
+    idempotencyKey: text("idempotency_key"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
@@ -117,6 +120,10 @@ export const creditLedger = pgTable(
     uniqueIndex("credit_ledger_signup_grant_uq")
       .on(t.orgId)
       .where(sql`${t.reason} = 'signup_grant'`),
+    // At most ONE ledger entry per (org, idempotency_key) — the double-debit guard.
+    uniqueIndex("credit_ledger_idem_uq")
+      .on(t.orgId, t.idempotencyKey)
+      .where(sql`${t.idempotencyKey} is not null`),
   ],
 );
 

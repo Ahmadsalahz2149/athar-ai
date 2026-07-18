@@ -84,6 +84,19 @@ describe.runIf(!!db)("credit ledger (append-only)", () => {
     await t.debit(-5, "weird_negative_input"); // Math.abs → charges 5
     expect(await t.balance()).toBe(before - 5);
   });
+
+  it("debitOnce charges exactly once per idempotency key (no double-charge on retry)", async () => {
+    const t = forOrg(db!, orgId);
+    const before = await t.balance();
+    const key = `ingest:src-${before}`;
+    await t.debitOnce(7, "ingest_source", key); // first attempt
+    const afterFirst = await t.balance();
+    expect(afterFirst).toBe(before - 7);
+    // A retry with the SAME key must not charge again.
+    await t.debitOnce(7, "ingest_source", key);
+    await t.debitOnce(7, "ingest_source", key);
+    expect(await t.balance()).toBe(afterFirst);
+  });
 });
 
 it.runIf(!db)("skipped ledger: no DATABASE_URL", () => {

@@ -95,8 +95,6 @@ export async function jobStatus(jobId: string): Promise<
   if (!ctx) return { ok: false };
   const job = await forOrg(db, ctx.orgId).getJob(ctx.brandId, jobId);
   if (!job) return { ok: false };
-  // Opportunistically advance the queue while someone is watching (poll fallback).
-  kickWorker();
   const chunks = (job.result as { chunks?: number } | null)?.chunks;
   return { ok: true, status: job.status, progress: job.progress, phase: job.phase, chunks, error: job.lastError };
 }

@@ -24,7 +24,7 @@ export function forOrg(db: Db, orgId: string) {
     return rows[0];
   }
 
-  async function appendLedger(delta: number, reason: string, refType?: string, refId?: string): Promise<number> {
+  async function appendLedger(delta: number, reason: string, refType?: string, refId?: string, idempotencyKey?: string): Promise<number> {
     const rows = await db
       .select({ d: schema.creditLedger.delta })
       .from(schema.creditLedger)
@@ -36,6 +36,7 @@ export function forOrg(db: Db, orgId: string) {
       reason,
       refType: refType ?? null,
       refId: refId ?? null,
+      idempotencyKey: idempotencyKey ?? null,
       balanceAfter,
     });
     return balanceAfter;
@@ -274,6 +275,23 @@ export function forOrg(db: Db, orgId: string) {
       } catch (e) {
         // 23505 = unique_violation: a concurrent login already granted it.
         if ((e as { code?: string })?.code === "23505") return currentBalance();
+        throw e;
+      }
+    },
+
+    /** Idempotent debit: charges at most once per `idempotencyKey`, so a retried
+     * background job never double-charges. On a duplicate key it swallows the
+     * unique violation and returns the current balance. */
+    async debitOnce(amount: number, reason: string, key: string, refType?: string, refId?: string): Promise<number> {
+      try {
+        return await appendLedger(-Math.abs(amount), reason, refType, refId, key);
+      } catch (e) {
+        // 23505 = unique_violation. Drizzle may wrap the pg error, so check the
+        // cause chain and the message too. Duplicate key ⇒ already charged.
+        const err = e as { code?: string; cause?: { code?: string }; message?: string };
+        if (err?.code === "23505" || err?.cause?.code === "23505" || /23505|duplicate key/i.test(err?.message ?? "")) {
+          return this.balance();
+        }
         throw e;
       }
     },

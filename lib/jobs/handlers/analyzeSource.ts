@@ -42,6 +42,6 @@ export const analyzeSourceHandler: JobHandler = async ({ db, job, progress }) =>
     audience: analysis.audience_problems,
     opportunities: analysis.content_opportunities,
   });
-  await org.debit(estimateAnalyze(), "analyze_source", "source", sourceId);
+  await org.debitOnce(estimateAnalyze(), "analyze_source", `analyze:${sourceId}`, "source", sourceId);
   return { sourceId };
 };
