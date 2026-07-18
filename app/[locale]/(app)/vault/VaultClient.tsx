@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { Chip, FileTypeBadge, StatusPill, EmptyState, btnNavy, btnGhost, btnTeal } from "@/components/ui/display";
-import { deleteSource, renameSource, semanticSearchSources } from "./actions";
+import { deleteSource, renameSource, retrySource, semanticSearchSources } from "./actions";
 
 export type VaultSource = {
   id: string;
@@ -14,6 +14,7 @@ export type VaultSource = {
   chunks: number;
   drafts: number;
   analyzed: boolean;
+  status: string;
   createdAt: string;
   language: string | null;
   category: string | null;
@@ -61,6 +62,11 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
       router.refresh();
     });
   };
+
+  const retry = (id: string) => start(async () => {
+    await retrySource(id);
+    router.refresh();
+  });
 
   const count = (f: (typeof FILTERS)[number]) =>
     sources.filter((s) => {
@@ -230,7 +236,19 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
               </div>
 
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <StatusPill tone={s.analyzed ? "teal" : "amber"}>{s.analyzed ? t("analyzed") : t("needsAnalysis")}</StatusPill>
+                {s.status === "processing" ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: "var(--gold-dark)" }}>
+                    <span className="skeleton" style={{ width: 11, height: 11, borderRadius: "50%" }} />
+                    {t("processing")}
+                  </span>
+                ) : s.status === "failed" ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <StatusPill tone="red">{t("failed")}</StatusPill>
+                    <button onClick={() => retry(s.id)} disabled={pending} style={{ ...btnGhost, height: 30, fontSize: 12, color: "var(--teal-deep)" }}>↻ {t("retry")}</button>
+                  </div>
+                ) : (
+                  <StatusPill tone={s.analyzed ? "teal" : "amber"}>{s.analyzed ? t("analyzed") : t("needsAnalysis")}</StatusPill>
+                )}
               </div>
 
               <div style={{ display: "flex", gap: 8, marginBlockStart: "auto" }}>

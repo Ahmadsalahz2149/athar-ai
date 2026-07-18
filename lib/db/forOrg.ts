@@ -453,6 +453,29 @@ export function forOrg(db: Db, orgId: string) {
       return rows[0].id;
     },
 
+    /** Retry a failed source: requeue its dead ingest job (payload still holds
+     * the storage path / text) and flip the source back to processing. Returns
+     * how many jobs were requeued (0 if there was nothing to retry). */
+    async requeueSourceJob(brandId: string, sourceId: string): Promise<number> {
+      await assertBrand(brandId);
+      const res = await db.execute(sql`
+        UPDATE jobs SET status = 'queued', attempts = 0, run_after = now(),
+          locked_at = null, locked_by = null, last_error = null, updated_at = now()
+        WHERE org_id = ${orgId} AND brand_id = ${brandId}
+          AND type = 'ingest_source' AND status = 'dead'
+          AND payload->>'sourceId' = ${sourceId}
+        RETURNING id
+      `);
+      const n = (res as unknown as unknown[]).length;
+      if (n > 0) {
+        await db
+          .update(schema.sources)
+          .set({ status: "processing" })
+          .where(and(eq(schema.sources.id, sourceId), eq(schema.sources.orgId, orgId), eq(schema.sources.brandId, brandId)));
+      }
+      return n;
+    },
+
     /** Read one job's status (tenancy-scoped) for the live-progress UI. */
     async getJob(brandId: string, jobId: string) {
       const rows = await db

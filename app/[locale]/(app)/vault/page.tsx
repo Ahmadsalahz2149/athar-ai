@@ -5,6 +5,8 @@ import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { kindToLabel, btnTeal } from "@/components/ui/display";
 import { VaultClient, type VaultSource } from "./VaultClient";
+import { ProcessingWatcher } from "@/components/ProcessingWatcher";
+import { activeJobsCount } from "../ingest/actions";
 
 export default async function VaultPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -24,6 +26,7 @@ export default async function VaultPage({ params }: { params: Promise<{ locale: 
         chunks: s.ideas || s.chunks, // "فكرة" = extracted ideas; falls back to chunks pre-analysis
         drafts: s.drafts,
         analyzed: s.analyzed,
+        status: s.status,
         createdAt: s.createdAt.toISOString(),
         language: s.language,
         category: s.category,
@@ -31,6 +34,7 @@ export default async function VaultPage({ params }: { params: Promise<{ locale: 
       }));
     }
   }
+  const anyProcessing = sources.some((s) => s.status === "processing");
 
   return (
     <main style={{ maxWidth: 1080, margin: "0 auto", padding: "clamp(20px,3.4vw,32px) clamp(16px,4vw,32px) 90px", animation: "floatUp .4s ease" }}>
@@ -42,6 +46,7 @@ export default async function VaultPage({ params }: { params: Promise<{ locale: 
         <Link href="/ingest" style={btnTeal}>+ {t("addSource")}</Link>
       </div>
 
+      {anyProcessing && <ProcessingWatcher poll={activeJobsCount} />}
       <VaultClient sources={sources} />
     </main>
   );

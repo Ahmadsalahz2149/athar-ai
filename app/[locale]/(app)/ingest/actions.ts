@@ -75,6 +75,16 @@ async function enqueueText(
   return { ok: true, sourceId, jobId };
 }
 
+/** Count of active (queued/running) jobs for the current brand — drives the
+ * live "processing" watcher on Vault/Dashboard. */
+export async function activeJobsCount(): Promise<number> {
+  if (!db) return 0;
+  const ctx = await currentContext();
+  if (!ctx) return 0;
+  const jobs = await forOrg(db, ctx.orgId).activeJobs(ctx.brandId);
+  return jobs.length;
+}
+
 /** Poll a job's status for the live-progress UI (tenancy-scoped). */
 export async function jobStatus(jobId: string): Promise<
   | { ok: true; status: string; progress: number; phase: string | null; chunks?: number; error?: string | null }

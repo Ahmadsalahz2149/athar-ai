@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { ProcessingWatcher } from "@/components/ProcessingWatcher";
+import { activeJobsCount } from "../ingest/actions";
 import {
   ScoreRadial,
   StatCard,
@@ -71,7 +73,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     }
   }
 
-  const awaiting = allSources.filter((s) => !s.analyzed).length;
+  const awaiting = allSources.filter((s) => !s.analyzed && s.status !== "processing").length;
+  const processing = allSources.filter((s) => s.status === "processing").length;
 
   // Next-best-action derived from real state.
   const rec =
@@ -106,6 +109,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
   return (
     <main style={{ maxWidth: 1120, margin: "0 auto", padding: "clamp(20px,3.4vw,32px) clamp(16px,4vw,32px) 90px", animation: "floatUp .4s ease" }}>
+      {processing > 0 && <ProcessingWatcher poll={activeJobsCount} />}
       {/* Greeting */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
         <div>
@@ -216,6 +220,17 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
               <QuickAction href="/approvals" label={t("qaApprovals")} badge={counts.pending || undefined} />
             </div>
           </section>
+
+          {/* Processing — sources whose background ingest job is running */}
+          {processing > 0 && (
+            <div style={{ ...card, display: "flex", alignItems: "center", gap: 12 }}>
+              <span className="skeleton" style={{ flex: "none", width: 40, height: 40, borderRadius: 11 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "var(--heading)" }}>{t("processingTitle", { n: nf.format(processing) })}</div>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginBlockStart: 2 }}>{t("processingBody")}</div>
+              </div>
+            </div>
+          )}
 
           {/* Awaiting analysis — sources uploaded but not yet analyzed */}
           {awaiting > 0 && (

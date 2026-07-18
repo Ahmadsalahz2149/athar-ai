@@ -83,6 +83,20 @@ export async function semanticSearchSources(query: string): Promise<{ ok: boolea
   }
 }
 
+/** Retry a failed source by requeuing its background job. */
+export async function retrySource(sourceId: string): Promise<{ ok: boolean }> {
+  try {
+    if (!db) return { ok: false };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false };
+    const n = await forOrg(db, ctx.orgId).requeueSourceJob(ctx.brandId, sourceId);
+    if (n > 0) { const { kickWorker } = await import("@/lib/jobs/kick"); kickWorker(); }
+    return { ok: n > 0 };
+  } catch {
+    return { ok: false };
+  }
+}
+
 /** Soft-delete a source (Vault management). */
 export async function deleteSource(sourceId: string): Promise<{ ok: boolean }> {
   try {

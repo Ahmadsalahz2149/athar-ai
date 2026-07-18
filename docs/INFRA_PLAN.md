@@ -22,7 +22,7 @@
 |---|---|---|---|---|
 | **١** | طبقة المهام الخلفية (Job Queue) | جدول `jobs` + `lib/jobs` (enqueue/claim SKIP LOCKED/complete/fail+backoff/progress) + worker route + سجلّ handlers + اختبارات | لا | **✅ تمّت** |
 | **٢** | نقل المعالجة الطويلة للمهام | الرفع/التحليل يُنشئ مصدرًا `processing` + يُدرج مهمة ويعود فورًا؛ handler ينفّذ transcribe→chunk→embed→store بتقدّم مُقطّع؛ تشغيل عبر `after()` + احتياطي نبض العميل | لا | **✅ تمّت** |
-| **٣** | حالة حيّة في الواجهة (Realtime status) | `/api/jobs/status` + الرفع/الخزنة/الرئيسية تقرأ تقدّم المهمة الحقيقي؛ «قيد التحليل» حيّة | لا | مخطّطة |
+| **٣** | حالة حيّة في الواجهة (Realtime status) | الخزنة/الرئيسية تعرض `processing`/`failed` الحقيقية + مراقب يحدّث تلقائيًا حتى الاكتمال + إعادة محاولة للفاشل | لا | **✅ تمّت** |
 | **٤** | البثّ المباشر للتوليد (Streaming) | مسار توليد يبثّ (SSE/ReadableStream) عبر Anthropic stream؛ الاستوديو يعرض التوليد لحظيًّا | لا | مخطّطة |
 | **٥** | تصليب الأخطاء والمرونة (Resilience) | error boundary + not-found عام · نظام توست موحّد · أخطاء مُصنّفة لكل action · مفاتيح idempotency على الخصم/الإدراج · dead-letter للمهام · حارس معدّل | لا | مخطّطة |
 | **٦** | المراقبة (Observability) | مسجّل مُهيكل + request-id · `/api/health` · لوحة عدّادات المهام | لا | مخطّطة |

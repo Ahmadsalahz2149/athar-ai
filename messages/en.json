@@ -577,7 +577,10 @@
     "semanticActive": "Semantic results ({n})",
     "clearSemantic": "Clear semantic search",
     "semanticUnavailable": "Semantic search unavailable (embeddings not configured).",
-    "renameLabel": "Rename source"
+    "renameLabel": "Rename source",
+    "processing": "Processing…",
+    "failed": "Processing failed",
+    "retry": "Retry"
   },
   "Dashboard": {
     "greeting": "Ready to make a new mark today?",
@@ -626,7 +629,9 @@
     "weekdays": "Sat،Sun،Mon،Tue،Wed،Thu،Fri",
     "kpiDnaDelta": "{n}% vs previous version",
     "awaitingTitle": "{n} sources awaiting analysis",
-    "awaitingBody": "Run analysis to extract ideas & quotes."
+    "awaitingBody": "Run analysis to extract ideas & quotes.",
+    "processingTitle": "{n} sources processing",
+    "processingBody": "Transcribing & analyzing in the background — appears automatically."
   },
   "Ideas": {
     "title": "Ideas Bank",
