@@ -835,7 +835,18 @@
     "ntitle_marketing": "Marketing emails",
     "ndesc_marketing": "Product news and offers",
     "soon": "soon",
-    "usageAlert": "You're near your limit ({used}/{limit}). Upgrade to raise it."
+    "usageAlert": "You're near your limit ({used}/{limit}). Upgrade to raise it.",
+    "pf_facebook": "Facebook",
+    "connected": "Connected",
+    "disconnect": "Disconnect",
+    "needsKeys": "Needs app keys",
+    "connectedOk": "{name} connected successfully.",
+    "connErr_not_configured": "This platform's keys aren't configured yet.",
+    "connErr_denied": "Authorization was cancelled.",
+    "connErr_state": "Security check failed, try again.",
+    "connErr_session": "Session expired, sign in and retry.",
+    "connErr_exchange": "Couldn't complete the connection.",
+    "connErr_generic": "Couldn't connect, try again."
   },
   "NotFound": {
     "title": "Page not found",

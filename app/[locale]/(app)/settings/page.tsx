@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { configuredPlatforms } from "@/lib/social/registry";
 import { SettingsClient } from "./SettingsClient";
 
 export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -19,6 +20,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   let balance = 0;
   let completeness = 0;
   let sourcesUsed = 0;
+  let connectedPlatforms: string[] = [];
 
   const supabase = await getSupabaseServer();
   if (supabase) {
@@ -35,10 +37,11 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
     const ctx = await currentContext();
     if (ctx) {
       const org = forOrg(db, ctx.orgId);
-      const [b, dna, c] = await Promise.all([org.balance(), org.currentDna(ctx.brandId), org.counts(ctx.brandId)]);
+      const [b, dna, c, conns] = await Promise.all([org.balance(), org.currentDna(ctx.brandId), org.counts(ctx.brandId), org.listConnections(ctx.brandId)]);
       balance = b;
       completeness = dna?.completion_pct ?? 0;
       sourcesUsed = c.sources;
+      connectedPlatforms = conns.filter((x) => x.status === "connected").map((x) => x.platform);
     }
   }
 
@@ -64,6 +67,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
         audience={safe(to, "aud_", onboarding.audience)}
         dialect={safe(to, "dia_", onboarding.dialect)}
         initialNotif={notif}
+        configuredPlatforms={configuredPlatforms()}
+        connectedPlatforms={connectedPlatforms}
       />
     </main>
   );

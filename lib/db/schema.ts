@@ -215,6 +215,35 @@ export const jobs = pgTable(
   ],
 );
 
+// Social platform connections (Phase 7.3). One row per (brand, platform) holding
+// the OAuth tokens the publisher uses to post on the user's behalf. Tenancy-scoped;
+// tokens live behind the service role and Supabase at-rest encryption.
+export const socialConnections = pgTable(
+  "social_connections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    brandId: uuid("brand_id").notNull(),
+    // linkedin | x | instagram | facebook
+    platform: text("platform").notNull(),
+    accessToken: text("access_token").notNull(),
+    refreshToken: text("refresh_token"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    externalAccountId: text("external_account_id"),
+    accountName: text("account_name"),
+    scopes: text("scopes"),
+    // connected | expired | revoked
+    status: text("status").notNull().default("connected"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    // One live connection per brand+platform.
+    uniqueIndex("social_conn_brand_platform_uq").on(t.brandId, t.platform),
+    index("social_conn_brand_idx").on(t.orgId, t.brandId),
+  ],
+);
+
 // Retrieval unit: a chunk of a source plus its Voyage embedding (ADR-003).
 export const sourceChunks = pgTable(
   "source_chunks",

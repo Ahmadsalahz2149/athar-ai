@@ -835,7 +835,18 @@
     "ntitle_marketing": "رسائل تسويقية",
     "ndesc_marketing": "أخبار المنتج والعروض",
     "soon": "قريبًا",
-    "usageAlert": "اقتربت من الحد ({used}/{limit}). رقِّ خطتك لرفع الحد."
+    "usageAlert": "اقتربت من الحد ({used}/{limit}). رقِّ خطتك لرفع الحد.",
+    "pf_facebook": "فيسبوك",
+    "connected": "متّصل",
+    "disconnect": "فصل",
+    "needsKeys": "يحتاج مفاتيح التطبيق",
+    "connectedOk": "تمّ ربط {name} بنجاح.",
+    "connErr_not_configured": "لم تُضبط مفاتيح هذه المنصّة بعد.",
+    "connErr_denied": "أُلغيت الموافقة على الربط.",
+    "connErr_state": "فشل التحقّق الأمني، أعد المحاولة.",
+    "connErr_session": "انتهت الجلسة، سجّل الدخول ثم أعد المحاولة.",
+    "connErr_exchange": "تعذّر إتمام الربط مع المنصّة.",
+    "connErr_generic": "تعذّر الربط، أعد المحاولة."
   },
   "NotFound": {
     "title": "الصفحة غير موجودة",

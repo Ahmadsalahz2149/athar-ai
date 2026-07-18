@@ -455,6 +455,70 @@ export function forOrg(db: Db, orgId: string) {
         .where(and(eq(schema.sources.id, sourceId), eq(schema.sources.orgId, orgId), eq(schema.sources.brandId, brandId)));
     },
 
+    // --- Social connections (Phase 7.3) ---
+    async saveConnection(
+      brandId: string,
+      platform: string,
+      c: { accessToken: string; refreshToken?: string | null; expiresAt?: Date | null; externalAccountId?: string | null; accountName?: string | null; scopes?: string | null },
+    ): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .insert(schema.socialConnections)
+        .values({
+          orgId, brandId, platform,
+          accessToken: c.accessToken,
+          refreshToken: c.refreshToken ?? null,
+          expiresAt: c.expiresAt ?? null,
+          externalAccountId: c.externalAccountId ?? null,
+          accountName: c.accountName ?? null,
+          scopes: c.scopes ?? null,
+          status: "connected",
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: [schema.socialConnections.brandId, schema.socialConnections.platform],
+          set: {
+            accessToken: c.accessToken,
+            refreshToken: c.refreshToken ?? null,
+            expiresAt: c.expiresAt ?? null,
+            externalAccountId: c.externalAccountId ?? null,
+            accountName: c.accountName ?? null,
+            scopes: c.scopes ?? null,
+            status: "connected",
+            updatedAt: new Date(),
+          },
+        });
+    },
+
+    async getConnection(brandId: string, platform: string) {
+      const rows = await db
+        .select()
+        .from(schema.socialConnections)
+        .where(and(eq(schema.socialConnections.orgId, orgId), eq(schema.socialConnections.brandId, brandId), eq(schema.socialConnections.platform, platform)))
+        .limit(1);
+      return rows[0] ?? null;
+    },
+
+    /** Connection status per platform (no tokens) for the settings UI. */
+    async listConnections(brandId: string) {
+      return db
+        .select({
+          platform: schema.socialConnections.platform,
+          status: schema.socialConnections.status,
+          accountName: schema.socialConnections.accountName,
+          createdAt: schema.socialConnections.createdAt,
+        })
+        .from(schema.socialConnections)
+        .where(and(eq(schema.socialConnections.orgId, orgId), eq(schema.socialConnections.brandId, brandId)));
+    },
+
+    async deleteConnection(brandId: string, platform: string): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .delete(schema.socialConnections)
+        .where(and(eq(schema.socialConnections.orgId, orgId), eq(schema.socialConnections.brandId, brandId), eq(schema.socialConnections.platform, platform)));
+    },
+
     /** Enqueue a background job scoped to this org/brand (INFRA phase 1). The
      * user-facing entry point; the worker claims/runs it cross-org via lib/jobs. */
     async enqueueJob(

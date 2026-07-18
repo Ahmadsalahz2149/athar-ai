@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { updateProfile, updateNotifications } from "@/lib/auth/actions";
+import { disconnectPlatform } from "./social-actions";
 import { ProgressMeter, btnNavy, btnTeal, btnGhost, btnGold } from "@/components/ui/display";
 
 /** Small "coming soon" affordance for actions that need external integration. */
@@ -30,22 +32,25 @@ type Props = {
   audience: string;
   dialect: string;
   initialNotif: Record<string, boolean> | null;
+  configuredPlatforms: Record<string, boolean>;
+  connectedPlatforms: string[];
 };
 
 const TABS = ["profile", "brand", "platforms", "team", "plan", "notifications"] as const;
 const NOTIF = ["analysis", "schedule", "weekly", "marketing"] as const;
 const PLATFORMS = [
-  { key: "linkedin", glyph: "in", bg: "var(--blue-tint)", fg: "var(--blue)", connected: false },
-  { key: "x", glyph: "X", bg: "#EEE", fg: "#111", connected: false },
-  { key: "instagram", glyph: "ig", bg: "var(--gold-tint)", fg: "#C2410C", connected: false },
-  { key: "tiktok", glyph: "TT", bg: "#EEE", fg: "#111", connected: false },
+  { key: "linkedin", glyph: "in", bg: "var(--blue-tint)", fg: "var(--blue)" },
+  { key: "x", glyph: "X", bg: "#EEE", fg: "#111" },
+  { key: "facebook", glyph: "f", bg: "var(--blue-tint)", fg: "#1877F2" },
+  { key: "instagram", glyph: "ig", bg: "var(--gold-tint)", fg: "#C2410C" },
 ];
 
 export function SettingsClient(p: Props) {
   const t = useTranslations("Settings");
   const locale = useLocale();
   const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
-  const [tab, setTab] = useState<(typeof TABS)[number]>("profile");
+  const sp = useSearchParams();
+  const [tab, setTab] = useState<(typeof TABS)[number]>(sp.get("tab") === "platforms" ? "platforms" : "profile");
 
   const [name, setName] = useState(p.fullName);
   const [title, setTitle] = useState(p.title);
@@ -71,6 +76,19 @@ export function SettingsClient(p: Props) {
     });
   const soon = t("soon");
   const usageNear = p.sourcesUsed >= p.sourcesLimit - 1;
+
+  // Social connections (Phase 7.3): surface the connect/disconnect result carried
+  // back on the OAuth callback's query string.
+  const router = useRouter();
+  const [connected, setConnected] = useState<string[]>(p.connectedPlatforms);
+  const justConnected = sp.get("social_connected");
+  const socialError = sp.get("social_error");
+  const disconnect = (key: string) =>
+    start(async () => {
+      const r = await disconnectPlatform(key);
+      if (r.ok) setConnected((c) => c.filter((x) => x !== key));
+      router.refresh();
+    });
 
   return (
     <div className="settings-grid" style={{ display: "grid", gridTemplateColumns: "190px 1fr", gap: 20, alignItems: "start" }}>
@@ -124,17 +142,37 @@ export function SettingsClient(p: Props) {
         {tab === "platforms" && (
           <Panel title={t("platformsTitle")}>
             <p style={{ fontSize: 13.5, color: "var(--muted)", marginBlockEnd: 16 }}>{t("platformsSub")}</p>
+            {justConnected && (
+              <p style={{ padding: "10px 13px", borderRadius: 10, background: "var(--teal-tint-2)", color: "var(--teal-deep)", fontSize: 13, fontWeight: 600, marginBlockEnd: 12 }}>✓ {t("connectedOk", { name: t(`pf_${justConnected}`) })}</p>
+            )}
+            {socialError && (
+              <p style={{ padding: "10px 13px", borderRadius: 10, background: "var(--coral-tint)", color: "var(--coral)", fontSize: 13, marginBlockEnd: 12 }}>
+                {(["not_configured", "denied", "state", "session", "exchange"] as const).includes(socialError as never) ? t(`connErr_${socialError}` as "connErr_denied") : t("connErr_generic")}
+              </p>
+            )}
             <div style={{ display: "grid", gap: 10 }}>
-              {PLATFORMS.map((pl) => (
-                <div key={pl.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
-                  <span style={{ width: 36, height: 36, flex: "none", borderRadius: 9, display: "grid", placeItems: "center", background: pl.bg, color: pl.fg, fontWeight: 800, fontFamily: "var(--font-latin)", fontSize: 13 }}>{pl.glyph}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 14 }}>{t(`pf_${pl.key}`)}</div>
-                    <div style={{ fontSize: 12, color: "var(--muted)", marginBlockStart: 2 }}>{t("notConnected")}</div>
+              {PLATFORMS.map((pl) => {
+                const isConnected = connected.includes(pl.key);
+                const isConfigured = p.configuredPlatforms[pl.key];
+                return (
+                  <div key={pl.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                    <span style={{ width: 36, height: 36, flex: "none", borderRadius: 9, display: "grid", placeItems: "center", background: pl.bg, color: pl.fg, fontWeight: 800, fontFamily: "var(--font-latin)", fontSize: 13 }}>{pl.glyph}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 14 }}>{t(`pf_${pl.key}`)}</div>
+                      <div style={{ fontSize: 12, color: isConnected ? "var(--teal-deep)" : "var(--muted)", marginBlockStart: 2, fontWeight: isConnected ? 600 : 400 }}>
+                        {isConnected ? `✓ ${t("connected")}` : isConfigured ? t("notConnected") : t("needsKeys")}
+                      </div>
+                    </div>
+                    {isConnected ? (
+                      <button onClick={() => disconnect(pl.key)} disabled={pending} style={{ ...btnGhost, height: 36, fontSize: 12.5, color: "var(--coral)", borderColor: "rgba(224,101,74,.3)" }}>{t("disconnect")}</button>
+                    ) : isConfigured ? (
+                      <a href={`/api/social/${pl.key}/connect?locale=${locale}`} style={{ ...btnNavy, height: 36, fontSize: 12.5, display: "inline-grid", placeItems: "center", textDecoration: "none" }}>{t("connect")}</a>
+                    ) : (
+                      <Soon label={t("needsKeys")}><button disabled style={{ ...btnNavy, height: 36, fontSize: 12.5 }}>{t("connect")}</button></Soon>
+                    )}
                   </div>
-                  <Soon label={soon}><button disabled style={{ ...btnNavy, height: 36, fontSize: 12.5 }}>{t("connect")}</button></Soon>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <p style={{ fontSize: 12, color: "var(--gold-dark)", marginBlockStart: 12 }}>⚠ {t("oauthNote")}</p>
           </Panel>
