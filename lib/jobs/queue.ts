@@ -73,6 +73,14 @@ export async function fail(db: Db, job: JobRow, error: string): Promise<void> {
   `);
 }
 
+/** Counts by status for health/metrics (INFRA phase 6). Cross-org, system view. */
+export async function queueDepth(db: Db): Promise<Record<string, number>> {
+  const rows = await db.execute(sql`SELECT status, count(*)::int AS n FROM jobs GROUP BY status`);
+  const out: Record<string, number> = { queued: 0, running: 0, done: 0, failed: 0, dead: 0 };
+  for (const r of rows as unknown as { status: string; n: number }[]) out[r.status] = r.n;
+  return out;
+}
+
 /** Reclaim jobs stuck in 'running' past a timeout (a worker crashed mid-run).
  * Re-queues them for another attempt. Returns how many were reaped. */
 export async function reapStale(db: Db, staleSeconds = 600): Promise<number> {

@@ -1,6 +1,7 @@
 import type { Db } from "@/lib/db/forOrg";
 import type { JobRow } from "./types";
 import { claimNext, complete, fail, setProgress } from "./queue";
+import { log } from "@/lib/log";
 
 /** A job handler runs the work and may report progress. Returning a value stores
  * it as the job result. Throwing triggers retry/backoff via fail(). */
@@ -27,9 +28,11 @@ export async function runOne(db: Db, workerId: string): Promise<RunOutcome> {
   if (!job) return "idle";
   const handler = registry.get(job.type);
   if (!handler) {
+    log.error("job.no_handler", { jobId: job.id, type: job.type });
     await fail(db, job, `No handler registered for job type "${job.type}"`);
     return "no_handler";
   }
+  const started = Date.now();
   try {
     const result = await handler({
       db,
@@ -37,9 +40,12 @@ export async function runOne(db: Db, workerId: string): Promise<RunOutcome> {
       progress: (pct, phase) => setProgress(db, job.id, pct, phase),
     });
     await complete(db, job.id, result ?? {});
+    log.info("job.done", { jobId: job.id, type: job.type, attempt: job.attempts, ms: Date.now() - started });
     return "ok";
   } catch (e) {
-    await fail(db, job, e instanceof Error ? e.message : String(e));
+    const msg = e instanceof Error ? e.message : String(e);
+    await fail(db, job, msg);
+    log.warn("job.failed", { jobId: job.id, type: job.type, attempt: job.attempts, maxAttempts: job.maxAttempts, ms: Date.now() - started, error: msg });
     return "failed";
   }
 }
