@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { studioGenerate, studioRewrite, setDraftState, type StudioResult, type StudioSource } from "./actions";
-import { postScore, dnaMatch } from "@/lib/ai/score";
+import { postScore, dnaMatch, scoreBreakdown } from "@/lib/ai/score";
 import { checkContent } from "@/lib/ai/guardrails";
 import {
   PROVIDERS,
@@ -58,6 +58,11 @@ export function StudioClient({
   const [busy, setBusy] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showWhy, setShowWhy] = useState(false);
+  const prevBody = useRef<string | null>(null); // one-level undo before a rewrite/regenerate
+  const [canUndo, setCanUndo] = useState(false);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [savedSig, setSavedSig] = useState<string | null>(null);
 
   const ok = result?.ok ? result : null;
   const hook = ok ? ok.hooks[hookIdx] ?? ok.hooks[0] : "";
@@ -73,6 +78,7 @@ export function StudioClient({
   const src = sources.find((s) => s.id === sourceId);
 
   const generate = () => {
+    prevBody.current = ok ? body : null;
     setResult(null);
     setSaved(null);
     start(async () => {
@@ -81,18 +87,30 @@ export function StudioClient({
       if (r.ok) {
         setHookIdx(0);
         setBody(r.body);
+        setCanUndo(false);
       }
     });
   };
 
   const rewrite = (tool: string) => {
     if (!ok) return;
+    prevBody.current = body; // snapshot for undo
     setBusy(tool);
     start(async () => {
       const r = await studioRewrite({ body, tool, provider, model });
       setBusy(null);
-      if (r.ok) setBody(r.body);
+      if (r.ok) {
+        setBody(r.body);
+        setCanUndo(true);
+      }
     });
+  };
+
+  const undo = () => {
+    if (prevBody.current == null) return;
+    setBody(prevBody.current);
+    prevBody.current = null;
+    setCanUndo(false);
   };
 
   const act = (state: "draft" | "pending" | "scheduled", labelKey: string) => {
@@ -102,6 +120,37 @@ export function StudioClient({
       if (r.ok) setSaved(labelKey);
     });
   };
+
+  // Autosave the draft (debounced). `autosaved` is derived by comparing the current
+  // content signature against the last-saved one — no synchronous setState in the effect.
+  const contentSig = `${ok?.id ?? ""}::${hookIdx}::${body}`;
+  const autosaved = !!ok?.id && savedSig === contentSig;
+  useEffect(() => {
+    if (!ok?.id || savedSig === contentSig) return;
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    const sig = contentSig;
+    autosaveTimer.current = setTimeout(() => {
+      setDraftState(ok.id!, "draft").then(() => setSavedSig(sig));
+    }, 1500);
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentSig, ok?.id]);
+
+  // Keyboard shortcuts: ⌘/Ctrl+Enter generate · ⌘S save · ⌘Z undo.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const meta = e.metaKey || e.ctrlKey;
+      if (!meta) return;
+      if (e.key === "Enter") { e.preventDefault(); if (!pending) generate(); }
+      else if (e.key.toLowerCase() === "s") { e.preventDefault(); if (ok?.id) act("draft", "savedDraft"); }
+      else if (e.key.toLowerCase() === "z" && canUndo) { e.preventDefault(); undo(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, ok?.id, canUndo, body, prompt]);
 
   return (
     <main style={{ maxWidth: 1240, margin: "0 auto", padding: "clamp(18px,3vw,28px) clamp(14px,3vw,28px) 90px", animation: "floatUp .4s ease" }}>
@@ -199,12 +248,14 @@ export function StudioClient({
                 <div style={{ display: "grid", gap: 8 }}>
                   {ok.hooks.map((h, i) => {
                     const on = i === hookIdx;
+                    const hs = postScore(h, body); // per-hook predicted score so the choice is informed
                     return (
                       <button key={i} onClick={() => setHookIdx(i)} style={{ textAlign: "start", display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", borderRadius: 11, cursor: "pointer", background: on ? "var(--teal-tint-2)" : "var(--surface)", border: on ? "1.5px solid var(--teal)" : "1px solid var(--border)" }}>
                         <span style={{ width: 18, height: 18, flex: "none", marginBlockStart: 2, borderRadius: "50%", display: "grid", placeItems: "center", background: on ? "var(--teal)" : "transparent", border: on ? "none" : "1.5px solid var(--border-2)" }}>
                           {on && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff" }} />}
                         </span>
-                        <span style={{ fontSize: 14, color: "var(--slate)", lineHeight: 1.7 }}>{h}</span>
+                        <span style={{ flex: 1, fontSize: 14, color: "var(--slate)", lineHeight: 1.7 }}>{h}</span>
+                        <span title={t("hookScoreHint")} style={{ flex: "none", fontSize: 11, fontWeight: 800, fontFamily: "var(--font-latin)", color: hs >= 75 ? "var(--teal-deep)" : hs >= 60 ? "var(--gold-dark)" : "var(--muted)", background: "var(--card)", border: "1px solid var(--border)", borderRadius: 7, padding: "2px 7px", marginBlockStart: 1 }}>{nf.format(hs)}</span>
                       </button>
                     );
                   })}
@@ -212,12 +263,18 @@ export function StudioClient({
               </div>
 
               {/* Editor toolbar */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                 {TOOLS.map((tool) => (
                   <button key={tool} onClick={() => rewrite(tool)} disabled={pending} style={{ ...btnGhost, height: 36, fontSize: 12.5, opacity: busy === tool ? 0.6 : 1 }}>
                     {tool === "regenerate" ? "↺ " : ""}{t(`tool_${tool}`)}
                   </button>
                 ))}
+                {canUndo && (
+                  <button onClick={undo} disabled={pending} title="⌘Z" style={{ ...btnGhost, height: 36, fontSize: 12.5, color: "var(--gold-dark)", borderColor: "var(--gold)" }}>↶ {t("undo")}</button>
+                )}
+                <span style={{ marginInlineStart: "auto", fontSize: 11.5, color: "var(--subtle)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  {autosaved ? <>✓ {t("autosaved")}</> : ok?.id ? t("autosaving") : null}
+                </span>
               </div>
 
               {/* Editor */}
@@ -262,6 +319,19 @@ export function StudioClient({
                 <ScoreRadial value={scores.ps} size={96} color="var(--teal)" />
               </div>
               <p style={{ fontSize: 12.5, color: "var(--muted)", marginBlockStart: 6, lineHeight: 1.6 }}>{t("scoreHint")}</p>
+              <button onClick={() => setShowWhy((s) => !s)} aria-expanded={showWhy} style={{ background: "none", border: "none", color: "var(--teal-deep)", fontWeight: 600, fontSize: 12, cursor: "pointer", marginBlockStart: 8 }}>
+                {showWhy ? t("whyHide") : t("whyScore")}
+              </button>
+              {showWhy && (
+                <ul style={{ listStyle: "none", padding: 0, margin: "10px 0 0", display: "grid", gap: 6, textAlign: "start" }}>
+                  {scoreBreakdown(hook, body).map((f) => (
+                    <li key={f.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: f.ok ? "var(--slate)" : "var(--muted)" }}>
+                      <span style={{ flex: "none", width: 16, height: 16, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 10, fontWeight: 800, background: f.ok ? "var(--teal-tint-2)" : "var(--coral-tint)", color: f.ok ? "var(--teal-deep)" : "var(--coral)" }}>{f.ok ? "✓" : "!"}</span>
+                      {t(`why_${f.key}`)}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div style={card}>

@@ -117,7 +117,18 @@
     "dnaMatchHint": "Tone and rhythm are close to your style — try a shorter closing line to raise it.",
     "bestTime": "Best time to post",
     "needDna": "Build your DNA first (via onboarding or a source).",
-    "error": "Generation failed."
+    "error": "Generation failed.",
+    "undo": "Undo",
+    "autosaving": "Autosaving…",
+    "autosaved": "Autosaved",
+    "hookScoreHint": "Predicted score for this hook",
+    "whyScore": "Why this score?",
+    "whyHide": "Hide details",
+    "why_hookLength": "Hook length is in range (20–120 chars)",
+    "why_question": "Hook asks a reader-pulling question",
+    "why_number": "Contains a number or concrete detail",
+    "why_bodyLength": "Body length is in range (40–220 words)",
+    "why_structure": "Body is structured with line breaks"
   },
   "Legal": {
     "termsTitle": "Terms of Service",

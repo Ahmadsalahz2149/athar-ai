@@ -41,6 +41,20 @@ export function dnaMatch(text: string, dna: ContentDna | null): number {
   return clamp(42 + (hit / terms.length) * 55);
 }
 
+/** Explain a Post Score as named contributors (for "why this score?"). Each item
+ * is a human-readable factor + whether it currently helps or hurts. */
+export function scoreBreakdown(hook: string, body: string): { key: string; ok: boolean }[] {
+  const h = (hook ?? "").trim();
+  const words = (body ?? "").trim().split(/\s+/).filter(Boolean).length;
+  return [
+    { key: "hookLength", ok: h.length >= 20 && h.length <= 120 },
+    { key: "question", ok: /[؟?]/.test(h) },
+    { key: "number", ok: /\d/.test(h) },
+    { key: "bodyLength", ok: words >= 40 && words <= 220 },
+    { key: "structure", ok: /\n/.test(body ?? "") },
+  ];
+}
+
 /** A light score for an idea title (used to rank Ideas Bank cards). */
 export function ideaScore(title: string): number {
   let s = 55;
