@@ -3,8 +3,21 @@
 import { useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { ingestFile, ingestText, ingestUrl, type IngestResult } from "@/app/[locale]/(app)/ingest/actions";
+import { ingestFile, ingestText, ingestUrl, jobStatus, type IngestResult } from "@/app/[locale]/(app)/ingest/actions";
 import { FileTypeBadge, StatusPill, ProgressMeter, btnTeal, btnGhost } from "@/components/ui/display";
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+async function pollJob(jobId: string): Promise<{ done: boolean; chunks?: number; error?: string }> {
+  for (let i = 0; i < 200; i++) {
+    const s = await jobStatus(jobId);
+    if (s.ok) {
+      if (s.status === "done") return { done: true, chunks: s.chunks };
+      if (s.status === "dead") return { done: false, error: s.error ?? "failed" };
+    }
+    await sleep(1500);
+  }
+  return { done: false, error: "timeout" };
+}
 
 type Stage = "idle" | "working" | "done" | "error";
 type Mode = null | "url" | "posts";
@@ -24,6 +37,7 @@ export function Step3Form() {
   const [fileKind, setFileKind] = useState("TXT");
   const [sizeMb, setSizeMb] = useState<string | null>(null);
   const [res, setRes] = useState<IngestResult | null>(null);
+  const [chunks, setChunks] = useState<number | null>(null);
   const [drag, setDrag] = useState(false);
   const [mode, setMode] = useState<Mode>(null);
   const [text, setText] = useState("");
@@ -33,12 +47,16 @@ export function Step3Form() {
     setFileKind(kind);
     setSizeMb(mb ?? null);
     setRes(null);
+    setChunks(null);
     setStage("working");
     start(async () => {
       try {
         const r = await fn();
         setRes(r);
-        setStage(r.ok ? "done" : "error");
+        if (!r.ok) return setStage("error");
+        const done = await pollJob(r.jobId); // wait for the real background pipeline
+        if (done.done) { setChunks(done.chunks ?? null); setStage("done"); }
+        else { setRes({ ok: false, error: "failed", message: done.error }); setStage("error"); }
       } catch (e) {
         setRes({ ok: false, error: "failed", message: e instanceof Error ? e.message : String(e) });
         setStage("error");
@@ -177,7 +195,7 @@ export function Step3Form() {
 
           {stage === "done" && res?.ok && (
             <p style={{ marginBlockStart: 14, fontSize: 13.5, color: "var(--teal-deep)", fontWeight: 600 }}>
-              {t("s3Added", { chunks: nf.format(res.chunks) })}
+              {chunks != null ? t("s3Added", { chunks: nf.format(chunks) }) : t("s3AddedSimple")}
             </p>
           )}
           {stage === "error" && res && !res.ok && (

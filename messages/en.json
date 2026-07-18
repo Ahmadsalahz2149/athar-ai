@@ -322,7 +322,8 @@
     "s3Added": "Added {chunks} chunks to your knowledge.",
     "s3Enter": "Enter the dashboard",
     "selectAllHint": "Choose one option in each section to continue.",
-    "selectMinHint": "Pick at least one goal, one platform, and a frequency to continue."
+    "selectMinHint": "Pick at least one goal, one platform, and a frequency to continue.",
+    "s3AddedSimple": "Processed and learned from the source ✓"
   },
   "Ingest": {
     "title": "Upload your raw content",
@@ -414,7 +415,9 @@
     "qDone": "Done · {chunks} chunks",
     "removeFile": "Remove file",
     "charCount": "{n} chars · min {min}",
-    "queueSummary": "{done} of {total} complete"
+    "queueSummary": "{done} of {total} complete",
+    "ingestDoneSimple": "Processed and learned from the source ✓",
+    "tooStorage": "Storage isn't configured"
   },
   "Analysis": {
     "title": "File analysis",

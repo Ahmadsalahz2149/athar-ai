@@ -1,14 +1,14 @@
 "use server";
 
-import { embed, hasEmbeddingKey } from "@/lib/ai/embed";
-import { transcribeAudio, hasTranscribeKey } from "@/lib/ai/transcribe";
-import { chunkArabic } from "@/lib/ai/chunk";
-import { extractPdfText } from "@/lib/ingest/extractPdf";
+import { hasEmbeddingKey } from "@/lib/ai/embed";
+import { hasTranscribeKey } from "@/lib/ai/transcribe";
 import { fetchUrlText } from "@/lib/ingest/fetchUrl";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { estimateIngest, estimateTranscribe } from "@/lib/credits/costs";
+import { uploadBytes, hasStorage } from "@/lib/storage/uploads";
+import { kickWorker } from "@/lib/jobs/kick";
 
 /** Options captured on the Upload screen (design parity, really stored/applied). */
 export type IngestOptions = {
@@ -18,14 +18,18 @@ export type IngestOptions = {
   actions?: string[];
 };
 
+/** Ingestion is now asynchronous (INFRA phase 2): the action validates + enqueues
+ * and returns a job id; the client polls jobStatus() for progress and the final
+ * chunk count. Synchronous errors (keys/credits/unsupported) still return inline. */
 export type IngestResult =
-  | { ok: true; chunks: number; totalChunks: number; cost: number; sourceId: string }
+  | { ok: true; sourceId: string; jobId: string }
   | {
       ok: false;
       error:
         | "too_few"
         | "no_embed_key"
         | "no_transcribe_key"
+        | "no_storage"
         | "no_session"
         | "insufficient_credits"
         | "unsupported"
@@ -37,8 +41,14 @@ export type IngestResult =
 
 const MAX_FILE_BYTES = 30 * 1024 * 1024; // matches next.config serverActions.bodySizeLimit
 
-/** Shared tail: chunk -> embed -> store as a source -> debit -> return counts. */
-async function storeText(
+/** True when the user's actions imply post-ingest analysis (ideas/DNA). */
+function wantsAnalysis(opts?: IngestOptions): boolean {
+  const a = opts?.actions ?? [];
+  return (a.includes("ideas") || a.includes("dna")) && !a.includes("analyze_only");
+}
+
+/** Create the source row (processing) and enqueue a text-mode ingest job. */
+async function enqueueText(
   orgId: string,
   brandId: string,
   text: string,
@@ -46,23 +56,39 @@ async function storeText(
 ): Promise<IngestResult> {
   if (!hasEmbeddingKey()) return { ok: false, error: "no_embed_key" };
   const t = forOrg(db!, orgId);
-  const chunks = chunkArabic(text);
-  if (!chunks.length) return { ok: false, error: "empty" };
-  const vectors = await embed(chunks.map((c) => c.content), "document");
   const sourceId = await t.saveSource(brandId, {
     kind: meta.kind,
     title: meta.title,
+    status: "processing",
     language: meta.opts?.language ?? null,
     category: meta.opts?.category ?? null,
   });
-  await t.saveChunks(
-    brandId,
+  const jobId = await t.enqueueJob(brandId, "ingest_source", {
+    mode: "text",
     sourceId,
-    chunks.map((c, i) => ({ idx: c.idx, content: c.content, embedding: vectors[i] })),
-  );
-  await t.debit(meta.cost, meta.reason, "source", sourceId);
-  const totalChunks = await t.countChunks(brandId);
-  return { ok: true, chunks: chunks.length, totalChunks, cost: meta.cost, sourceId };
+    text,
+    cost: meta.cost,
+    reason: meta.reason,
+    analyzeAfter: wantsAnalysis(meta.opts),
+  });
+  kickWorker();
+  return { ok: true, sourceId, jobId };
+}
+
+/** Poll a job's status for the live-progress UI (tenancy-scoped). */
+export async function jobStatus(jobId: string): Promise<
+  | { ok: true; status: string; progress: number; phase: string | null; chunks?: number; error?: string | null }
+  | { ok: false }
+> {
+  if (!db) return { ok: false };
+  const ctx = await currentContext();
+  if (!ctx) return { ok: false };
+  const job = await forOrg(db, ctx.orgId).getJob(ctx.brandId, jobId);
+  if (!job) return { ok: false };
+  // Opportunistically advance the queue while someone is watching (poll fallback).
+  kickWorker();
+  const chunks = (job.result as { chunks?: number } | null)?.chunks;
+  return { ok: true, status: job.status, progress: job.progress, phase: job.phase, chunks, error: job.lastError };
 }
 
 /** Ingest pasted text: chunk (Arabic-aware) → embed (Voyage) → store as a source
@@ -82,7 +108,7 @@ export async function ingestText(input: { title?: string; text: string; opts?: I
   }
 
   try {
-    return await storeText(ctx.orgId, ctx.brandId, text, {
+    return await enqueueText(ctx.orgId, ctx.brandId, text, {
       kind: "text",
       title: input.title?.trim() || null,
       cost: estimate,
@@ -98,9 +124,11 @@ export async function ingestText(input: { title?: string; text: string; opts?: I
  * read directly. Then the shared chunk→embed→store tail. */
 export async function ingestFile(form: FormData): Promise<IngestResult> {
   try {
+    const rawActions = form.get("actions");
     const opts: IngestOptions = {
       language: (form.get("language") as string) || undefined,
       category: (form.get("category") as string) || undefined,
+      actions: typeof rawActions === "string" && rawActions ? (JSON.parse(rawActions) as string[]) : undefined,
     };
     const file = form.get("file");
     if (!(file instanceof File)) return { ok: false, error: "failed", message: "no file received" };
@@ -121,32 +149,44 @@ export async function ingestFile(form: FormData): Promise<IngestResult> {
       return { ok: false, error: "unsupported", message: type || file.name };
     }
 
+    if (isAudio && !hasTranscribeKey()) return { ok: false, error: "no_transcribe_key" };
+    if (!hasEmbeddingKey()) return { ok: false, error: "no_embed_key" };
+    if (!hasStorage()) return { ok: false, error: "no_storage" };
+
     const estimate = isAudio ? estimateTranscribe() : estimateIngest();
     if ((await forOrg(db, ctx.orgId).balance()) < estimate) {
       return { ok: false, error: "insufficient_credits" };
     }
 
-    let text: string;
-    let kind: string;
-    if (isAudio) {
-      if (!hasTranscribeKey()) return { ok: false, error: "no_transcribe_key" };
-      text = await transcribeAudio(file, file.name);
-      kind = "audio";
-    } else if (isPdf) {
-      text = await extractPdfText(new Uint8Array(await file.arrayBuffer()));
-      kind = "pdf";
-    } else {
-      text = (await file.text()).trim();
-      kind = "text";
-    }
-    if (text.length < 20) return { ok: false, error: "empty" };
-    return await storeText(ctx.orgId, ctx.brandId, text, {
+    const kind = isAudio ? "audio" : isPdf ? "pdf" : "text";
+    const fileKind: "audio" | "pdf" | "text" = isAudio ? "audio" : isPdf ? "pdf" : "text";
+    const t = forOrg(db, ctx.orgId);
+
+    // Persist raw bytes to storage, then let the job download + extract + embed
+    // so long transcriptions/extractions never run inside this request.
+    const sourceId = await t.saveSource(ctx.brandId, {
       kind,
       title: file.name,
+      status: "processing",
+      language: opts.language ?? null,
+      category: opts.category ?? null,
+    });
+    const safeName = file.name.replace(/[^\w.\-]+/g, "_").slice(-80);
+    const storagePath = `${ctx.orgId}/${sourceId}/${safeName}`;
+    await uploadBytes(storagePath, await file.arrayBuffer(), file.type || undefined);
+
+    const jobId = await t.enqueueJob(ctx.brandId, "ingest_source", {
+      mode: "file",
+      sourceId,
+      storagePath,
+      fileName: file.name,
+      fileKind,
       cost: estimate,
       reason: isAudio ? "ingest_audio" : isPdf ? "ingest_pdf" : "ingest_file",
-      opts,
+      analyzeAfter: wantsAnalysis(opts),
     });
+    kickWorker();
+    return { ok: true, sourceId, jobId };
   } catch (e) {
     return { ok: false, error: "failed", message: e instanceof Error ? e.message : String(e) };
   }
@@ -169,7 +209,7 @@ export async function ingestUrl(input: { url: string; opts?: IngestOptions }): P
 
     const { text, title } = await fetchUrlText(url);
     if (text.length < 20) return { ok: false, error: "empty" };
-    return await storeText(ctx.orgId, ctx.brandId, text, {
+    return await enqueueText(ctx.orgId, ctx.brandId, text, {
       kind: "url",
       title,
       cost: estimate,

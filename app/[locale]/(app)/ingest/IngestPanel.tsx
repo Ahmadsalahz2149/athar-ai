@@ -3,8 +3,23 @@
 import { useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { ingestFile, ingestText, ingestUrl, type IngestResult } from "./actions";
-import { analyzeSource } from "../vault/actions";
+import { ingestFile, ingestText, ingestUrl, jobStatus, type IngestResult } from "./actions";
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Poll a job to completion, reporting progress. Terminal states are done | dead. */
+async function pollJob(jobId: string, onTick: (progress: number, phase: string | null) => void): Promise<{ done: boolean; chunks?: number; error?: string }> {
+  for (let i = 0; i < 200; i++) {
+    const s = await jobStatus(jobId);
+    if (s.ok) {
+      onTick(s.progress, s.phase);
+      if (s.status === "done") return { done: true, chunks: s.chunks };
+      if (s.status === "dead") return { done: false, error: s.error ?? "failed" };
+    }
+    await sleep(1500);
+  }
+  return { done: false, error: "timeout" };
+}
 import {
   Chip,
   FileTypeBadge,
@@ -17,7 +32,7 @@ import {
 const MAX_FILE_MB = 30; // mirrors MAX_FILE_BYTES in actions.ts / next.config bodySizeLimit
 
 type QStatus = "queued" | "uploading" | "analyzing" | "done" | "error" | "toobig";
-type QItem = { id: number; file: File; status: QStatus; error?: string; chunks?: number };
+type QItem = { id: number; file: File; status: QStatus; error?: string; chunks?: number; progress?: number };
 
 type TypeKey = "video" | "audio" | "pdf" | "book" | "doc" | "link" | "posts";
 const TYPES: { key: TypeKey; accept?: string; input: "file" | "url" | "text" }[] = [
@@ -90,7 +105,6 @@ export function IngestPanel() {
 
   const runnable = queue.filter((i) => i.status === "queued" || i.status === "error");
   const ready = type.input === "file" ? runnable.length > 0 : type.input === "url" ? !!url.trim() : text.trim().length >= 150;
-  const doAnalyze = actions.includes("ideas") && !actions.includes("analyze_only");
 
   const run = () => {
     setRes(null);
@@ -99,38 +113,39 @@ export function IngestPanel() {
       try {
         const opts = { language, category, actions };
 
-        // FILE MODE — process the queue sequentially, tracking per-file status.
+        // FILE MODE — upload each file, then poll its background job to completion.
         if (type.input === "file") {
-          let last: IngestResult | null = null;
+          let anyOk = false;
           for (const item of runnable) {
-            setItem(item.id, { status: "uploading", error: undefined });
+            setItem(item.id, { status: "uploading", error: undefined, progress: 0 });
             const fd = new FormData();
             fd.append("file", item.file);
             fd.append("language", language);
             fd.append("category", category);
+            fd.append("actions", JSON.stringify(actions));
             const r = await ingestFile(fd);
             if (!r.ok) { setItem(item.id, { status: "error", error: errorMessage(r, t) }); continue; }
-            if (doAnalyze) {
-              setItem(item.id, { status: "analyzing", chunks: r.chunks });
-              try { await analyzeSource(r.sourceId); } catch { /* analysis is best-effort */ }
-            }
-            setItem(item.id, { status: "done", chunks: r.chunks });
-            last = r;
+            const done = await pollJob(r.jobId, (progress, phase) =>
+              setItem(item.id, { status: phase === "done" ? "done" : "analyzing", progress }),
+            );
+            if (done.done) { setItem(item.id, { status: "done", chunks: done.chunks, progress: 100 }); anyOk = true; }
+            else setItem(item.id, { status: "error", error: done.error });
           }
-          setRes(last);
           setPhase("done");
           router.refresh();
-          if (last?.ok && actions.includes("posts")) router.push("/studio");
+          if (anyOk && actions.includes("posts")) router.push("/studio");
           return;
         }
 
-        // URL / TEXT MODE — single item.
+        // URL / TEXT MODE — single item, then poll the job.
         let r: IngestResult;
         if (type.input === "url") r = await ingestUrl({ url, opts });
         else r = await ingestText({ text, title: t("pastedTitle"), opts });
         setRes(r);
         if (!r.ok) return setPhase("idle");
-        if (doAnalyze) { setPhase("analyzing"); await analyzeSource(r.sourceId); }
+        setPhase("analyzing");
+        const done = await pollJob(r.jobId, () => {});
+        if (!done.done) { setRes({ ok: false, error: "failed", message: done.error }); return setPhase("idle"); }
         setPhase("done");
         router.refresh();
         if (actions.includes("posts")) router.push("/studio");
@@ -322,7 +337,7 @@ export function IngestPanel() {
           )}
           {type.input !== "file" && res && res.ok && phase === "done" && (
             <p style={{ marginBlockStart: 12, fontSize: 13.5, color: "var(--teal-deep)", fontWeight: 600 }}>
-              {t("ingestDone", { chunks: nf.format(res.chunks), total: nf.format(res.totalChunks) })}
+              {t("ingestDoneSimple")}
             </p>
           )}
         </div>
@@ -343,6 +358,7 @@ function errorMessage(res: { error: string; message?: string }, t: (k: string) =
       case "too_big": return t("tooBig");
       case "no_transcribe_key": return t("needTranscribeKey");
       case "no_embed_key": return t("needEmbedKey");
+      case "no_storage": return t("tooStorage");
       case "insufficient_credits": return t("insufficientCredits");
       case "no_session": return t("needSession");
       case "empty": return t("emptyExtract");

@@ -303,6 +303,23 @@ export function forOrg(db: Db, orgId: string) {
       return row.id;
     },
 
+    /** Remove a source's chunks so a job retry can rebuild them cleanly (idempotency). */
+    async clearChunks(brandId: string, sourceId: string): Promise<void> {
+      await assertBrand(brandId);
+      await db.delete(schema.sourceChunks).where(
+        and(eq(schema.sourceChunks.orgId, orgId), eq(schema.sourceChunks.brandId, brandId), eq(schema.sourceChunks.sourceId, sourceId)),
+      );
+    },
+
+    /** Update a source's processing status (pending|processing|ready|failed). */
+    async setSourceStatus(brandId: string, sourceId: string, status: string): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .update(schema.sources)
+        .set({ status })
+        .where(and(eq(schema.sources.id, sourceId), eq(schema.sources.orgId, orgId), eq(schema.sources.brandId, brandId)));
+    },
+
     async saveChunks(
       brandId: string,
       sourceId: string,
