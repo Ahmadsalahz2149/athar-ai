@@ -724,7 +724,11 @@
     "prevMonth": "الشهر السابق",
     "nextMonth": "الشهر التالي",
     "todayBtn": "اليوم",
-    "moreCount": "+{n} أخرى"
+    "moreCount": "+{n} أخرى",
+    "prevWeek": "الأسبوع السابق",
+    "nextWeek": "الأسبوع التالي",
+    "thisWeekBtn": "هذا الأسبوع",
+    "noPostsDay": "لا منشورات"
   },
   "Analytics": {
     "title": "التحليلات",

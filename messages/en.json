@@ -724,7 +724,11 @@
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
     "todayBtn": "Today",
-    "moreCount": "+{n} more"
+    "moreCount": "+{n} more",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "thisWeekBtn": "This week",
+    "noPostsDay": "No posts"
   },
   "Analytics": {
     "title": "Analytics",

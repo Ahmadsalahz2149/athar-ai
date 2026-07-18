@@ -6,12 +6,15 @@ import { currentContext } from "@/lib/auth/current";
 import { platformColor, btnTeal } from "@/components/ui/display";
 import { Scheduler } from "./Scheduler";
 
-export default async function CalendarPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ ym?: string }> }) {
+const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+export default async function CalendarPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ ym?: string; view?: string; wk?: string }> }) {
   const { locale } = await params;
-  const { ym } = await searchParams;
+  const { ym, view, wk } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations("Calendar");
   const tf = new Intl.DateTimeFormat(locale === "ar" ? "ar" : "en", { hour: "numeric", minute: "2-digit" });
+  const isWeek = view === "week";
 
   const now = new Date();
   // Which month to show — from ?ym=YYYY-M, else the current month. "today" is only
@@ -28,7 +31,16 @@ export default async function CalendarPage({ params, searchParams }: { params: P
   const nextYm = month === 11 ? `${year + 1}-0` : `${year}-${month + 1}`;
   const defaultWhen = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T10:00`;
 
-  const byDay = new Map<number, { hook: string; platform: string; time: string }[]>();
+  // Week view anchor: the Saturday of the shown week (from ?wk=ISO, else this week).
+  const wkAnchor = wk && /^\d{4}-\d{2}-\d{2}$/.test(wk) ? new Date(`${wk}T00:00:00`) : now;
+  const weekStart = new Date(wkAnchor.getFullYear(), wkAnchor.getMonth(), wkAnchor.getDate() - ((wkAnchor.getDay() + 1) % 7));
+  const weekDates = Array.from({ length: 7 }, (_, i) => new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i));
+  const prevWk = iso(new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() - 7));
+  const nextWk = iso(new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7));
+
+  type Item = { hook: string; platform: string; time: string; sort: number };
+  const byDay = new Map<number, Item[]>();
+  const byDate = new Map<string, Item[]>();
   let unscheduled: { id: string; hook: string }[] = [];
   if (db) {
     const ctx = await currentContext();
@@ -41,17 +53,24 @@ export default async function CalendarPage({ params, searchParams }: { params: P
       for (const r of sched) {
         if (!r.scheduledAt) continue;
         const dt = new Date(r.scheduledAt);
+        const item: Item = { hook: r.hook, platform: r.platform, time: tf.format(dt), sort: dt.getHours() * 60 + dt.getMinutes() };
         if (dt.getFullYear() === year && dt.getMonth() === month) {
           const arr = byDay.get(dt.getDate()) ?? [];
-          arr.push({ hook: r.hook, platform: r.platform, time: tf.format(dt) });
+          arr.push(item);
           byDay.set(dt.getDate(), arr);
         }
+        const key = iso(dt);
+        const darr = byDate.get(key) ?? [];
+        darr.push(item);
+        byDate.set(key, darr);
       }
       unscheduled = approved.map((r) => ({ id: r.id, hook: r.hook }));
     }
   }
+  for (const arr of byDate.values()) arr.sort((a, b) => a.sort - b.sort);
 
   const weekdays = t("weekdays").split("،").map((s) => s.trim());
+  const weekRangeLabel = new Intl.DateTimeFormat(locale === "ar" ? "ar" : "en", { day: "numeric", month: "short" }).formatRange(weekDates[0], weekDates[6]);
   const cells: (number | null)[] = [];
   for (let i = 0; i < startWeekday; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
@@ -65,8 +84,8 @@ export default async function CalendarPage({ params, searchParams }: { params: P
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ display: "flex", padding: 3, borderRadius: 999, background: "var(--card)", border: "1px solid var(--border-2)" }}>
-            <span style={{ padding: "6px 16px", borderRadius: 999, fontSize: 13, fontWeight: 700, background: "var(--navy)", color: "#fff" }}>{t("monthly")}</span>
-            <span style={{ padding: "6px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>{t("weekly")}</span>
+            <Link href="/calendar" style={{ padding: "6px 16px", borderRadius: 999, fontSize: 13, fontWeight: isWeek ? 600 : 700, background: isWeek ? "transparent" : "var(--navy)", color: isWeek ? "var(--muted)" : "#fff" }}>{t("monthly")}</Link>
+            <Link href="/calendar?view=week" style={{ padding: "6px 16px", borderRadius: 999, fontSize: 13, fontWeight: isWeek ? 700 : 600, background: isWeek ? "var(--navy)" : "transparent", color: isWeek ? "#fff" : "var(--muted)" }}>{t("weekly")}</Link>
           </div>
           <Link href="/studio" style={btnTeal}>+ {t("schedulePost")}</Link>
         </div>
@@ -98,43 +117,86 @@ export default async function CalendarPage({ params, searchParams }: { params: P
           />
         </div>
 
-        {/* Left column: month grid */}
+        {/* Left column: month grid OR week agenda */}
         <section style={{ ...card, padding: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBlockEnd: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Link href={`/calendar?ym=${prevYm}`} aria-label={t("prevMonth")} style={navBtn}>‹</Link>
-              <span style={{ fontWeight: 700, color: "var(--heading)", fontSize: 17, minWidth: 130, textAlign: "center" }}>{monthName}</span>
-              <Link href={`/calendar?ym=${nextYm}`} aria-label={t("nextMonth")} style={navBtn}>›</Link>
-              {!isCurrentMonth && <Link href="/calendar" style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", marginInlineStart: 4 }}>{t("todayBtn")}</Link>}
-            </div>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", padding: "5px 11px", borderRadius: 999, background: "var(--teal-tint-2)" }}>✦ {t("bestTimes")}</span>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
-            {weekdays.map((w, i) => (
-              <div key={i} style={{ textAlign: "center", fontSize: 11.5, fontWeight: 700, color: "var(--muted)", padding: "6px 0" }}>{w}</div>
-            ))}
-            {cells.map((d, i) => (
-              <div key={i} style={{ minHeight: 96, borderRadius: 11, border: "1px solid var(--border)", background: d === null ? "transparent" : d === today ? "var(--teal-tint-2)" : "var(--card)", padding: 7 }}>
-                {d !== null && (
-                  <>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: d === today ? "var(--teal-deep)" : "var(--slate)", fontFamily: "var(--font-latin)" }}>{d}</div>
-                    <div style={{ display: "grid", gap: 3, marginBlockStart: 5 }}>
-                      {(byDay.get(d) ?? []).slice(0, 3).map((p, j) => (
-                        <div key={j} title={p.hook} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9.5, padding: "2px 5px", borderRadius: 5, background: "var(--surface)", borderInlineStart: `2px solid ${platformColor(p.platform)}`, overflow: "hidden" }}>
-                          <span style={{ fontFamily: "var(--font-latin)", color: "var(--muted)", flex: "none" }}>{p.time}</span>
-                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--slate)" }}>{p.hook}</span>
-                        </div>
-                      ))}
-                      {(byDay.get(d)?.length ?? 0) > 3 && (
-                        <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--teal-deep)", paddingInlineStart: 5 }}>{t("moreCount", { n: (byDay.get(d)!.length - 3) })}</span>
-                      )}
-                    </div>
-                  </>
-                )}
+          {isWeek ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBlockEnd: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Link href={`/calendar?view=week&wk=${prevWk}`} aria-label={t("prevWeek")} style={navBtn}>‹</Link>
+                  <span style={{ fontWeight: 700, color: "var(--heading)", fontSize: 16, minWidth: 130, textAlign: "center" }}>{weekRangeLabel}</span>
+                  <Link href={`/calendar?view=week&wk=${nextWk}`} aria-label={t("nextWeek")} style={navBtn}>›</Link>
+                  <Link href="/calendar?view=week" style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", marginInlineStart: 4 }}>{t("thisWeekBtn")}</Link>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", padding: "5px 11px", borderRadius: 999, background: "var(--teal-tint-2)" }}>✦ {t("bestTimes")}</span>
               </div>
-            ))}
-          </div>
+              {/* Agenda: one row per day (stacks naturally on mobile) */}
+              <div style={{ display: "grid", gap: 8 }}>
+                {weekDates.map((d, i) => {
+                  const items = byDate.get(iso(d)) ?? [];
+                  const isToday = iso(d) === iso(now);
+                  return (
+                    <div key={i} style={{ display: "flex", gap: 12, alignItems: "stretch", padding: "10px 12px", borderRadius: 12, background: isToday ? "var(--teal-tint-2)" : "var(--surface)", border: isToday ? "1.5px solid var(--teal)" : "1px solid var(--border)" }}>
+                      <div style={{ flex: "none", width: 52, textAlign: "center" }}>
+                        <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700 }}>{weekdays[i]}</div>
+                        <div style={{ fontSize: 19, fontWeight: 800, color: isToday ? "var(--teal-deep)" : "var(--heading)", fontFamily: "var(--font-latin)" }}>{d.getDate()}</div>
+                      </div>
+                      <div style={{ flex: 1, display: "grid", gap: 5, alignContent: "center", borderInlineStart: "1px solid var(--border)", paddingInlineStart: 12 }}>
+                        {items.length === 0 ? (
+                          <span style={{ fontSize: 12.5, color: "var(--subtle)" }}>{t("noPostsDay")}</span>
+                        ) : (
+                          items.map((p, j) => (
+                            <div key={j} title={p.hook} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, padding: "5px 9px", borderRadius: 8, background: "var(--card)", borderInlineStart: `3px solid ${platformColor(p.platform)}` }}>
+                              <span style={{ fontFamily: "var(--font-latin)", color: "var(--muted)", flex: "none", fontSize: 11.5 }}>{p.time}</span>
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--slate)" }}>{p.hook}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBlockEnd: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Link href={`/calendar?ym=${prevYm}`} aria-label={t("prevMonth")} style={navBtn}>‹</Link>
+                  <span style={{ fontWeight: 700, color: "var(--heading)", fontSize: 17, minWidth: 130, textAlign: "center" }}>{monthName}</span>
+                  <Link href={`/calendar?ym=${nextYm}`} aria-label={t("nextMonth")} style={navBtn}>›</Link>
+                  {!isCurrentMonth && <Link href="/calendar" style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", marginInlineStart: 4 }}>{t("todayBtn")}</Link>}
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", padding: "5px 11px", borderRadius: 999, background: "var(--teal-tint-2)" }}>✦ {t("bestTimes")}</span>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
+                {weekdays.map((w, i) => (
+                  <div key={i} style={{ textAlign: "center", fontSize: 11.5, fontWeight: 700, color: "var(--muted)", padding: "6px 0" }}>{w}</div>
+                ))}
+                {cells.map((d, i) => (
+                  <div key={i} style={{ minHeight: 96, borderRadius: 11, border: "1px solid var(--border)", background: d === null ? "transparent" : d === today ? "var(--teal-tint-2)" : "var(--card)", padding: 7 }}>
+                    {d !== null && (
+                      <>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: d === today ? "var(--teal-deep)" : "var(--slate)", fontFamily: "var(--font-latin)" }}>{d}</div>
+                        <div style={{ display: "grid", gap: 3, marginBlockStart: 5 }}>
+                          {(byDay.get(d) ?? []).slice(0, 3).map((p, j) => (
+                            <div key={j} title={p.hook} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9.5, padding: "2px 5px", borderRadius: 5, background: "var(--surface)", borderInlineStart: `2px solid ${platformColor(p.platform)}`, overflow: "hidden" }}>
+                              <span style={{ fontFamily: "var(--font-latin)", color: "var(--muted)", flex: "none" }}>{p.time}</span>
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--slate)" }}>{p.hook}</span>
+                            </div>
+                          ))}
+                          {(byDay.get(d)?.length ?? 0) > 3 && (
+                            <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--teal-deep)", paddingInlineStart: 5 }}>{t("moreCount", { n: (byDay.get(d)!.length - 3) })}</span>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </section>
       </div>
     </main>
