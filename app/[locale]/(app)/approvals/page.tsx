@@ -4,21 +4,21 @@ import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { ApprovalsClient } from "./ApprovalsClient";
 
-const QUEUE = ["pending", "approved", "scheduled", "needs_edit"];
+const QUEUE = ["pending", "approved", "scheduled", "needs_edit", "rejected"];
 
 export default async function ApprovalsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("Approvals");
 
-  let drafts: { id: string; hook: string; body: string; platform: string; status: string; postScore: number; dnaMatch: number; scheduledAt: string | null }[] = [];
+  let drafts: { id: string; hook: string; body: string; platform: string; status: string; postScore: number; dnaMatch: number; scheduledAt: string | null; reviewNote: string | null }[] = [];
   if (db) {
     const ctx = await currentContext();
     if (ctx) {
       const rows = await forOrg(db, ctx.orgId).listDraftsByStatus(ctx.brandId);
       drafts = rows
         .filter((r) => QUEUE.includes(r.status))
-        .map((r) => ({ id: r.id, hook: r.hook, body: r.body, platform: r.platform, status: r.status, postScore: r.postScore, dnaMatch: r.dnaMatch, scheduledAt: r.scheduledAt ? r.scheduledAt.toISOString() : null }));
+        .map((r) => ({ id: r.id, hook: r.hook, body: r.body, platform: r.platform, status: r.status, postScore: r.postScore, dnaMatch: r.dnaMatch, scheduledAt: r.scheduledAt ? r.scheduledAt.toISOString() : null, reviewNote: r.reviewNote }));
     }
   }
 

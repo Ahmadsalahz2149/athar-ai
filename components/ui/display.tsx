@@ -408,10 +408,15 @@ export function Chip({
       : { ...base, background: "var(--teal-tint-2)", color: "var(--navy)", border: "1.5px solid var(--teal)" }
     : { ...base, background: "var(--card)", color: "var(--slate)", border: "1.5px solid var(--border-2)" };
   return (
-    <button type="button" onClick={onClick} style={style}>
+    <button type="button" onClick={onClick} aria-pressed={!!active} style={style}>
       {children}
     </button>
   );
+}
+
+/* ---------------- Skeleton ---------------- */
+export function Skeleton({ h = 16, w = "100%", r = 10, style }: { h?: number | string; w?: number | string; r?: number; style?: CSSProperties }) {
+  return <span className="skeleton" aria-hidden style={{ display: "block", height: h, width: w, borderRadius: r, ...style }} />;
 }
 
 /* ---------------- SelectableCard (with check circle) ---------------- */
@@ -430,6 +435,7 @@ export function SelectableCard({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={!!active}
       style={{
         textAlign: "start",
         display: "flex",

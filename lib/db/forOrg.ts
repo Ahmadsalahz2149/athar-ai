@@ -133,6 +133,19 @@ export function forOrg(db: Db, orgId: string) {
         );
     },
 
+    async reviewDraft(brandId: string, draftId: string, status: string, note: string): Promise<void> {
+      await db
+        .update(schema.drafts)
+        .set({ status, reviewNote: note || null })
+        .where(
+          and(
+            eq(schema.drafts.id, draftId),
+            eq(schema.drafts.orgId, orgId),
+            eq(schema.drafts.brandId, brandId),
+          ),
+        );
+    },
+
     async setDraftStatus(brandId: string, draftId: string, status: string, scheduledAt?: Date): Promise<void> {
       await db
         .update(schema.drafts)

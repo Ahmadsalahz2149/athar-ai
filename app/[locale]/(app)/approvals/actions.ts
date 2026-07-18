@@ -7,7 +7,7 @@ import { currentContext } from "@/lib/auth/current";
 /** Set a draft's approval status. `schedule` stamps scheduledAt = now (MVP slot). */
 export async function setDraftStatus(
   draftId: string,
-  status: "approved" | "needs_edit" | "scheduled" | "published",
+  status: "approved" | "needs_edit" | "scheduled" | "published" | "rejected",
   schedule = false,
 ): Promise<{ ok: boolean }> {
   try {
@@ -15,6 +15,23 @@ export async function setDraftStatus(
     const ctx = await currentContext();
     if (!ctx) return { ok: false };
     await forOrg(db, ctx.orgId).setDraftStatus(ctx.brandId, draftId, status, schedule ? new Date() : undefined);
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** Save a reviewer note (reason for send-back / rejection) with a status change. */
+export async function reviewDraft(
+  draftId: string,
+  status: "needs_edit" | "rejected",
+  note: string,
+): Promise<{ ok: boolean }> {
+  try {
+    if (!db) return { ok: false };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false };
+    await forOrg(db, ctx.orgId).reviewDraft(ctx.brandId, draftId, status, note);
     return { ok: true };
   } catch {
     return { ok: false };

@@ -98,6 +98,11 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
             </span>
             <h1 style={{ fontSize: "clamp(24px,3.2vw,30px)", fontWeight: 700, marginBlock: "14px 10px" }}>{t("title")}</h1>
             <p style={{ color: "#9FB3C8", lineHeight: 1.9, fontSize: 14.5 }}>{t("heroBody")}</p>
+            {dna.summary && (
+              <p style={{ marginBlockStart: 14, padding: "12px 15px", borderRadius: 12, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "#E2E8F0", fontSize: 14, lineHeight: 1.85 }}>
+                “{dna.summary}”
+              </p>
+            )}
           </div>
           <ScoreRadial value={dna.completion_pct} size={104} suffix="%" caption={t("completeness")} track="rgba(255,255,255,.14)" valueColor="#fff" />
         </div>

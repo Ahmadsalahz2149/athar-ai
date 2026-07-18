@@ -64,8 +64,10 @@ export const drafts = pgTable("drafts", {
   hook: text("hook").notNull(),
   body: text("body").notNull(),
   // English enum values only — never store display strings (A6).
-  // status: draft | pending | approved | needs_edit | scheduled | published
+  // status: draft | pending | approved | needs_edit | scheduled | published | rejected
   status: text("status").notNull().default("draft"),
+  // Reviewer's reason when sent back for edit or rejected (Approvals).
+  reviewNote: text("review_note"),
   postScore: integer("post_score").notNull().default(0),
   dnaMatch: integer("dna_match").notNull().default(0),
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }),

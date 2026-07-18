@@ -84,3 +84,16 @@ export async function toggleSaveIdea(ideaId: string, save: boolean): Promise<{ o
     return { ok: false };
   }
 }
+
+/** Mark an idea "used" when the user opens it in the Studio (idea→post lineage). */
+export async function markIdeaUsed(ideaId: string): Promise<{ ok: boolean }> {
+  try {
+    if (!db) return { ok: false };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false };
+    await forOrg(db, ctx.orgId).setIdeaStatus(ctx.brandId, ideaId, "used");
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}

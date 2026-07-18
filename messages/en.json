@@ -577,7 +577,13 @@
     "needDna": "Build your DNA first (via onboarding or a source).",
     "needKey": "Add a provider key to .env.local.",
     "insufficientCredits": "Not enough credits.",
-    "error": "Could not generate ideas."
+    "error": "Could not generate ideas.",
+    "countLabel": "Idea count",
+    "sortLabel": "Sort",
+    "sort_score": "Highest score",
+    "sort_recent": "Newest",
+    "save": "Save idea",
+    "unsave": "Unsave"
   },
   "Approvals": {
     "title": "Approvals",
@@ -595,7 +601,28 @@
     "st_scheduled": "Scheduled",
     "st_needs_edit": "Needs edit",
     "emptyTitle": "Nothing here",
-    "emptyBody": "Drafts submitted from the Studio appear here for approval."
+    "emptyBody": "Drafts submitted from the Studio appear here for approval.",
+    "tab_rejected": "Rejected",
+    "st_rejected": "Rejected",
+    "select": "Select",
+    "showFull": "Show full",
+    "showLess": "Show less",
+    "reviewerNote": "Reviewer note",
+    "bulkApproved": "{n} approved & scheduled",
+    "approveSelected": "Approve selected ({n})",
+    "approvedOne": "Approved & scheduled ✓",
+    "sentBack": "Sent back for edit ✓",
+    "rejectedOne": "Rejected ✓",
+    "approvedAll": "All approved ✓",
+    "bulkApprovedN": "Done",
+    "confirmAllTitle": "Approve all pending?",
+    "confirmAllBody": "{n} drafts will be scheduled at once. This is hard to undo.",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "editTitle": "Send back for edit",
+    "rejectTitle": "Reject draft",
+    "noteHelper": "Add a reason for the writer (optional).",
+    "notePh": "e.g. weak hook, clarify the CTA…"
   },
   "Calendar": {
     "title": "Calendar",
@@ -634,7 +661,9 @@
     "insightBody": "Your story posts drive 42% higher engagement than average, and your best time is Sun 9am. Let's reinforce your DNA with these signals.",
     "updateDna": "Update your DNA with these insights",
     "topPosts": "Top performing posts",
-    "noTopPosts": "Approve some drafts to see them ranked here by score."
+    "noTopPosts": "Approve some drafts to see them ranked here by score.",
+    "sample": "sample",
+    "real": "real"
   },
   "Settings": {
     "title": "Settings",

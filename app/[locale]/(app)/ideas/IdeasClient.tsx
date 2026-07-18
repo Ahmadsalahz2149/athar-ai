@@ -2,8 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Link, useRouter } from "@/i18n/navigation";
-import { generateIdeas, toggleSaveIdea } from "./actions";
+import { useRouter } from "@/i18n/navigation";
+import { generateIdeas, toggleSaveIdea, markIdeaUsed } from "./actions";
 import { Chip, StatusPill, EmptyState, IconTile, btnTeal, btnNavy } from "@/components/ui/display";
 
 type Idea = {
@@ -16,7 +16,10 @@ type Idea = {
   status: string;
 };
 
-const FILTERS = ["all", "today", "sources", "trending", "saved"] as const;
+// "trending" is intentionally omitted — we don't produce trending-bucket ideas
+// yet, so an always-empty filter would read as broken.
+const FILTERS = ["all", "today", "sources", "saved"] as const;
+const SORTS = ["score", "recent"] as const;
 
 const CAT_EMOJI: Record<string, string> = {
   educational: "📖", story: "💬", list: "⚠️", guide: "🎯", analytical: "📊", contrarian: "🔥",
@@ -32,7 +35,9 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
   const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
   const router = useRouter();
   const [topic, setTopic] = useState("");
+  const [count, setCount] = useState(6);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
+  const [sort, setSort] = useState<(typeof SORTS)[number]>("score");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const [saved, setSaved] = useState<Record<string, boolean>>(
@@ -42,7 +47,7 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
   const gen = () => {
     setErr(null);
     start(async () => {
-      const r = await generateIdeas({ topic });
+      const r = await generateIdeas({ topic, count });
       if (r.ok) router.refresh();
       else
         setErr(
@@ -51,21 +56,27 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
     });
   };
 
+  // Open an idea in the Studio with its context, and mark it used (lineage).
+  const write = (i: Idea) => {
+    markIdeaUsed(i.id);
+    const prompt = i.angle ? `${i.title} — ${i.angle}` : i.title;
+    router.push(`/studio?prompt=${encodeURIComponent(prompt)}`);
+  };
+
   const shown = useMemo(() => {
-    return ideas.filter((i) => {
+    const filtered = ideas.filter((i) => {
       switch (filter) {
         case "all": return true;
         case "saved": return saved[i.id];
         case "today": return i.bucket === "suggested";
         case "sources": return i.bucket === "source";
-        case "trending": return i.bucket === "trending";
         default: return true;
       }
     });
-  }, [ideas, filter, saved]);
+    return [...filtered].sort((a, b) => (sort === "score" ? b.postScore - a.postScore : 0));
+  }, [ideas, filter, saved, sort]);
 
-  const sourceLine = (i: Idea) =>
-    i.bucket === "source" ? t("fromSources") : i.bucket === "trending" ? t("fromTrending") : t("fromSuggested");
+  const sourceLine = (i: Idea) => (i.bucket === "source" ? t("fromSources") : t("fromSuggested"));
 
   const statusPill = (i: Idea) => {
     if (saved[i.id]) return <StatusPill tone="amber">{t("stSaved")}</StatusPill>;
@@ -79,15 +90,21 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
       <div style={{ background: "linear-gradient(160deg,#102A43,#0B1F33)", borderRadius: 14, padding: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <span style={{ fontSize: 13, color: "#9FB3C8", fontWeight: 600, paddingInline: 6, flex: "none" }}>{t("aboutWhat")}</span>
         <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder={t("topicPlaceholder")} onKeyDown={(e) => e.key === "Enter" && !pending && gen()} style={{ flex: 1, minWidth: 160, height: 42, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 11, padding: "0 14px", color: "#fff", fontSize: 14, outline: "none" }} />
+        <select value={count} onChange={(e) => setCount(Number(e.target.value))} aria-label={t("countLabel")} style={{ height: 42, borderRadius: 11, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.06)", color: "#fff", fontSize: 13, padding: "0 10px", outline: "none" }}>
+          {[3, 6, 8, 10].map((n) => <option key={n} value={n} style={{ color: "#000" }}>{nf.format(n)}</option>)}
+        </select>
         <button onClick={gen} disabled={pending} style={{ ...btnTeal, height: 42, opacity: pending ? 0.7 : 1 }}>✦ {pending ? t("generating") : t("generate")}</button>
       </div>
       {err && <p style={{ marginBlockStart: 10, color: "var(--coral)", fontSize: 13.5 }}>{err}</p>}
 
-      {/* Filters */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBlock: "16px 4px" }}>
+      {/* Filters + sort */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBlock: "16px 4px", alignItems: "center" }}>
         {FILTERS.map((f) => (
           <Chip key={f} variant="fill" size="sm" active={filter === f} onClick={() => setFilter(f)}>{t(`f_${f}`)}</Chip>
         ))}
+        <select value={sort} onChange={(e) => setSort(e.target.value as (typeof SORTS)[number])} aria-label={t("sortLabel")} style={{ marginInlineStart: "auto", height: 34, borderRadius: 999, border: "1px solid var(--border-2)", background: "var(--card)", fontSize: 12.5, padding: "0 12px", color: "var(--slate)", outline: "none" }}>
+          {SORTS.map((s) => <option key={s} value={s}>{t(`sort_${s}`)}</option>)}
+        </select>
       </div>
 
       {shown.length === 0 ? (
@@ -103,6 +120,7 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
                 {statusPill(i)}
               </div>
               <div style={{ fontWeight: 700, color: "var(--heading)", lineHeight: 1.6, fontSize: 15 }}>{i.title}</div>
+              {i.angle && <div style={{ fontSize: 13, color: "var(--slate-2)", lineHeight: 1.7, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{i.angle}</div>}
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 12 }}>
                 {i.category && <span style={{ padding: "3px 9px", borderRadius: 999, background: "var(--gold-tint)", color: "var(--gold-dark)", fontWeight: 600 }}>{t(`cat_${i.category}`)}</span>}
                 <span style={{ color: "var(--muted)" }}>{sourceLine(i)}</span>
@@ -116,12 +134,13 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
                       setSaved((s) => ({ ...s, [i.id]: next }));
                       toggleSaveIdea(i.id, next);
                     }}
-                    aria-label="save"
+                    aria-label={saved[i.id] ? t("unsave") : t("save")}
+                    aria-pressed={!!saved[i.id]}
                     style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border-2)", background: "var(--card)", cursor: "pointer", fontSize: 15, color: saved[i.id] ? "var(--gold)" : "var(--subtle)" }}
                   >
                     {saved[i.id] ? "★" : "☆"}
                   </button>
-                  <Link href="/studio" style={{ ...btnNavy, height: 34, padding: "0 16px", fontSize: 12.5 }}>{t("write")}</Link>
+                  <button onClick={() => write(i)} style={{ ...btnNavy, height: 34, padding: "0 16px", fontSize: 12.5 }}>{t("write")}</button>
                 </div>
               </div>
             </div>

@@ -26,18 +26,28 @@ const FORMATS = ["post", "thread", "carousel", "reel"] as const;
 const LENGTHS = ["short", "medium", "long"] as const;
 const TOOLS = ["regenerate", "longer", "shorter", "emoji", "tone"] as const;
 
-export function StudioClient({ sources, tones }: { sources: StudioSource[]; tones: string[] }) {
+export function StudioClient({
+  sources,
+  tones,
+  initialPrompt = "",
+  initialSourceId = "",
+}: {
+  sources: StudioSource[];
+  tones: string[];
+  initialPrompt?: string;
+  initialSourceId?: string;
+}) {
   const t = useTranslations("Studio");
   const locale = useLocale();
   const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
 
   const toneOptions = tones.length ? tones : [t("toneFallback")];
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(initialPrompt);
   const [platform, setPlatform] = useState<string>(PLATFORMS[0]);
   const [format, setFormat] = useState<string>("post");
   const [tone, setTone] = useState<string>(toneOptions[0]);
   const [length, setLength] = useState<string>("medium");
-  const [sourceId, setSourceId] = useState<string>(sources[0]?.id ?? "");
+  const [sourceId, setSourceId] = useState<string>(initialSourceId || sources[0]?.id || "");
   const [provider, setProvider] = useState<ProviderId>(DEFAULT_PROVIDER);
   const [model, setModel] = useState<string>(DEFAULT_MODEL);
 

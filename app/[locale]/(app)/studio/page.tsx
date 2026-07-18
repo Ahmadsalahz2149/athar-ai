@@ -6,8 +6,15 @@ import { kindToLabel } from "@/components/ui/display";
 import { StudioClient } from "./StudioClient";
 import type { StudioSource } from "./actions";
 
-export default async function StudioPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function StudioPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ prompt?: string; source?: string }>;
+}) {
   const { locale } = await params;
+  const sp = await searchParams;
   setRequestLocale(locale);
 
   let sources: StudioSource[] = [];
@@ -22,5 +29,5 @@ export default async function StudioPage({ params }: { params: Promise<{ locale:
     }
   }
 
-  return <StudioClient sources={sources} tones={tones} />;
+  return <StudioClient sources={sources} tones={tones} initialPrompt={sp.prompt ?? ""} initialSourceId={sp.source ?? ""} />;
 }

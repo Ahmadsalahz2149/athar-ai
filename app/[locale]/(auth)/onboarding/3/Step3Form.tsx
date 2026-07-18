@@ -54,27 +54,13 @@ export function Step3Form() {
   };
 
   // Checklist state derived from the real run.
+  const KEYS = ["extract", "tone", "dna", "suggest"] as const;
   const steps: { key: string; state: "done" | "active" | "pending" }[] =
     stage === "done"
-      ? [
-          { key: "extract", state: "done" },
-          { key: "tone", state: "done" },
-          { key: "dna", state: "done" },
-          { key: "suggest", state: "pending" },
-        ]
+      ? KEYS.map((key) => ({ key, state: "done" as const }))
       : stage === "working"
-        ? [
-            { key: "extract", state: "active" },
-            { key: "tone", state: "pending" },
-            { key: "dna", state: "pending" },
-            { key: "suggest", state: "pending" },
-          ]
-        : [
-            { key: "extract", state: "pending" },
-            { key: "tone", state: "pending" },
-            { key: "dna", state: "pending" },
-            { key: "suggest", state: "pending" },
-          ];
+        ? KEYS.map((key, i) => ({ key, state: i === 0 ? ("active" as const) : ("pending" as const) }))
+        : KEYS.map((key) => ({ key, state: "pending" as const }));
 
   return (
     <>

@@ -72,7 +72,7 @@ export function Step1Form({ initial }: { initial: OnboardingAnswers }) {
         <button onClick={next} disabled={pending} style={{ ...btnNavy, height: 48, padding: "0 26px", fontSize: 14.5, opacity: pending ? 0.7 : 1 }}>
           {t("next")} ←
         </button>
-        <span style={{ fontSize: 13.5, color: "var(--muted)" }}>{t("back")}</span>
+        <button onClick={() => router.push("/signup")} style={{ background: "none", border: "none", fontSize: 13.5, color: "var(--muted)", cursor: "pointer" }}>{t("back")}</button>
       </div>
     </>
   );
