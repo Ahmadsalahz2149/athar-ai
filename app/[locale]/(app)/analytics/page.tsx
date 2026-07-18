@@ -24,16 +24,19 @@ const TYPES = [
 function Donut({ segs }: { segs: { pct: number; color: string }[] }) {
   const r = 34;
   const c = 2 * Math.PI * r;
-  let acc = 0;
+  // Precompute each segment's cumulative offset without render-time mutation.
+  const withOffsets = segs.reduce<{ pct: number; color: string; offset: number }[]>((acc, s) => {
+    const prev = acc.length ? acc[acc.length - 1] : null;
+    const offset = prev ? prev.offset + (prev.pct / 100) * c : 0;
+    return [...acc, { ...s, offset }];
+  }, []);
   return (
     <svg width="96" height="96" viewBox="0 0 96 96">
-      {segs.map((s, i) => {
+      {withOffsets.map((s, i) => {
         const len = (s.pct / 100) * c;
-        const el = (
-          <circle key={i} cx="48" cy="48" r={r} fill="none" stroke={s.color} strokeWidth="16" strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-acc} transform="rotate(-90 48 48)" />
+        return (
+          <circle key={i} cx="48" cy="48" r={r} fill="none" stroke={s.color} strokeWidth="16" strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-s.offset} transform="rotate(-90 48 48)" />
         );
-        acc += len;
-        return el;
       })}
     </svg>
   );
