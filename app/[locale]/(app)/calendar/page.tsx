@@ -3,21 +3,30 @@ import { Link } from "@/i18n/navigation";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
-import { platformColor, CountBadge, btnTeal } from "@/components/ui/display";
+import { platformColor, btnTeal } from "@/components/ui/display";
+import { Scheduler } from "./Scheduler";
 
-export default async function CalendarPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function CalendarPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ ym?: string }> }) {
   const { locale } = await params;
+  const { ym } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations("Calendar");
   const tf = new Intl.DateTimeFormat(locale === "ar" ? "ar" : "en", { hour: "numeric", minute: "2-digit" });
 
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const today = now.getDate();
+  // Which month to show — from ?ym=YYYY-M, else the current month. "today" is only
+  // highlighted when the shown month is the real current month.
+  const parsed = ym && /^\d{4}-\d{1,2}$/.test(ym) ? ym.split("-").map(Number) : null;
+  const year = parsed ? parsed[0] : now.getFullYear();
+  const month = parsed ? Math.min(11, Math.max(0, parsed[1])) : now.getMonth();
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+  const today = isCurrentMonth ? now.getDate() : -1;
   const startWeekday = (new Date(year, month, 1).getDay() + 1) % 7; // days after Saturday
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthName = new Intl.DateTimeFormat(locale === "ar" ? "ar" : "en", { month: "long", year: "numeric" }).format(now);
+  const monthName = new Intl.DateTimeFormat(locale === "ar" ? "ar" : "en", { month: "long", year: "numeric" }).format(new Date(year, month, 1));
+  const prevYm = month === 0 ? `${year - 1}-11` : `${year}-${month - 1}`;
+  const nextYm = month === 11 ? `${year + 1}-0` : `${year}-${month + 1}`;
+  const defaultWhen = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T10:00`;
 
   const byDay = new Map<number, { hook: string; platform: string; time: string }[]>();
   let unscheduled: { id: string; hook: string }[] = [];
@@ -78,31 +87,25 @@ export default async function CalendarPage({ params }: { params: Promise<{ local
             </div>
           </section>
 
-          <section style={card}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBlockEnd: 12 }}>
-              <span style={cardTitle}>{t("unscheduled")}</span>
-              {unscheduled.length > 0 && <CountBadge n={unscheduled.length} />}
-            </div>
-            {unscheduled.length === 0 ? (
-              <p style={{ fontSize: 13, color: "var(--muted)" }}>{t("noUnscheduled")}</p>
-            ) : (
-              <div style={{ display: "grid", gap: 10 }}>
-                {unscheduled.slice(0, 6).map((u) => (
-                  <div key={u.id} style={{ padding: "11px 13px", borderRadius: 11, background: "var(--surface)", border: "1px solid var(--border)" }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--heading)", marginBlockEnd: 8, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{u.hook}</div>
-                    <Link href="/approvals" style={{ display: "block", textAlign: "center", padding: "7px 0", borderRadius: 9, border: "1px solid var(--border-2)", fontSize: 12.5, fontWeight: 600, color: "var(--navy)" }}>{t("scheduleBtn")}</Link>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+          <Scheduler
+            items={unscheduled}
+            defaultWhen={defaultWhen}
+            labels={{
+              unscheduled: t("unscheduled"), none: t("noUnscheduled"), scheduleBtn: t("scheduleBtn"),
+              confirm: t("confirmSchedule"), cancel: t("cancel"), autoAll: t("autoScheduleAll"),
+              scheduling: t("scheduling"), pickWhen: t("pickWhen"), autoDone: t("autoScheduled"), error: t("scheduleError"),
+            }}
+          />
         </div>
 
         {/* Left column: month grid */}
         <section style={{ ...card, padding: 18 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBlockEnd: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontWeight: 700, color: "var(--heading)", fontSize: 17 }}>{monthName}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Link href={`/calendar?ym=${prevYm}`} aria-label={t("prevMonth")} style={navBtn}>‹</Link>
+              <span style={{ fontWeight: 700, color: "var(--heading)", fontSize: 17, minWidth: 130, textAlign: "center" }}>{monthName}</span>
+              <Link href={`/calendar?ym=${nextYm}`} aria-label={t("nextMonth")} style={navBtn}>›</Link>
+              {!isCurrentMonth && <Link href="/calendar" style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", marginInlineStart: 4 }}>{t("todayBtn")}</Link>}
             </div>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", padding: "5px 11px", borderRadius: 999, background: "var(--teal-tint-2)" }}>✦ {t("bestTimes")}</span>
           </div>
@@ -123,6 +126,9 @@ export default async function CalendarPage({ params }: { params: Promise<{ local
                           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--slate)" }}>{p.hook}</span>
                         </div>
                       ))}
+                      {(byDay.get(d)?.length ?? 0) > 3 && (
+                        <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--teal-deep)", paddingInlineStart: 5 }}>{t("moreCount", { n: (byDay.get(d)!.length - 3) })}</span>
+                      )}
                     </div>
                   </>
                 )}
@@ -137,3 +143,4 @@ export default async function CalendarPage({ params }: { params: Promise<{ local
 
 const card: React.CSSProperties = { background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 18 };
 const cardTitle: React.CSSProperties = { fontWeight: 700, color: "var(--heading)", fontSize: 15 };
+const navBtn: React.CSSProperties = { display: "grid", placeItems: "center", width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border-2)", background: "var(--card)", color: "var(--slate)", fontSize: 18, fontWeight: 700, lineHeight: 1, textDecoration: "none" };

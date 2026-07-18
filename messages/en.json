@@ -686,7 +686,18 @@
     "noUnscheduled": "No approved drafts waiting to schedule.",
     "scheduleBtn": "Schedule",
     "bestTimes": "Best times: Sun & Tue 9am",
-    "weekdays": "Sat،Sun،Mon،Tue،Wed،Thu،Fri"
+    "weekdays": "Sat،Sun،Mon،Tue،Wed،Thu،Fri",
+    "confirmSchedule": "Schedule",
+    "cancel": "Cancel",
+    "autoScheduleAll": "Auto-schedule all",
+    "scheduling": "Scheduling…",
+    "pickWhen": "Pick date & time",
+    "autoScheduled": "Scheduled {n} posts",
+    "scheduleError": "Couldn't schedule, try again.",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "todayBtn": "Today",
+    "moreCount": "+{n} more"
   },
   "Analytics": {
     "title": "Analytics",
