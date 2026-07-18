@@ -61,6 +61,7 @@ export async function generateIdeas(input: { topic?: string; count?: number }): 
       ideas.map((i) => ({
         title: i.title,
         angle: i.angle,
+        category: i.category,
         bucket: input.topic ? "suggested" : "source",
         postScore: ideaScore(i.title),
       })),

@@ -443,7 +443,7 @@ export function forOrg(db: Db, orgId: string) {
 
     async saveIdeas(
       brandId: string,
-      items: { title: string; angle?: string; bucket?: string; postScore?: number; sourceId?: string }[],
+      items: { title: string; angle?: string; category?: string; bucket?: string; postScore?: number; sourceId?: string }[],
     ): Promise<number> {
       await assertBrand(brandId);
       if (!items.length) return 0;
@@ -454,6 +454,7 @@ export function forOrg(db: Db, orgId: string) {
           sourceId: it.sourceId ?? null,
           title: it.title,
           angle: it.angle ?? null,
+          category: it.category ?? null,
           bucket: it.bucket ?? "suggested",
           postScore: it.postScore ?? 0,
         })),

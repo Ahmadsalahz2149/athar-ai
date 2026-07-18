@@ -58,15 +58,18 @@ export function normalizeAnalysis(raw: unknown): FileAnalysis {
   };
 }
 
-export function normalizeIdeas(raw: unknown): { title: string; angle: string }[] {
+const IDEA_CATS = ["educational", "story", "list", "guide", "analytical", "contrarian"];
+export function normalizeIdeas(raw: unknown): { title: string; angle: string; category: string }[] {
   const o = (raw ?? {}) as Record<string, unknown>;
   const list = Array.isArray(o.ideas) ? o.ideas : [];
   return list
     .map((d) => {
       const x = (d ?? {}) as Record<string, unknown>;
+      const cat = typeof x.category === "string" && IDEA_CATS.includes(x.category) ? x.category : "educational";
       return {
         title: typeof x.title === "string" ? x.title : "",
         angle: typeof x.angle === "string" ? x.angle : "",
+        category: cat,
       };
     })
     .filter((i) => i.title.trim());

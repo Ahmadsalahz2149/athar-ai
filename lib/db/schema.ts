@@ -140,6 +140,8 @@ export const ideas = pgTable("ideas", {
   sourceId: uuid("source_id"),
   title: text("title").notNull(),
   angle: text("angle"),
+  // category: educational | story | list | guide | analytical | contrarian
+  category: text("category"),
   // bucket: suggested | source | trending  ·  status: new | saved | used
   bucket: text("bucket").notNull().default("suggested"),
   status: text("status").notNull().default("new"),
