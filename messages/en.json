@@ -521,7 +521,17 @@
     "editLinesHint": "One item per line",
     "editSumOk": "Total is valid",
     "editSumBad": "Must equal 100%",
-    "editError": "Couldn't save, please try again."
+    "editError": "Couldn't save, please try again.",
+    "traitSrcTitle": "Source of each trait",
+    "traitSrcSub": "For each trait in your DNA, the closest source it was learned from (semantic attribution — nearest match, not literal derivation).",
+    "traitSrcLoad": "Where did these traits come from?",
+    "traitSrcLoading": "Analyzing…",
+    "traitSrcClosest": "Closest source",
+    "traitSrcWeak": "Possible source",
+    "traitSrcNone": "No matching source",
+    "traitSrcNoKey": "Attribution unavailable (embeddings not configured).",
+    "traitSrcNoSources": "Add sources first so we can attribute traits.",
+    "traitSrcEmpty": "Not enough traits to attribute yet."
   },
   "Vault": {
     "title": "Knowledge Vault",

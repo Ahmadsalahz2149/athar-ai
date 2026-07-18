@@ -6,6 +6,7 @@ import { currentContext } from "@/lib/auth/current";
 import type { ContentDna } from "@/lib/ai/prompts";
 import { ScoreRadial, SegmentMeter, EmptyState, btnNavy, btnGhost } from "@/components/ui/display";
 import { EditDnaModal } from "./EditDnaModal";
+import { TraitSources } from "./TraitSources";
 
 const PILLAR_META = [
   { key: "educational", emoji: "📚", tint: "var(--gold-tint)", fg: "var(--gold-dark)" },
@@ -210,6 +211,16 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
           ))}
         </div>
       </section>
+
+      {/* Source of each trait */}
+      <TraitSources
+        labels={{
+          title: t("traitSrcTitle"), subtitle: t("traitSrcSub"), load: t("traitSrcLoad"), loading: t("traitSrcLoading"),
+          closest: t("traitSrcClosest"), weak: t("traitSrcWeak"), none: t("traitSrcNone"),
+          noKey: t("traitSrcNoKey"), noSources: t("traitSrcNoSources"), empty: t("traitSrcEmpty"),
+          cat: { tone: t("vTone"), hook: t("hookTitle"), cta: t("ctaTitle"), do: t("strengthsTitle"), dont: t("gapsTitle") },
+        }}
+      />
 
       {/* Actions */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBlockStart: 20 }}>
