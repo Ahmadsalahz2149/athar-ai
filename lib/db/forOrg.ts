@@ -88,6 +88,28 @@ export function forOrg(db: Db, orgId: string) {
       return rows.length ? normalizeDna(rows[0].payload) : null;
     },
 
+    /** Version metadata for the current DNA: which version, when it was built,
+     * and how many versions exist (for the "version N · updated …" line). */
+    async dnaMeta(brandId: string): Promise<{ version: number; createdAt: Date; count: number } | null> {
+      const b = await db
+        .select({ cur: schema.brands.currentDnaVersionId })
+        .from(schema.brands)
+        .where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)))
+        .limit(1);
+      if (!b.length || !b[0].cur) return null;
+      const rows = await db
+        .select({ version: schema.dnaVersions.version, createdAt: schema.dnaVersions.createdAt })
+        .from(schema.dnaVersions)
+        .where(and(eq(schema.dnaVersions.id, b[0].cur), eq(schema.dnaVersions.orgId, orgId)))
+        .limit(1);
+      if (!rows.length) return null;
+      const all = await db
+        .select({ v: schema.dnaVersions.version })
+        .from(schema.dnaVersions)
+        .where(and(eq(schema.dnaVersions.orgId, orgId), eq(schema.dnaVersions.brandId, brandId)));
+      return { version: rows[0].version, createdAt: rows[0].createdAt, count: all.length };
+    },
+
     async saveDraft(
       brandId: string,
       d: {

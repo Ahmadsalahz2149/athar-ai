@@ -476,7 +476,22 @@
     "actUpdate": "Update Content DNA",
     "actSamples": "Add writing samples",
     "actTry": "Try writing a post in my voice",
-    "actImprove": "Improve DNA"
+    "actImprove": "Improve DNA",
+    "updatedOn": "Updated {date}",
+    "versionsCount": "{n} versions",
+    "weakTitle": "Your voice profile is still incomplete ({pct}%)",
+    "weakBody": "The more content you add (posts, recordings, articles), the sharper the DNA and the closer the output to your voice. Add 3–5 high-quality sources to push completeness above 70%.",
+    "weakCta": "Add sources now",
+    "pillarsSumWarn": "The total should equal 100%",
+    "editDna": "Edit DNA",
+    "editTitle": "Edit Content DNA",
+    "editSave": "Save as new version",
+    "editCancel": "Cancel",
+    "editSaving": "Saving…",
+    "editLinesHint": "One item per line",
+    "editSumOk": "Total is valid",
+    "editSumBad": "Must equal 100%",
+    "editError": "Couldn't save, please try again."
   },
   "Vault": {
     "title": "Knowledge Vault",

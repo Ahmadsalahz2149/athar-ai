@@ -5,6 +5,7 @@ import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import type { ContentDna } from "@/lib/ai/prompts";
 import { ScoreRadial, SegmentMeter, EmptyState, btnNavy, btnGhost } from "@/components/ui/display";
+import { EditDnaModal } from "./EditDnaModal";
 
 const PILLAR_META = [
   { key: "educational", emoji: "📚", tint: "var(--gold-tint)", fg: "var(--gold-dark)" },
@@ -69,9 +70,13 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
   const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
 
   let dna: ContentDna | null = null;
+  let meta: { version: number; createdAt: Date; count: number } | null = null;
   if (db) {
     const ctx = await currentContext();
-    if (ctx) dna = await forOrg(db, ctx.orgId).currentDna(ctx.brandId);
+    if (ctx) {
+      const t = forOrg(db, ctx.orgId);
+      [dna, meta] = await Promise.all([t.currentDna(ctx.brandId), t.dnaMeta(ctx.brandId)]);
+    }
   }
 
   if (!dna) {
@@ -83,6 +88,23 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
   }
 
   const pillars = PILLAR_META.map((p) => ({ ...p, label: t(`pillar_${p.key}`), pct: dna!.pillars[p.key] }));
+  const pillarSum = pillars.reduce((a, p) => a + p.pct, 0);
+  const weak = dna.completion_pct < 70;
+  const dtf = new Intl.DateTimeFormat(locale === "ar" ? "ar" : "en", { day: "numeric", month: "short", year: "numeric" });
+
+  // Labels for the client edit modal.
+  const editLabels = {
+    edit: t("editDna"), title: t("editTitle"), save: t("editSave"), cancel: t("editCancel"), saving: t("editSaving"),
+    tone: t("vTone"), dialect: t("vLang"), explain: t("vExplain"), dos: t("strengthsTitle"), donts: t("gapsTitle"),
+    hooks: t("hookTitle"), ctas: t("ctaTitle"), pillars: t("pillarsTitle"), linesHint: t("editLinesHint"),
+    sumOk: t("editSumOk"), sumBad: t("editSumBad"), saveError: t("editError"),
+    pillar: Object.fromEntries(PILLAR_META.map((p) => [p.key, t(`pillar_${p.key}`)])),
+  };
+  const editInitial = {
+    tone_traits: dna.tone_traits, dialect: dna.dialect, explanation_style: dna.explanation_style,
+    dos: dna.dos, donts: dna.donts, hook_patterns: dna.hook_patterns, cta_patterns: dna.cta_patterns,
+    pillars: dna.pillars,
+  };
 
   return (
     <main style={{ maxWidth: 1040, margin: "0 auto", padding: "clamp(20px,3.4vw,32px) clamp(16px,4vw,32px) 90px", animation: "floatUp .4s ease" }}>
@@ -103,10 +125,27 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
                 “{dna.summary}”
               </p>
             )}
+            {meta && (
+              <p style={{ marginBlockStart: 12, fontSize: 12, color: "#7E93A8", fontFamily: "var(--font-latin)" }}>
+                v{meta.version} · {t("updatedOn", { date: dtf.format(meta.createdAt) })}{meta.count > 1 ? ` · ${t("versionsCount", { n: meta.count })}` : ""}
+              </p>
+            )}
           </div>
-          <ScoreRadial value={dna.completion_pct} size={104} suffix="%" caption={t("completeness")} track="rgba(255,255,255,.14)" valueColor="#fff" />
+          <ScoreRadial value={dna.completion_pct} size={104} suffix="%" caption={t("completeness")} track="rgba(255,255,255,.14)" valueColor="#fff" label={t("completeness")} />
         </div>
       </div>
+
+      {/* Weak-DNA guidance — shown until the voice profile is strong enough to trust */}
+      {weak && (
+        <section style={{ marginBlockStart: 16, display: "flex", gap: 13, alignItems: "flex-start", background: "var(--gold-tint)", border: "1px solid rgba(214,168,79,.4)", borderRadius: 16, padding: "16px 18px" }}>
+          <span style={{ flex: "none", display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: 10, background: "var(--gold)", color: "#fff", fontWeight: 800 }}>!</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 14.5 }}>{t("weakTitle", { pct: nf.format(dna.completion_pct) })}</div>
+            <p style={{ fontSize: 13.5, color: "var(--slate)", lineHeight: 1.85, marginBlock: "6px 10px" }}>{t("weakBody")}</p>
+            <Link href="/ingest" style={{ ...btnNavy, height: 38, fontSize: 13 }}>{t("weakCta")}</Link>
+          </div>
+        </section>
+      )}
 
       {/* Voice + Audience + Hook/CTA + Strengths/Gaps */}
       <div className="col-2" style={{ marginBlockStart: 20 }}>
@@ -116,11 +155,11 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
           <Row k={t("vExplain")}>{dna.explanation_style || "—"}</Row>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
             <span style={{ fontSize: 13.5, color: "var(--muted)" }}>{t("vSentence")}</span>
-            <SegmentMeter filled={dna.sentence_length} color="var(--teal)" />
+            <SegmentMeter filled={dna.sentence_length} color="var(--teal)" label={t("vSentence")} />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBlock: "12px 2px" }}>
             <span style={{ fontSize: 13.5, color: "var(--muted)" }}>{t("vBoldness")}</span>
-            <SegmentMeter filled={dna.boldness} color="var(--gold)" />
+            <SegmentMeter filled={dna.boldness} color="var(--gold)" label={t("vBoldness")} />
           </div>
         </Card>
 
@@ -154,7 +193,12 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
 
       {/* Pillars */}
       <section style={{ marginBlockStart: 20, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 20 }}>
-        <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 15 }}>{t("pillarsTitle")}</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 15 }}>{t("pillarsTitle")}</div>
+          <span style={{ fontSize: 11.5, fontWeight: 700, fontFamily: "var(--font-latin)", padding: "3px 10px", borderRadius: 999, background: pillarSum === 100 ? "var(--teal-tint-2)" : "var(--gold-tint)", color: pillarSum === 100 ? "var(--teal-deep)" : "var(--gold-dark)" }}>
+            Σ {nf.format(pillarSum)}%{pillarSum !== 100 ? ` — ${t("pillarsSumWarn")}` : ""}
+          </span>
+        </div>
         <p style={{ fontSize: 13, color: "var(--muted)", marginBlock: "6px 16px" }}>{t("pillarsSub")}</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12 }}>
           {pillars.map((p) => (
@@ -169,7 +213,8 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
 
       {/* Actions */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBlockStart: 20 }}>
-        <Link href="/ingest" style={btnNavy}>{t("actUpdate")}</Link>
+        <EditDnaModal initial={editInitial} labels={editLabels} />
+        <Link href="/ingest" style={btnGhost}>{t("actUpdate")}</Link>
         <Link href="/ingest" style={btnGhost}>{t("actSamples")}</Link>
         <Link href="/studio" style={btnGhost}>{t("actTry")}</Link>
         <Link href="/ingest" style={{ ...btnGhost, background: "var(--teal-tint-2)", border: "1px solid rgba(20,184,166,.3)", color: "var(--teal-deep)" }}>{t("actImprove")}</Link>

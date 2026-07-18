@@ -100,6 +100,7 @@ export function ScoreRadial({
   caption,
   suffix = "",
   valueColor = "var(--heading)",
+  label,
 }: {
   value: number;
   size?: number;
@@ -108,6 +109,7 @@ export function ScoreRadial({
   caption?: string;
   suffix?: string;
   valueColor?: string;
+  label?: string;
 }) {
   const stroke = size >= 80 ? 8 : 6;
   const r = (size - stroke) / 2 - 1;
@@ -115,9 +117,12 @@ export function ScoreRadial({
   const pct = Math.max(0, Math.min(100, value));
   const off = c - (pct / 100) * c;
   const mid = size / 2;
+  const aria = label
+    ? { role: "meter" as const, "aria-label": label, "aria-valuenow": pct, "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuetext": `${value}${suffix}` }
+    : {};
   return (
-    <div style={{ display: "grid", placeItems: "center", gap: 4 }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <div style={{ display: "grid", placeItems: "center", gap: 4 }} {...aria}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden={label ? true : undefined}>
         <circle cx={mid} cy={mid} r={r} fill="none" stroke={track} strokeWidth={stroke} />
         <circle
           cx={mid}
@@ -155,14 +160,19 @@ export function ProgressMeter({
   color = "linear-gradient(90deg,var(--teal),var(--teal-dark))",
   height = 8,
   track = "var(--border-3)",
+  label,
 }: {
   pct: number;
   color?: string;
   height?: number;
   track?: string;
+  label?: string;
 }) {
   return (
-    <div style={{ height, borderRadius: height, background: track, overflow: "hidden" }}>
+    <div
+      style={{ height, borderRadius: height, background: track, overflow: "hidden" }}
+      {...(label ? { role: "meter", "aria-label": label, "aria-valuenow": Math.round(pct), "aria-valuemin": 0, "aria-valuemax": 100 } : {})}
+    >
       <div style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: "100%", background: color }} />
     </div>
   );
@@ -173,13 +183,18 @@ export function SegmentMeter({
   filled,
   total = 3,
   color = "var(--teal)",
+  label,
 }: {
   filled: number;
   total?: number;
   color?: string;
+  label?: string;
 }) {
   return (
-    <div style={{ display: "flex", gap: 5 }}>
+    <div
+      style={{ display: "flex", gap: 5 }}
+      {...(label ? { role: "meter", "aria-label": label, "aria-valuenow": filled, "aria-valuemin": 0, "aria-valuemax": total } : {})}
+    >
       {Array.from({ length: total }, (_, i) => (
         <span
           key={i}
