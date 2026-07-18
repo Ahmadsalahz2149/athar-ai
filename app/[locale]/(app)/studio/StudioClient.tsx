@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { studioGenerate, studioRewrite, setDraftState, type StudioResult, type StudioSource } from "./actions";
+import { SlideEditor } from "./SlideEditor";
 import { postScore, dnaMatch, scoreBreakdown } from "@/lib/ai/score";
 import { checkContent } from "@/lib/ai/guardrails";
 import {
@@ -280,9 +281,19 @@ export function StudioClient({
               {/* Editor */}
               <div style={card}>
                 <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 15.5, lineHeight: 1.7, marginBlockEnd: 10 }}>{hook}</div>
-                <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={9} className="scb" style={{ width: "100%", border: "none", outline: "none", background: "transparent", resize: "vertical", fontSize: 14.5, color: "var(--slate)", lineHeight: 1.95, fontFamily: "inherit" }} />
+                {format === "thread" || format === "carousel" ? (
+                  <SlideEditor
+                    body={body}
+                    onChange={setBody}
+                    mode={format}
+                    nf={nf}
+                    labels={{ slide: t("slide"), tweet: t("tweet"), add: format === "thread" ? t("addTweet") : t("addSlide"), remove: t("removeSlide"), up: t("moveUp"), down: t("moveDown"), overLimit: t("overLimit") }}
+                  />
+                ) : (
+                  <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={9} className="scb" style={{ width: "100%", border: "none", outline: "none", background: "transparent", resize: "vertical", fontSize: 14.5, color: "var(--slate)", lineHeight: 1.95, fontFamily: "inherit" }} />
+                )}
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBlockStart: 10, fontSize: 12, color: "var(--muted)" }}>
-                  <span>{t("wordCount", { n: nf.format(body.trim().split(/\s+/).filter(Boolean).length) })}</span>
+                  <span>{format === "thread" || format === "carousel" ? t("slideCount", { n: nf.format(body.split(/\n{2,}/).filter((s) => s.trim()).length) }) : t("wordCount", { n: nf.format(body.trim().split(/\s+/).filter(Boolean).length) })}</span>
                   <span style={{ color: "var(--teal-deep)", fontWeight: 600 }}>{t("dnaMatchInline", { pct: nf.format(scores.dm) })}</span>
                 </div>
               </div>

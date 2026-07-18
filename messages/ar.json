@@ -128,7 +128,16 @@
     "why_question": "الخطّاف يطرح سؤالًا يجذب القارئ",
     "why_number": "يحتوي على رقم أو تفصيل ملموس",
     "why_bodyLength": "طول النص مناسب (٤٠–٢٢٠ كلمة)",
-    "why_structure": "النص مُنظَّم بأسطر وفواصل"
+    "why_structure": "النص مُنظَّم بأسطر وفواصل",
+    "slide": "شريحة",
+    "tweet": "تغريدة",
+    "addSlide": "إضافة شريحة",
+    "addTweet": "إضافة تغريدة",
+    "removeSlide": "حذف",
+    "moveUp": "تحريك لأعلى",
+    "moveDown": "تحريك لأسفل",
+    "overLimit": "تجاوز الحد",
+    "slideCount": "{n} شريحة"
   },
   "Legal": {
     "termsTitle": "شروط الاستخدام",

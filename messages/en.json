@@ -128,7 +128,16 @@
     "why_question": "Hook asks a reader-pulling question",
     "why_number": "Contains a number or concrete detail",
     "why_bodyLength": "Body length is in range (40–220 words)",
-    "why_structure": "Body is structured with line breaks"
+    "why_structure": "Body is structured with line breaks",
+    "slide": "Slide",
+    "tweet": "Tweet",
+    "addSlide": "Add slide",
+    "addTweet": "Add tweet",
+    "removeSlide": "Remove",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "overLimit": "over limit",
+    "slideCount": "{n} slides"
   },
   "Legal": {
     "termsTitle": "Terms of Service",
