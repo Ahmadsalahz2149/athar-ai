@@ -399,6 +399,14 @@ export function forOrg(db: Db, orgId: string) {
       await db.delete(schema.analyses).where(and(eq(schema.analyses.orgId, orgId), eq(schema.analyses.sourceId, sourceId)));
     },
 
+    async renameSource(brandId: string, sourceId: string, title: string): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .update(schema.sources)
+        .set({ title: title.trim().slice(0, 200) })
+        .where(and(eq(schema.sources.id, sourceId), eq(schema.sources.orgId, orgId), eq(schema.sources.brandId, brandId)));
+    },
+
     async getSource(brandId: string, sourceId: string) {
       const rows = await db
         .select()

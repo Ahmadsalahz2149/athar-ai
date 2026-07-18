@@ -45,6 +45,44 @@ export async function ideasFromAnalysis(sourceId: string): Promise<{ ok: boolean
   }
 }
 
+/** Rename a source in place (Vault management). */
+export async function renameSource(sourceId: string, title: string): Promise<{ ok: boolean }> {
+  try {
+    if (!db) return { ok: false };
+    if (!title.trim()) return { ok: false };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false };
+    await forOrg(db, ctx.orgId).renameSource(ctx.brandId, sourceId, title);
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** Semantic search across chunk *content* (not just titles): embed the query and
+ * return matching source IDs ranked by relevance. Returns null when embeddings
+ * aren't configured so the UI can fall back to plain text filtering. */
+export async function semanticSearchSources(query: string): Promise<{ ok: boolean; sourceIds?: string[] }> {
+  try {
+    const { hasEmbeddingKey, embedOne } = await import("@/lib/ai/embed");
+    if (!hasEmbeddingKey()) return { ok: false };
+    if (!db) return { ok: false };
+    if (query.trim().length < 2) return { ok: true, sourceIds: [] };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false };
+    const t = forOrg(db, ctx.orgId);
+    const qv = await embedOne(query.trim(), "query");
+    const hits = await t.retrieve(ctx.brandId, qv, 24);
+    // Keep first-seen order (closest chunk wins) and dedupe to source IDs.
+    const seen = new Set<string>();
+    const ids: string[] = [];
+    for (const h of hits) if (!seen.has(h.sourceId)) { seen.add(h.sourceId); ids.push(h.sourceId); }
+    return { ok: true, sourceIds: ids };
+  } catch {
+    return { ok: false };
+  }
+}
+
 /** Soft-delete a source (Vault management). */
 export async function deleteSource(sourceId: string): Promise<{ ok: boolean }> {
   try {

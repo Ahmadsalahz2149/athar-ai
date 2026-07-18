@@ -550,7 +550,14 @@
     "deleteTitle": "حذف المصدر؟",
     "deleteBody": "سيُحذف {n} مصدر مع تحليله ومقاطعه. لا يمكن التراجع.",
     "cancel": "إلغاء",
-    "confirmDelete": "حذف"
+    "confirmDelete": "حذف",
+    "semanticBtn": "بحث دلالي",
+    "semanticHint": "ابحث داخل محتوى المصادر بالمعنى وليس الكلمة فقط",
+    "searching": "جارٍ البحث…",
+    "semanticActive": "نتائج دلالية ({n})",
+    "clearSemantic": "مسح البحث الدلالي",
+    "semanticUnavailable": "البحث الدلالي غير متاح (لم تُضبط مفاتيح التضمين).",
+    "renameLabel": "إعادة تسمية المصدر"
   },
   "Dashboard": {
     "greeting": "جاهز لصناعة أثر جديد اليوم؟",

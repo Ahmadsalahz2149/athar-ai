@@ -550,7 +550,14 @@
     "deleteTitle": "Delete source?",
     "deleteBody": "{n} source(s) with their analysis and chunks will be removed. This cannot be undone.",
     "cancel": "Cancel",
-    "confirmDelete": "Delete"
+    "confirmDelete": "Delete",
+    "semanticBtn": "Semantic",
+    "semanticHint": "Search inside source content by meaning, not just keywords",
+    "searching": "Searching…",
+    "semanticActive": "Semantic results ({n})",
+    "clearSemantic": "Clear semantic search",
+    "semanticUnavailable": "Semantic search unavailable (embeddings not configured).",
+    "renameLabel": "Rename source"
   },
   "Dashboard": {
     "greeting": "Ready to make a new mark today?",
