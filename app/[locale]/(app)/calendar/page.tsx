@@ -63,7 +63,7 @@ export default async function CalendarPage({ params }: { params: Promise<{ local
         </div>
       </div>
 
-      <div className="col-2" style={{ marginBlockStart: 22, gridTemplateColumns: "1fr 2.4fr" }}>
+      <div className="col2 legend-first" style={{ marginBlockStart: 22 }}>
         {/* Right column: legend + unscheduled */}
         <div style={{ display: "grid", gap: 18, alignContent: "start" }}>
           <section style={card}>

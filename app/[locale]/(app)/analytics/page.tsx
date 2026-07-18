@@ -88,7 +88,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ loca
         <StatCard label={t("rate")} value="5.8%" delta="-0.4%" deltaNegative tint="var(--gold-tint)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 12h4l3 8 4-16 3 8h4" stroke="var(--gold-dark)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>} />
       </div>
 
-      <div className="col-2" style={{ marginBlockStart: 20, gridTemplateColumns: "1fr 1.6fr" }}>
+      <div className="col2 narrow-first" style={{ marginBlockStart: 20 }}>
         {/* Left: platform + types */}
         <div style={{ display: "grid", gap: 18, alignContent: "start" }}>
           <section style={card}>

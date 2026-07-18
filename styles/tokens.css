@@ -178,8 +178,42 @@ select {
 /* Two-column content layout that collapses to one column on small screens. */
 .col-2 {
   display: grid;
-  grid-template-columns: 1.6fr 1fr;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
   gap: 20px;
+}
+
+/* Named two-column variants (own ratios) so the mobile stack can't be defeated
+   by an inline gridTemplateColumns override. */
+.col2 {
+  display: grid;
+  gap: 20px;
+  align-items: start;
+}
+.col2.wide-first {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+}
+.col2.narrow-first {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+}
+.col2.legend-first {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr);
+}
+@media (max-width: 920px) {
+  .col2 {
+    grid-template-columns: 1fr;
+  }
+}
+/* Settings tab rail moves on top and scrolls horizontally on phones. */
+@media (max-width: 760px) {
+  .settings-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .settings-grid > nav {
+    flex-direction: row !important;
+    overflow-x: auto;
+    position: static !important;
+    padding-block-end: 4px;
+  }
 }
 
 /* Studio 3-column workspace: settings (right) · compose (center) · preview (left).

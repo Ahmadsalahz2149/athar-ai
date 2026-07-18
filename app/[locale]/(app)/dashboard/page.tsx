@@ -138,7 +138,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.6fr) minmax(0,1fr)", gap: 20, marginBlockStart: 20 }} className="col-2">
+      <div className="col2 wide-first" style={{ marginBlockStart: 20 }}>
         {/* MAIN column */}
         <div style={{ display: "grid", gap: 20, alignContent: "start" }}>
           {/* Pipeline */}
