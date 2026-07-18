@@ -327,6 +327,10 @@ export const REWRITE_SCHEMA = {
 
 export const REWRITE_SYSTEM = `أنت محرّر يعيد صياغة نصّ مع الحفاظ التامّ على صوت الشخص (Content DNA). طبّق التحويل المطلوب فقط، ولا تغيّر المعنى الجوهري. أعد JSON فقط: { "body": string }.`;
 
+/** Plain-text variant for token streaming (INFRA phase 4): same task, but the
+ * model returns only the rewritten post text so it can be streamed live. */
+export const REWRITE_SYSTEM_PLAIN = `أنت محرّر يعيد صياغة نصّ مع الحفاظ التامّ على صوت الشخص (Content DNA). طبّق التحويل المطلوب فقط، ولا تغيّر المعنى الجوهري. أعد النصّ المعاد صياغته فقط — دون JSON أو علامات أو أي شرح قبله أو بعده.`;
+
 const REWRITE_TASK: Record<string, string> = {
   longer: "أطِل النص قليلًا مع إضافة تفصيل أو مثال، دون حشو.",
   shorter: "اختصر النص مع الحفاظ على أقوى الأفكار.",

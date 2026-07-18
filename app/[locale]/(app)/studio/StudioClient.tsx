@@ -95,15 +95,41 @@ export function StudioClient({
 
   const rewrite = (tool: string) => {
     if (!ok) return;
-    prevBody.current = body; // snapshot for undo
+    const original = body;
+    prevBody.current = original; // snapshot for undo
     setBusy(tool);
     start(async () => {
-      const r = await studioRewrite({ body, tool, provider, model });
-      setBusy(null);
-      if (r.ok) {
-        setBody(r.body);
-        setCanUndo(true);
+      // Anthropic: stream the rewrite so the editor fills token-by-token.
+      if (provider === "anthropic") {
+        try {
+          const res = await fetch("/api/studio/rewrite-stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ body: original, tool, model }),
+          });
+          if (res.ok && res.body) {
+            const reader = res.body.getReader();
+            const dec = new TextDecoder();
+            let acc = "";
+            setBody("");
+            for (;;) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              acc += dec.decode(value, { stream: true });
+              setBody(acc.replace(/\n ERROR$/, ""));
+            }
+            const finalText = acc.replace(/\n ERROR$/, "").trim();
+            if (finalText) { setBody(finalText); setBusy(null); setCanUndo(true); return; }
+            setBody(original); // nothing produced → restore and fall back
+          }
+        } catch {
+          setBody(original);
+        }
       }
+      // Fallback (MiniMax or stream failure): non-streaming action.
+      const r = await studioRewrite({ body: original, tool, provider, model });
+      setBusy(null);
+      if (r.ok) { setBody(r.body); setCanUndo(true); }
     });
   };
 

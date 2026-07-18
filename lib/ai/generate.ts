@@ -58,6 +58,24 @@ async function anthropicGenerate(args: GenArgs): Promise<GenResult> {
   return { text, truncated: msg.stop_reason === "max_tokens", provider: "anthropic", model };
 }
 
+/** Stream plain text from Anthropic token-by-token (INFRA phase 4). Yields text
+ * deltas as they arrive. Anthropic only — callers fall back to generateText for
+ * other providers. */
+export async function* streamAnthropicText(args: { system: string; user: string; maxTokens: number; model: string }): AsyncGenerator<string> {
+  const client = getAnthropic();
+  const stream = client.messages.stream({
+    model: args.model,
+    max_tokens: args.maxTokens,
+    system: args.system,
+    messages: [{ role: "user", content: args.user }],
+  });
+  for await (const ev of stream) {
+    if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") {
+      yield ev.delta.text;
+    }
+  }
+}
+
 async function minimaxGenerate(args: GenArgs): Promise<GenResult> {
   const base = (process.env.MINIMAX_BASE_URL || "https://api.minimax.io/v1").replace(/\/$/, "");
   const key = process.env.MINIMAX_API_KEY;
