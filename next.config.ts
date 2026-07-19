@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
 
   // Allow the dev server's assets/HMR to be requested cross-origin from a phone
   // on the LAN (Next 16 blocks this by default and prints a warning otherwise).
-  allowedDevOrigins: ["10.207.10.120"],
+  allowedDevOrigins: ["10.207.10.120", "*.trycloudflare.com"],
 
   // Server Actions (login/signup, generation) are CSRF-protected by comparing
   // Origin vs Host. When you open the dev server from a phone via the machine's
@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
         "localhost:3000",
         "127.0.0.1:3000",
         "10.207.10.120:3000",
+        "*.trycloudflare.com",
       ],
       // Audio/video uploads for transcription go through a Server Action.
       bodySizeLimit: "30mb",

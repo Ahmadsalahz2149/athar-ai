@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { isPlatform } from "@/lib/social/registry";
-import { exchangeCode } from "@/lib/social/oauth";
+import { exchangeCode, publicOrigin } from "@/lib/social/oauth";
 
 /**
  * OAuth callback (Phase 7.3): validate CSRF state, exchange the code for tokens,
@@ -18,7 +18,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ platform
   const url = new URL(req.url);
   const jar = await cookies();
   const locale = jar.get("oauth_locale")?.value === "en" ? "en" : "ar";
-  const settings = `${url.origin}/${locale}/settings?tab=platforms`;
+  const settings = `${publicOrigin(url.origin)}/${locale}/settings?tab=platforms`;
 
   const fail = (reason: string) => {
     const res = NextResponse.redirect(`${settings}&social_error=${reason}`);

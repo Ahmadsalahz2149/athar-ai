@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentContext } from "@/lib/auth/current";
 import { isPlatform, isConfigured } from "@/lib/social/registry";
-import { buildAuthorizeUrl, randomState, pkce } from "@/lib/social/oauth";
+import { buildAuthorizeUrl, randomState, pkce, publicOrigin } from "@/lib/social/oauth";
 import { PLATFORMS } from "@/lib/social/registry";
 
 /**
@@ -15,18 +15,19 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request, { params }: { params: Promise<{ platform: string }> }) {
   const { platform } = await params;
   const url = new URL(req.url);
+  const base = publicOrigin(url.origin);
   const locale = url.searchParams.get("locale") === "en" ? "en" : "ar";
-  const settings = `${url.origin}/${locale}/settings?tab=platforms`;
+  const settings = `${base}/${locale}/settings?tab=platforms`;
 
   if (!isPlatform(platform)) return NextResponse.redirect(`${settings}&social_error=unknown`);
   const ctx = await currentContext();
-  if (!ctx) return NextResponse.redirect(`${url.origin}/${locale}/login`);
+  if (!ctx) return NextResponse.redirect(`${base}/${locale}/login`);
   if (!isConfigured(platform)) return NextResponse.redirect(`${settings}&social_error=not_configured`);
 
   const state = randomState();
   const usesPkce = PLATFORMS[platform].usesPkce;
   const pair = usesPkce ? pkce() : null;
-  const authorizeUrl = buildAuthorizeUrl(platform, url.origin, state, pair?.challenge);
+  const authorizeUrl = buildAuthorizeUrl(platform, base, state, pair?.challenge);
 
   const res = NextResponse.redirect(authorizeUrl);
   const cookieOpts = { httpOnly: true, secure: url.protocol === "https:", sameSite: "lax" as const, path: "/", maxAge: 600 };

@@ -20,8 +20,15 @@ export function pkce(): { verifier: string; challenge: string } {
   return { verifier, challenge };
 }
 
+/** The public base URL used to build OAuth redirect URIs. Behind a tunnel/proxy
+ * the request's own origin may be the internal localhost, which breaks the
+ * redirect_uri match. OAUTH_BASE_URL pins the externally-reachable https URL. */
+export function publicOrigin(reqOrigin: string): string {
+  return process.env.OAUTH_BASE_URL?.replace(/\/$/, "") || reqOrigin;
+}
+
 export function redirectUri(origin: string, platform: PlatformId): string {
-  return `${origin}/api/social/${platform}/callback`;
+  return `${publicOrigin(origin)}/api/social/${platform}/callback`;
 }
 
 export function buildAuthorizeUrl(platform: PlatformId, origin: string, state: string, codeChallenge?: string): string {
