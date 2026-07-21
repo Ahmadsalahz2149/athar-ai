@@ -68,7 +68,7 @@ export function SignUpForm() {
       <label style={{ ...label, marginBlockStart: 14 }}>{t("email")}</label>
       <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={{ ...field, direction: "ltr", textAlign: "start", fontFamily: "var(--font-latin)" }} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBlockStart: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,200px),1fr))", gap: 12, marginBlockStart: 14 }}>
         <div>
           <label style={label}>{t("password")}</label>
           <PasswordInput value={password} onChange={setPassword} showLabel={t("showPassword")} hideLabel={t("hidePassword")} />
@@ -91,7 +91,7 @@ export function SignUpForm() {
 
       <div style={{ marginBlockStart: 18 }}>
         <label style={label}>{t("accountType")}</label>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBlockStart: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,140px),1fr))", gap: 10, marginBlockStart: 8 }}>
           {TYPES.map((ty) => (
             <SelectableCard key={ty} title={t(`type_${ty}`)} active={accountType === ty} onClick={() => setAccountType(ty)} />
           ))}

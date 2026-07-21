@@ -746,7 +746,8 @@
     "prevWeek": "الأسبوع السابق",
     "nextWeek": "الأسبوع التالي",
     "thisWeekBtn": "هذا الأسبوع",
-    "noPostsDay": "لا منشورات"
+    "noPostsDay": "لا منشورات",
+    "noPostsMonth": "لا منشورات مجدولة هذا الشهر"
   },
   "Analytics": {
     "title": "التحليلات",

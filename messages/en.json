@@ -746,7 +746,8 @@
     "prevWeek": "Previous week",
     "nextWeek": "Next week",
     "thisWeekBtn": "This week",
-    "noPostsDay": "No posts"
+    "noPostsDay": "No posts",
+    "noPostsMonth": "No scheduled posts this month"
   },
   "Analytics": {
     "title": "Analytics",

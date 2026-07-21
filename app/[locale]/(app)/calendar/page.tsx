@@ -170,7 +170,32 @@ export default async function CalendarPage({ params, searchParams }: { params: P
                 <span style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", padding: "5px 11px", borderRadius: 999, background: "var(--teal-tint-2)" }}>✦ {t("bestTimes")}</span>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
+              {/* Phones: a day agenda instead of the 7-column grid (unreadable at 375px) */}
+              <div className="cal-agenda" style={{ gap: 8 }}>
+                {cells.filter((d): d is number => d !== null && (byDay.get(d)?.length ?? 0) > 0).length === 0 ? (
+                  <p style={{ fontSize: 13.5, color: "var(--muted)", textAlign: "center", padding: "18px 0" }}>{t("noPostsMonth")}</p>
+                ) : (
+                  cells
+                    .filter((d): d is number => d !== null && (byDay.get(d)?.length ?? 0) > 0)
+                    .map((d) => (
+                      <div key={d} style={{ display: "flex", gap: 12, padding: "10px 12px", borderRadius: 12, background: d === today ? "var(--teal-tint-2)" : "var(--surface)", border: d === today ? "1.5px solid var(--teal)" : "1px solid var(--border)" }}>
+                        <div style={{ flex: "none", width: 40, textAlign: "center" }}>
+                          <div style={{ fontSize: 19, fontWeight: 800, color: d === today ? "var(--teal-deep)" : "var(--heading)", fontFamily: "var(--font-latin)" }}>{d}</div>
+                        </div>
+                        <div style={{ flex: 1, display: "grid", gap: 5, borderInlineStart: "1px solid var(--border)", paddingInlineStart: 12 }}>
+                          {(byDay.get(d) ?? []).map((p, j) => (
+                            <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, padding: "5px 9px", borderRadius: 8, background: "var(--card)", borderInlineStart: `3px solid ${platformColor(p.platform)}` }}>
+                              <span style={{ fontFamily: "var(--font-latin)", color: "var(--muted)", flex: "none", fontSize: 11.5 }}>{p.time}</span>
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--slate)" }}>{p.hook}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+
+              <div className="cal-month" style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
                 {weekdays.map((w, i) => (
                   <div key={i} style={{ textAlign: "center", fontSize: 11.5, fontWeight: 700, color: "var(--muted)", padding: "6px 0" }}>{w}</div>
                 ))}

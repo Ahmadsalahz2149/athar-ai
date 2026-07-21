@@ -9,7 +9,7 @@ export default function DashboardLoading() {
       <div style={{ marginBlockStart: 8 }}><Skeleton h={16} w={200} /></div>
 
       {/* KPI row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(168px,1fr))", gap: 14, marginBlockStart: 22 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,168px),1fr))", gap: 14, marginBlockStart: 22 }}>
         {Array.from({ length: 5 }, (_, i) => <Skeleton key={i} h={92} r={16} />)}
       </div>
 

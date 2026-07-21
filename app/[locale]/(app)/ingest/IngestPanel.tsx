@@ -290,7 +290,7 @@ export function IngestPanel() {
       </div>
 
       {/* Language + category */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 18, marginBlockStart: 22 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,240px),1fr))", gap: 18, marginBlockStart: 22 }}>
         <div>
           <div style={label}>{t("langLabel")}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginBlockStart: 10 }}>

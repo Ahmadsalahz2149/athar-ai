@@ -185,7 +185,7 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
           />
         </div>
       ) : (
-        <div style={{ marginBlockStart: 20, display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
+        <div style={{ marginBlockStart: 20, display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
           {shown.map((s) => (
             <div key={s.id} style={{ background: "var(--card)", border: selected[s.id] ? "1.5px solid var(--teal)" : "1px solid var(--border)", borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>

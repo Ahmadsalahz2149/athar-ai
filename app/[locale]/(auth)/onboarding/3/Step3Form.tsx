@@ -168,7 +168,7 @@ export function Step3Form() {
           </div>
 
           {/* Analysis checklist */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 12, marginBlockStart: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,190px),1fr))", gap: 12, marginBlockStart: 16 }}>
             {steps.map((s) => (
               <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 9 }}>
                 <span

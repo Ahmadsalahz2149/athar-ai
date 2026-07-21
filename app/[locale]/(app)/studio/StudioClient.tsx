@@ -233,7 +233,7 @@ export function StudioClient({
           </div>
 
           <div style={card}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,170px),1fr))", gap: 10 }}>
               <div>
                 <div style={label}>{t("providerLabel")}</div>
                 <select value={provider} onChange={(e) => { const p = e.target.value as ProviderId; setProvider(p); setModel(MODEL_CATALOG[p][0].id); }} style={field}>

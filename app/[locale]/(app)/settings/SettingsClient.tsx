@@ -111,7 +111,7 @@ export function SettingsClient(p: Props) {
               </div>
             </div>
             <div style={{ height: 1, background: "var(--border)", marginBlockEnd: 18 }} />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,200px),1fr))", gap: 14 }}>
               <Field label={t("name")}><input value={name} onChange={(e) => setName(e.target.value)} style={inp} /></Field>
               <Field label={t("jobTitle")}><input value={title} onChange={(e) => setTitle(e.target.value)} style={inp} /></Field>
             </div>
@@ -123,7 +123,7 @@ export function SettingsClient(p: Props) {
 
         {tab === "brand" && (
           <Panel title={t("tab_brand")} action={<Link href="/dna" style={{ ...btnGhost, height: 38, background: "var(--teal-tint-2)", border: "1px solid rgba(20,184,166,.3)", color: "var(--teal-deep)" }}>{t("openDna")}</Link>}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,200px),1fr))", gap: 12 }}>
               <ReadTile label={t("brandType")} value={p.brandType || "—"} />
               <ReadTile label={t("brandField")} value={p.field || "—"} />
               <ReadTile label={t("brandAudience")} value={p.audience || "—"} />
@@ -216,7 +216,7 @@ export function SettingsClient(p: Props) {
                 ⚠ {t("usageAlert", { used: nf.format(p.sourcesUsed), limit: nf.format(p.sourcesLimit) })}
               </div>
             )}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBlockStart: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,200px),1fr))", gap: 12, marginBlockStart: 16 }}>
               <PlanCard name={t("planPro")} price="99" unit={t("perMonth")} feats={t("featPro")} cta={<Soon label={soon}><button disabled style={{ ...btnNavy, width: "100%" }}>{t("upgrade")}</button></Soon>} />
               <PlanCard name={t("planAgency")} price="299" unit={t("perMonth")} feats={t("featAgency")} highlight cta={<Soon label={soon}><button disabled style={{ ...btnTeal, width: "100%" }}>{t("upgrade")}</button></Soon>} />
             </div>

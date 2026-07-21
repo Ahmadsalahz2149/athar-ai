@@ -201,7 +201,7 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
           </span>
         </div>
         <p style={{ fontSize: 13, color: "var(--muted)", marginBlock: "6px 16px" }}>{t("pillarsSub")}</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,140px),1fr))", gap: 12 }}>
           {pillars.map((p) => (
             <div key={p.key} style={{ background: p.tint, borderRadius: 14, padding: "16px 12px", textAlign: "center" }}>
               <div style={{ fontSize: 24 }}>{p.emoji}</div>

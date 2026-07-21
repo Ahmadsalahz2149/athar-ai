@@ -43,7 +43,7 @@ export function Step2Form({ initial }: { initial: OnboardingAnswers }) {
           <span style={label}>{t("s2Goals")}</span>
           <span style={{ fontSize: 12.5, color: "var(--teal-deep)", fontWeight: 600 }}>{t("s2GoalsHint")}</span>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,240px),1fr))", gap: 10 }}>
           {GOALS.map((g) => (
             <SelectableCard key={g} title={t(`goal_${g}`)} active={goals.includes(g)} onClick={() => toggle(goals, setGoals, g)} />
           ))}
@@ -59,7 +59,7 @@ export function Step2Form({ initial }: { initial: OnboardingAnswers }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 24, marginBlockStart: 26 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))", gap: 24, marginBlockStart: 26 }}>
         <div>
           <div style={label}>{t("s2Freq")}</div>
           <div style={{ display: "grid", gap: 10, marginBlockStart: 10 }}>

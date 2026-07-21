@@ -55,7 +55,7 @@ export function Step1Form({ initial }: { initial: OnboardingAnswers }) {
 
       <div style={section}>
         <div style={label}>{t("s1BrandType")}</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 12, marginBlockStart: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,210px),1fr))", gap: 12, marginBlockStart: 10 }}>
           {BRAND_TYPES.map((b) => (
             <SelectableCard key={b} title={t(`bt_${b}`)} desc={t(`btd_${b}`)} active={brandType === b} onClick={() => setBrandType(b)} />
           ))}

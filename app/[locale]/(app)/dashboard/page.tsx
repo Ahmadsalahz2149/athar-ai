@@ -122,7 +122,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       </div>
 
       {/* KPI row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(168px,1fr))", gap: 14, marginBlockStart: 22 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,168px),1fr))", gap: 14, marginBlockStart: 22 }}>
         <div style={{ background: "linear-gradient(160deg,#102A43,#0B1F33)", borderRadius: 16, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
           <ScoreRadial value={completeness} size={74} suffix="%" track="rgba(255,255,255,.14)" valueColor="#fff" label={t("kpiDna")} />
           <div>

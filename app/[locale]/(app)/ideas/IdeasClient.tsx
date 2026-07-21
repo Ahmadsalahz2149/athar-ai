@@ -112,7 +112,7 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
           <EmptyState title={t("emptyTitle")} body={t("emptyBody")} />
         </div>
       ) : (
-        <div style={{ marginBlockStart: 16, display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 16 }}>
+        <div style={{ marginBlockStart: 16, display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
           {shown.map((i) => (
             <div key={i.id} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 11 }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>

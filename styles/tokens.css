@@ -309,6 +309,89 @@ select {
   }
 }
 
+/* =====================================================================
+   MOBILE POLISH (phase 0). Phones were cramped: rigid grids, a 7-column
+   calendar, tiny tap targets and horizontal overflow. These rules make every
+   screen read well down to 320px.
+   ===================================================================== */
+
+/* Nothing may push the page sideways on a phone. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+img,
+svg,
+video {
+  max-width: 100%;
+}
+
+/* The month calendar (7 rigid columns) is replaced by a day agenda on phones. */
+.cal-agenda {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .cal-month {
+    display: none !important;
+  }
+  .cal-agenda {
+    display: grid !important;
+  }
+
+  /* Comfortable tap targets (Apple/Google guidance is ~44px). */
+  button,
+  a[role="button"],
+  .tap {
+    min-height: 40px;
+  }
+
+  /* Cards and panels: tighter padding so content keeps its width. */
+  main {
+    padding-inline: 14px !important;
+  }
+
+  /* Long unbroken Arabic/URL strings must wrap instead of overflowing. */
+  h1,
+  h2,
+  h3,
+  p,
+  span,
+  div {
+    overflow-wrap: anywhere;
+  }
+
+  /* Modals: full-width with breathing room, and scrollable if tall. */
+  [role="dialog"] > div {
+    width: 100% !important;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+
+  /* Toolbars/pill rows scroll sideways rather than wrapping into a tall stack. */
+  .scroll-x {
+    display: flex;
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+    padding-block-end: 2px;
+  }
+  .scroll-x::-webkit-scrollbar {
+    display: none;
+  }
+  .scroll-x > * {
+    flex: none;
+  }
+}
+
+/* Very small phones (≤380px): drop to a single column everywhere it matters. */
+@media (max-width: 380px) {
+  .stack-xs {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ---- Accessibility: a single visible focus ring for every control ---- */
 a:focus-visible,
 button:focus-visible,

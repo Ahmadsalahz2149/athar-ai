@@ -25,7 +25,7 @@ export function OAuthButtons() {
 
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,130px),1fr))", gap: 12 }}>
         <button type="button" onClick={() => go("linkedin_oidc")} style={oauthBtn}>
           <span style={{ fontWeight: 700, fontSize: 13.5 }}>LinkedIn</span>
           <span style={{ display: "grid", placeItems: "center", width: 20, height: 20, borderRadius: 4, background: "#0A66C2", color: "#fff", fontSize: 10.5, fontWeight: 800, fontFamily: "var(--font-latin)" }}>in</span>

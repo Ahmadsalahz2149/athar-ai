@@ -66,7 +66,7 @@ export function AnalyticsClient({ topPosts, hasContent }: { topPosts: Top[]; has
       </div>
 
       {/* KPIs — sample */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,180px),1fr))", gap: 14 }}>
         <div style={{ position: "relative" }}><span style={{ position: "absolute", insetInlineEnd: 10, insetBlockStart: 10, zIndex: 1 }}><SampleTag label={t("sample")} /></span><StatCard label={t("reach")} value={d.reach} delta="+18%" tint="var(--teal-tint)" icon={<Eye />} /></div>
         <div style={{ position: "relative" }}><span style={{ position: "absolute", insetInlineEnd: 10, insetBlockStart: 10, zIndex: 1 }}><SampleTag label={t("sample")} /></span><StatCard label={t("engagement")} value={d.eng} delta="+24%" tint="var(--coral-tint)" icon={<Heart />} /></div>
         <div style={{ position: "relative" }}><span style={{ position: "absolute", insetInlineEnd: 10, insetBlockStart: 10, zIndex: 1 }}><SampleTag label={t("sample")} /></span><StatCard label={t("followers")} value={d.fol} delta="+9%" tint="var(--blue-tint)" icon={<User />} /></div>
