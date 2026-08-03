@@ -3,6 +3,7 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 import type { ContentDna } from "@/lib/ai/prompts";
 import { normalizeDna } from "@/lib/ai/normalize";
+import { type BrandProfile, normalizeProfile } from "@/lib/brand/profile";
 
 /**
  * Tenancy façade (ADR-005). ALL tenant-table access must go through forOrg(db, orgId):
@@ -752,6 +753,120 @@ export function forOrg(db: Db, orgId: string) {
         .orderBy(desc(schema.analyses.createdAt))
         .limit(1);
       return rows[0]?.at ?? null;
+    },
+
+    // --- Brand identity (Phase 1): profile, logo, multi-brand ---
+
+    /** All brands for this org (for the brand switcher). */
+    async listBrands() {
+      return db
+        .select({ id: schema.brands.id, name: schema.brands.name, logoUrl: schema.brands.logoUrl, createdAt: schema.brands.createdAt })
+        .from(schema.brands)
+        .where(and(eq(schema.brands.orgId, orgId), isNull(schema.brands.deletedAt)))
+        .orderBy(schema.brands.createdAt);
+    },
+
+    async brandCount(): Promise<number> {
+      const rows = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(schema.brands)
+        .where(and(eq(schema.brands.orgId, orgId), isNull(schema.brands.deletedAt)));
+      return rows[0]?.n ?? 0;
+    },
+
+    /** Create an additional brand under this org and return its id. */
+    async createBrand(name: string): Promise<string> {
+      const [row] = await db
+        .insert(schema.brands)
+        .values({ orgId, name: name.trim().slice(0, 120) || "علامة جديدة" })
+        .returning({ id: schema.brands.id });
+      return row.id;
+    },
+
+    async renameBrand(brandId: string, name: string): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .update(schema.brands)
+        .set({ name: name.trim().slice(0, 120) })
+        .where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)));
+    },
+
+    async getBrand(brandId: string) {
+      const rows = await db
+        .select()
+        .from(schema.brands)
+        .where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId), isNull(schema.brands.deletedAt)))
+        .limit(1);
+      return rows[0] ?? null;
+    },
+
+    /** The brand's profile, always normalized (safe even if never set). */
+    async getBrandProfile(brandId: string): Promise<BrandProfile> {
+      const rows = await db
+        .select({ profile: schema.brands.profile })
+        .from(schema.brands)
+        .where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)))
+        .limit(1);
+      return normalizeProfile(rows[0]?.profile ?? null);
+    },
+
+    async setBrandProfile(brandId: string, profile: BrandProfile): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .update(schema.brands)
+        .set({ profile: normalizeProfile(profile) })
+        .where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)));
+    },
+
+    async setBrandLogo(brandId: string, logoUrl: string | null): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .update(schema.brands)
+        .set({ logoUrl })
+        .where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)));
+    },
+
+    // --- Products & services (Phase 1) ---
+    async listProducts(brandId: string) {
+      return db
+        .select()
+        .from(schema.products)
+        .where(and(eq(schema.products.orgId, orgId), eq(schema.products.brandId, brandId), isNull(schema.products.deletedAt)))
+        .orderBy(desc(schema.products.createdAt));
+    },
+
+    async saveProduct(
+      brandId: string,
+      p: { id?: string; name: string; kind?: string; description?: string | null; price?: string | null; url?: string | null },
+    ): Promise<string> {
+      await assertBrand(brandId);
+      const values = {
+        name: p.name.trim().slice(0, 160),
+        kind: p.kind === "service" ? "service" : "product",
+        description: p.description?.trim().slice(0, 1000) || null,
+        price: p.price?.trim().slice(0, 60) || null,
+        url: p.url?.trim().slice(0, 400) || null,
+      };
+      if (p.id) {
+        await db
+          .update(schema.products)
+          .set(values)
+          .where(and(eq(schema.products.id, p.id), eq(schema.products.orgId, orgId), eq(schema.products.brandId, brandId)));
+        return p.id;
+      }
+      const [row] = await db
+        .insert(schema.products)
+        .values({ orgId, brandId, ...values })
+        .returning({ id: schema.products.id });
+      return row.id;
+    },
+
+    async deleteProduct(brandId: string, productId: string): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .update(schema.products)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(schema.products.id, productId), eq(schema.products.orgId, orgId), eq(schema.products.brandId, brandId)));
     },
   };
 }

@@ -31,9 +31,34 @@ export const brands = pgTable("brands", {
     .references(() => organizations.id),
   name: text("name").notNull(),
   currentDnaVersionId: uuid("current_dna_version_id"),
+  // Phase 1 (brand depth): logo + a JSON profile holding content constraints,
+  // production guidance, team size, 3-level descriptions, and the identity Q&A.
+  // These feed the generation prompts alongside the DNA.
+  logoUrl: text("logo_url"),
+  profile: jsonb("profile"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
+
+// Products & services the brand offers (Phase 1). Injected into content
+// generation so posts can reference what the brand actually sells.
+export const products = pgTable(
+  "products",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    brandId: uuid("brand_id").notNull(),
+    name: text("name").notNull(),
+    // product | service
+    kind: text("kind").notNull().default("product"),
+    description: text("description"),
+    price: text("price"),
+    url: text("url"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("products_brand_idx").on(t.orgId, t.brandId)],
+);
 
 export const dnaVersions = pgTable("dna_versions", {
   id: uuid("id").primaryKey().defaultRandom(),

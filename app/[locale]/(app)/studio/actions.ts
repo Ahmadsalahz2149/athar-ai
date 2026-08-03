@@ -19,6 +19,7 @@ import {
   buildRewriteMessage,
   STUDIO_PROMPT_ID,
   STUDIO_PROMPT_VERSION,
+  buildBrandContext,
   type ContentDna,
 } from "@/lib/ai/prompts";
 
@@ -98,6 +99,15 @@ export async function studioGenerate(input: StudioInput): Promise<StudioResult> 
       }
     }
 
+    // Phase 1: fold the brand's products + profile into the brief (best-effort).
+    let brand: string | undefined;
+    try {
+      const [profile, products] = await Promise.all([t.getBrandProfile(ctx.brandId), t.listProducts(ctx.brandId)]);
+      brand = buildBrandContext({ profile, products }) || undefined;
+    } catch {
+      /* brand context is best-effort */
+    }
+
     const res = await generateText({
       system: STUDIO_SYSTEM,
       user: buildStudioMessage({
@@ -108,6 +118,7 @@ export async function studioGenerate(input: StudioInput): Promise<StudioResult> 
         tone: input.tone,
         length: input.length,
         source,
+        brand,
       }),
       maxTokens: 4096,
       anthropicModel: process.env.ANTHROPIC_DRAFT_MODEL || MODELS.SONNET,

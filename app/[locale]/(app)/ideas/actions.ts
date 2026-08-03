@@ -10,7 +10,7 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { estimateIdeas } from "@/lib/credits/costs";
-import { IDEAS_SYSTEM, IDEAS_SCHEMA, buildIdeasUserMessage } from "@/lib/ai/prompts";
+import { IDEAS_SYSTEM, IDEAS_SCHEMA, buildIdeasUserMessage, buildBrandContext } from "@/lib/ai/prompts";
 
 export type IdeasResult =
   | { ok: true; count: number }
@@ -43,9 +43,18 @@ export async function generateIdeas(input: { topic?: string; count?: number }): 
       if (hits.length) sources = hits.map((h, i) => `[${i + 1}] ${h.content}`).join("\n\n");
     }
 
+    // Phase 1: fold the brand's products + profile into the brief (best-effort).
+    let brand: string | undefined;
+    try {
+      const [profile, products] = await Promise.all([t.getBrandProfile(ctx.brandId), t.listProducts(ctx.brandId)]);
+      brand = buildBrandContext({ profile, products }) || undefined;
+    } catch {
+      /* brand context is best-effort */
+    }
+
     const res = await generateText({
       system: IDEAS_SYSTEM,
-      user: buildIdeasUserMessage({ topic: input.topic, dna, sources, count }),
+      user: buildIdeasUserMessage({ topic: input.topic, dna, sources, count, brand }),
       maxTokens: 2048,
       anthropicModel: process.env.ANTHROPIC_DRAFT_MODEL || MODELS.HAIKU,
       schema: IDEAS_SCHEMA,
