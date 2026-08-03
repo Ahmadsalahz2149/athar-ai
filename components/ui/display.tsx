@@ -272,7 +272,7 @@ export function StatCard({
   note?: string;
 }) {
   return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 16 }}>
+    <div className="lift" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBlockEnd: 10 }}>
         <span style={{ fontSize: 13, color: "var(--muted)" }}>{label}</span>
         {icon && <IconTile tint={tint ?? "var(--teal-tint)"} size={32} radius={9}>{icon}</IconTile>}
@@ -430,6 +430,30 @@ export function Chip({
 }
 
 /* ---------------- Skeleton ---------------- */
+/* ---------------- GlyphIcon (SVG, replaces emoji-as-icons) ----------------
+   Emoji render differently per-OS and ignore brand color — a design anti-pattern.
+   These are consistent, currentColor-driven Lucide-style line icons. */
+const GLYPH_PATHS: Record<string, string> = {
+  book: "M4 5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2zM8 3v18",
+  bookOpen: "M12 7v13M12 7a4 4 0 0 0-4-4H3v14h5a4 4 0 0 1 4 4M12 7a4 4 0 0 1 4-4h5v14h-5a4 4 0 0 0-4 4",
+  trophy: "M8 4h8v4a4 4 0 0 1-8 0zM8 6H5a2 2 0 0 0 2 3M16 6h3a2 2 0 0 1-2 3M9 15h6l1 5H8z",
+  briefcase: "M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M4 12h16",
+  bulb: "M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c.7.7 1 1.3 1 2h6c0-.7.3-1.3 1-2a6 6 0 0 0-4-10z",
+  message: "M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z",
+  target: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+  chart: "M4 20V10M10 20V4M16 20v-7M20 20H3",
+  flame: "M12 3c1 3-1 4-1 6a3 3 0 0 0 6 0c0-1-.5-2-1-3 2 1 3 3.5 3 6a6 6 0 0 1-12 0c0-3 2-4 3-6 .5 1 2 1 2-3z",
+  warn: "M10.3 3.9 2.6 17.4A2 2 0 0 0 4.3 20.4h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17v.5",
+};
+export function GlyphIcon({ name, size = 18, color = "currentColor", strokeWidth = 1.7 }: { name: keyof typeof GLYPH_PATHS | string; size?: number; color?: string; strokeWidth?: number }) {
+  const d = GLYPH_PATHS[name] ?? GLYPH_PATHS.bulb;
+  return (
+    <svg aria-hidden width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d={d} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function Skeleton({ h = 16, w = "100%", r = 10, style }: { h?: number | string; w?: number | string; r?: number; style?: CSSProperties }) {
   return <span className="skeleton" aria-hidden style={{ display: "block", height: h, width: w, borderRadius: r, ...style }} />;
 }
@@ -465,6 +489,7 @@ export function SelectableCard({
       type="button"
       onClick={onClick}
       aria-pressed={!!active}
+      className="lift"
       style={{
         textAlign: "start",
         display: "flex",

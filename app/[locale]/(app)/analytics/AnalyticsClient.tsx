@@ -17,12 +17,12 @@ const DATA: Record<Range, { reach: string; eng: string; fol: string; rate: strin
 const PLATFORM_SPLIT = [
   { name: "LinkedIn", pct: 58, color: "var(--blue)" },
   { name: "X / Twitter", pct: 27, color: "#111" },
-  { name: "Instagram", pct: 15, color: "var(--gold)" },
+  { name: "Instagram", pct: 15, color: "var(--gold-dark)" },
 ];
 const TYPES = [
-  { key: "story", pct: 42, color: "var(--teal)" },
+  { key: "story", pct: 42, color: "var(--teal-deep)" },
   { key: "educational", pct: 31, color: "var(--blue)" },
-  { key: "analytical", pct: 16, color: "var(--gold)" },
+  { key: "analytical", pct: 16, color: "var(--gold-dark)" },
   { key: "sell", pct: 11, color: "var(--coral)" },
 ];
 

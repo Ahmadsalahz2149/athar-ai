@@ -4,17 +4,17 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import type { ContentDna } from "@/lib/ai/prompts";
-import { ScoreRadial, SegmentMeter, EmptyState, btnNavy, btnGhost } from "@/components/ui/display";
+import { ScoreRadial, SegmentMeter, EmptyState, GlyphIcon, btnNavy, btnGhost } from "@/components/ui/display";
 import { EditDnaModal } from "./EditDnaModal";
 import { TraitSources } from "./TraitSources";
 
 const PILLAR_META = [
-  { key: "educational", emoji: "📚", tint: "var(--gold-tint)", fg: "var(--gold-dark)" },
-  { key: "story", emoji: "📖", tint: "var(--teal-tint-2)", fg: "var(--teal-deep)" },
-  { key: "proof", emoji: "🏆", tint: "var(--blue-tint)", fg: "var(--blue)" },
-  { key: "soft_sell", emoji: "💼", tint: "var(--coral-tint)", fg: "var(--coral)" },
-  { key: "thought_leadership", emoji: "💡", tint: "#F3ECFB", fg: "#7C3AED" },
-  { key: "engagement", emoji: "💬", tint: "var(--border-3)", fg: "var(--slate-2)" },
+  { key: "educational", glyph: "book", tint: "var(--gold-tint)", fg: "var(--gold-dark)" },
+  { key: "story", glyph: "bookOpen", tint: "var(--teal-tint-2)", fg: "var(--teal-deep)" },
+  { key: "proof", glyph: "trophy", tint: "var(--blue-tint)", fg: "var(--blue)" },
+  { key: "soft_sell", glyph: "briefcase", tint: "var(--coral-tint)", fg: "var(--coral)" },
+  { key: "thought_leadership", glyph: "bulb", tint: "#F3ECFB", fg: "#7C3AED" },
+  { key: "engagement", glyph: "message", tint: "var(--border-3)", fg: "var(--slate-2)" },
 ] as const;
 
 function Card({ title, latin, icon, children }: { title: string; latin?: string; icon?: React.ReactNode; children: React.ReactNode }) {
@@ -203,9 +203,9 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
         <p style={{ fontSize: 13, color: "var(--muted)", marginBlock: "6px 16px" }}>{t("pillarsSub")}</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,140px),1fr))", gap: 12 }}>
           {pillars.map((p) => (
-            <div key={p.key} style={{ background: p.tint, borderRadius: 14, padding: "16px 12px", textAlign: "center" }}>
-              <div style={{ fontSize: 24 }}>{p.emoji}</div>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--heading)", marginBlockStart: 6 }}>{p.label}</div>
+            <div key={p.key} className="lift" style={{ background: p.tint, borderRadius: 14, padding: "16px 12px", textAlign: "center", border: "1px solid transparent" }}>
+              <div style={{ display: "grid", placeItems: "center", width: 40, height: 40, margin: "0 auto", borderRadius: 11, background: "rgba(255,255,255,.6)", color: p.fg }}><GlyphIcon name={p.glyph} size={20} /></div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--heading)", marginBlockStart: 8 }}>{p.label}</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: p.fg, fontFamily: "var(--font-latin)", marginBlockStart: 4 }}>{nf.format(p.pct)}%</div>
             </div>
           ))}

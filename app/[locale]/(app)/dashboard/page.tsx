@@ -6,6 +6,7 @@ import { currentContext } from "@/lib/auth/current";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { ProcessingWatcher } from "@/components/ProcessingWatcher";
 import { activeJobsCount } from "../ingest/actions";
+import { CountUp } from "@/components/CountUp";
 import {
   ScoreRadial,
   StatCard,
@@ -113,7 +114,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       {/* Greeting */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
         <div>
-          <h1 style={{ fontSize: "clamp(21px,3.2vw,27px)", fontWeight: 700, color: "var(--heading)", letterSpacing: "-.4px" }}>
+          <h1 className="headline-gradient" style={{ fontSize: "clamp(21px,3.2vw,27px)", fontWeight: 700, letterSpacing: "-.4px" }}>
             {firstName ? t("greetingName", { name: firstName }) : t("greeting")} 👋
           </h1>
           <p style={{ fontSize: 14.5, color: "var(--muted)", marginBlockStart: 6 }}>{t("subtitle")}</p>
@@ -122,7 +123,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       </div>
 
       {/* KPI row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,168px),1fr))", gap: 14, marginBlockStart: 22 }}>
+      <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,168px),1fr))", gap: 14, marginBlockStart: 22 }}>
         <div style={{ background: "linear-gradient(160deg,#102A43,#0B1F33)", borderRadius: 16, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
           <ScoreRadial value={completeness} size={74} suffix="%" track="rgba(255,255,255,.14)" valueColor="#fff" label={t("kpiDna")} />
           <div>
@@ -136,10 +137,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             ) : null}
           </div>
         </div>
-        <StatCard label={t("kpiSources")} value={nf.format(counts.sources)} tint="var(--blue-tint)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7" stroke="var(--blue)" strokeWidth="1.7" /></svg>} />
-        <StatCard label={t("kpiIdeas")} value={nf.format(counts.ideas)} tint="var(--gold-tint)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c.7.7 1 1.3 1 2h6c0-.7.3-1.3 1-2a6 6 0 0 0-4-10z" stroke="var(--gold-dark)" strokeWidth="1.7" strokeLinecap="round" /></svg>} />
-        <StatCard label={t("kpiPending")} value={nf.format(counts.pending)} tint="var(--coral-tint)" note={counts.pending > 0 ? t("needsAction") : undefined} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7z" stroke="var(--coral)" strokeWidth="1.7" strokeLinejoin="round" /></svg>} />
-        <StatCard label={t("kpiScheduled")} value={nf.format(counts.scheduled)} tint="var(--teal-tint)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 9h16" stroke="var(--teal-deep)" strokeWidth="1.7" /></svg>} />
+        <StatCard label={t("kpiSources")} value={<CountUp value={counts.sources} format={nf.format} />} tint="var(--blue-tint)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7" stroke="var(--blue)" strokeWidth="1.7" /></svg>} />
+        <StatCard label={t("kpiIdeas")} value={<CountUp value={counts.ideas} format={nf.format} />} tint="var(--gold-tint)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c.7.7 1 1.3 1 2h6c0-.7.3-1.3 1-2a6 6 0 0 0-4-10z" stroke="var(--gold-dark)" strokeWidth="1.7" strokeLinecap="round" /></svg>} />
+        <StatCard label={t("kpiPending")} value={<CountUp value={counts.pending} format={nf.format} />} tint="var(--coral-tint)" note={counts.pending > 0 ? t("needsAction") : undefined} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7z" stroke="var(--coral)" strokeWidth="1.7" strokeLinejoin="round" /></svg>} />
+        <StatCard label={t("kpiScheduled")} value={<CountUp value={counts.scheduled} format={nf.format} />} tint="var(--teal-tint)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 9h16" stroke="var(--teal-deep)" strokeWidth="1.7" /></svg>} />
       </div>
 
       {/* Recommendation hero */}

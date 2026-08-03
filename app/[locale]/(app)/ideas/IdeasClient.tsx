@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { generateIdeas, toggleSaveIdea, markIdeaUsed } from "./actions";
-import { Chip, StatusPill, EmptyState, IconTile, btnTeal, btnNavy } from "@/components/ui/display";
+import { Chip, StatusPill, EmptyState, IconTile, GlyphIcon, btnTeal, btnNavy } from "@/components/ui/display";
 
 type Idea = {
   id: string;
@@ -21,8 +21,8 @@ type Idea = {
 const FILTERS = ["all", "today", "sources", "saved"] as const;
 const SORTS = ["score", "recent"] as const;
 
-const CAT_EMOJI: Record<string, string> = {
-  educational: "📖", story: "💬", list: "⚠️", guide: "🎯", analytical: "📊", contrarian: "🔥",
+const CAT_GLYPH: Record<string, string> = {
+  educational: "book", story: "message", list: "warn", guide: "target", analytical: "chart", contrarian: "flame",
 };
 const CAT_TINT: Record<string, string> = {
   educational: "var(--blue-tint)", story: "var(--teal-tint)", list: "var(--gold-tint)",
@@ -114,9 +114,9 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
       ) : (
         <div style={{ marginBlockStart: 16, display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
           {shown.map((i) => (
-            <div key={i.id} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 11 }}>
+            <div key={i.id} className="lift" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 11 }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                <IconTile tint={CAT_TINT[i.category ?? "educational"] ?? "var(--teal-tint)"} size={38}>{CAT_EMOJI[i.category ?? "educational"] ?? "💡"}</IconTile>
+                <IconTile tint={CAT_TINT[i.category ?? "educational"] ?? "var(--teal-tint)"} size={38}><GlyphIcon name={CAT_GLYPH[i.category ?? "educational"] ?? "bulb"} size={19} color="var(--teal-deep)" /></IconTile>
                 {statusPill(i)}
               </div>
               <div style={{ fontWeight: 700, color: "var(--heading)", lineHeight: 1.6, fontSize: 15 }}>{i.title}</div>

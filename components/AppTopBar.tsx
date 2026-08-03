@@ -22,6 +22,7 @@ export function AppTopBar({ userEmail }: { userEmail?: string }) {
 
   return (
     <header
+      className="glass-bar"
       style={{
         height: 64,
         flex: "none",
@@ -31,9 +32,9 @@ export function AppTopBar({ userEmail }: { userEmail?: string }) {
         gap: 10,
         padding: "0 clamp(12px,4vw,32px)",
         borderBottom: "1px solid var(--border)",
-        background: "rgba(255,255,255,.6)",
-        backdropFilter: "blur(8px)",
-        position: "relative",
+        position: "sticky",
+        insetBlockStart: 0,
+        zIndex: 20,
       }}
     >
       {menu && (

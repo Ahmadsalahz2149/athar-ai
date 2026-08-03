@@ -73,14 +73,14 @@ export default async function AnalysisDetail({ params }: { params: Promise<{ loc
                 {a ? (
                   <span style={{ color: "var(--teal-light)", fontWeight: 700 }}>✦ {t("metaComplete")}</span>
                 ) : (
-                  <span style={{ color: "var(--gold)", fontWeight: 700 }}>{t("metaPending")}</span>
+                  <span style={{ color: "var(--gold-dark)", fontWeight: 700 }}>{t("metaPending")}</span>
                 )}
               </div>
             </div>
           </div>
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 12, color: "#9FB3C8" }}>{t("dnaImpact")}</div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: "var(--gold)", fontFamily: "var(--font-latin)", marginBlockStart: 4 }}>
+            <div style={{ fontSize: 26, fontWeight: 800, color: "var(--gold-dark)", fontFamily: "var(--font-latin)", marginBlockStart: 4 }}>
               {chunks > 0 ? `+${nf.format(Math.min(20, Math.max(1, Math.round(chunks / 2))))}%` : "—"}
             </div>
           </div>
@@ -125,7 +125,7 @@ export default async function AnalysisDetail({ params }: { params: Promise<{ loc
             )}
 
             {a.quotes.length > 0 && (
-              <Card title={t("quotes")} icon={<span style={{ color: "var(--gold)", fontSize: 17, fontWeight: 800 }}>❞</span>}>
+              <Card title={t("quotes")} icon={<span style={{ color: "var(--gold-dark)", fontSize: 17, fontWeight: 800 }}>❞</span>}>
                 <div style={{ display: "grid", gap: 10 }}>
                   {a.quotes.map((q, i) => (
                     <blockquote key={i} style={{ margin: 0, padding: "12px 16px", borderInlineStart: `3px solid ${i % 2 ? "var(--teal)" : "var(--gold)"}`, background: i % 2 ? "var(--teal-tint-2)" : "var(--gold-tint)", borderRadius: 10, fontSize: 14.5, color: "var(--slate)", lineHeight: 1.85 }}>

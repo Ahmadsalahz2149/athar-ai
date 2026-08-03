@@ -187,7 +187,7 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
       ) : (
         <div style={{ marginBlockStart: 20, display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
           {shown.map((s) => (
-            <div key={s.id} style={{ background: "var(--card)", border: selected[s.id] ? "1.5px solid var(--teal)" : "1px solid var(--border)", borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div key={s.id} className="lift" style={{ background: "var(--card)", border: selected[s.id] ? "1.5px solid var(--teal)" : "1px solid var(--border)", borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
                 <input type="checkbox" checked={!!selected[s.id]} onChange={(e) => setSelected((v) => ({ ...v, [s.id]: e.target.checked }))} aria-label={t("select")} style={{ width: 16, height: 16, marginBlockStart: 4, accentColor: "var(--teal)", flex: "none" }} />
                 <FileTypeBadge label={s.label} />

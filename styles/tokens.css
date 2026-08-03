@@ -18,7 +18,7 @@
 
   /* Accent — gold */
   --gold: #d6a84f;
-  --gold-dark: #9a7b33;
+  --gold-dark: #836726;
   --gold-tint: #fef6e7;
 
   /* Surfaces */
@@ -35,7 +35,7 @@
   --text: #1f2937;
   --heading: #0b1f33;
   --muted: #64748b;
-  --subtle: #94a3b8;
+  --subtle: #697382;
   --slate: #334155;
   --slate-2: #475569;
 
@@ -389,6 +389,129 @@ video {
 @media (max-width: 380px) {
   .stack-xs {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* =====================================================================
+   INTERACTION & MOTION LAYER (perceived-quality pass). The app had zero hover
+   states and one transition — every control felt dead on touch. These global
+   rules make the whole app respond the moment a cursor lands, without touching
+   a single line of component logic. Class-based so nothing is opted in blindly.
+   ===================================================================== */
+
+/* Every interactive control gets a fast, meaningful transition by default. */
+button,
+a,
+[role="button"],
+input,
+textarea,
+select,
+.tap,
+.lift,
+.press {
+  transition:
+    transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1),
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+/* Trick #1 — cards lift on hover: 2px rise + deeper shadow + teal hairline. */
+.lift {
+  will-change: transform;
+}
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px -12px rgba(11, 31, 51, 0.28);
+    border-color: rgba(20, 184, 166, 0.4) !important;
+  }
+  /* Every real button brightens + rises slightly on hover (global — no opt-in). */
+  button:hover:not(:disabled),
+  a[role="button"]:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+  }
+  /* Links tint toward teal on hover. */
+  a:not([role="button"]):hover {
+    color: var(--teal-deep);
+  }
+}
+/* Trick #1b — the real "press": every button dips on click (feels physical). */
+button:active,
+[role="button"]:active,
+.press:active,
+.btn-hover:active {
+  transform: scale(0.97);
+  transition-duration: 0.09s;
+}
+
+/* Trick #2 — staggered reveal. Children fade+rise in sequence (system "thinking"
+   look à la Linear/Stripe). Add class="stagger" to a container. */
+.stagger > * {
+  animation: staggerIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.stagger > *:nth-child(3) { animation-delay: 0.14s; }
+.stagger > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger > *:nth-child(5) { animation-delay: 0.26s; }
+.stagger > *:nth-child(6) { animation-delay: 0.32s; }
+.stagger > *:nth-child(7) { animation-delay: 0.38s; }
+.stagger > *:nth-child(8) { animation-delay: 0.44s; }
+@keyframes staggerIn {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* Trick #4 — a single gold-accented gradient headline per screen (price signal). */
+.headline-gradient {
+  background: linear-gradient(100deg, var(--navy) 30%, var(--gold-dark) 130%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Trick #5 — breathing pulse ring for live states (processing / connected). */
+.pulse-live {
+  position: relative;
+}
+.pulse-live::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid currentColor;
+  opacity: 0;
+  animation: pulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  pointer-events: none;
+}
+@keyframes pulseRing {
+  0% { transform: scale(0.92); opacity: 0.5; }
+  70%, 100% { transform: scale(1.12); opacity: 0; }
+}
+
+/* Trick #6 — frosted glass on the app top bar (a "2026" signal). */
+.glass-bar {
+  background: rgba(251, 250, 247, 0.72);
+  backdrop-filter: saturate(1.4) blur(12px);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+}
+
+/* Trick #3 — count-up numbers animate from 0 (handled by <CountUp/> in JS). */
+
+/* Accessibility: honor reduced-motion — kill every non-essential animation. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

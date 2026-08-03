@@ -27,7 +27,7 @@ export function BrandWord({ name, ai, tagline }: { name: string; ai: string; tag
     <div style={{ lineHeight: 1.15 }}>
       <div style={{ fontWeight: 700, fontSize: 18, color: "var(--navy)" }}>
         {name}
-        <span style={{ color: "var(--teal)" }}> {ai}</span>
+        <span style={{ color: "var(--teal-deep)" }}> {ai}</span>
       </div>
       {tagline ? (
         <div
