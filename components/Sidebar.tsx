@@ -23,11 +23,13 @@ const NAV: { href: string; key: string; icon: ReactNode }[] = [
   { href: "/dna", key: "dna", icon: <Icon d="M7 4c6 3 4 8 10 11M17 4c-6 3-4 8-10 11M8 6h8M8 18h8" /> },
   { href: "/brand", key: "brand", icon: <Icon d="M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7l7-4zM9.5 12l1.8 1.8L15 10" /> },
   { href: "/ideas", key: "ideas", icon: <Icon d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c.7.7 1 1.3 1 2h6c0-.7.3-1.3 1-2a6 6 0 0 0-4-10z" /> },
+  { href: "/plan", key: "plan", icon: <Icon d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 9h16M8 13h4M8 16h8" /> },
   { href: "/studio", key: "studio", icon: <Icon d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /> },
   { href: "/distribute", key: "distribute", icon: <Icon d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 3.9M15.4 6.6l-6.8 3.9" /> },
   { href: "/calendar", key: "calendar", icon: <Icon d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 9h16M8 3v4M16 3v4" /> },
   { href: "/approvals", key: "approvals", icon: <Icon d="M9 12l2 2 4-4M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7z" /> },
   { href: "/analytics", key: "analytics", icon: <Icon d="M4 19V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM8 15l3-4 3 3 3-5" /> },
+  { href: "/activity", key: "activity", icon: <Icon d="M3 12h4l2 6 4-14 2 8h6" /> },
   { href: "/settings", key: "settings", icon: <Icon d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM4.3 15a1.7 1.7 0 0 0-.3 1.9l.1.1a2 2 0 1 0 2.8 2.8l.1-.1a1.7 1.7 0 0 1 2.9 1.2V21a2 2 0 1 0 4 0v-.1a1.7 1.7 0 0 1 2.9-1.2l.1.1a2 2 0 1 0 2.8-2.8l-.1-.1a1.7 1.7 0 0 1 1.2-2.9H21a2 2 0 1 0 0-4h-.1a1.7 1.7 0 0 1-1.2-2.9l.1-.1a2 2 0 1 0-2.8-2.8l-.1.1a1.7 1.7 0 0 1-2.9-1.2V3a2 2 0 1 0-4 0v.1A1.7 1.7 0 0 1 7.1 4.3L7 4.2a2 2 0 1 0-2.8 2.8l.1.1A1.7 1.7 0 0 1 3.2 10H3a2 2 0 1 0 0 4h.1a1.7 1.7 0 0 1 1.2 1z" /> },
 ];
 

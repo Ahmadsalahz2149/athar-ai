@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { generateText, hasKeyFor, currentProvider } from "@/lib/ai/generate";
 import { MODELS } from "@/lib/ai/models";
 import { extractJson } from "@/lib/ai/json";
@@ -10,7 +11,12 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { estimateIdeas } from "@/lib/credits/costs";
-import { IDEAS_SYSTEM, IDEAS_SCHEMA, buildIdeasUserMessage, buildBrandContext } from "@/lib/ai/prompts";
+import { IDEAS_SYSTEM, IDEAS_SCHEMA, buildIdeasUserMessage, buildBrandContext, STUDIO_SYSTEM, STUDIO_SCHEMA, buildStudioMessage } from "@/lib/ai/prompts";
+import { postScore, dnaMatch } from "@/lib/ai/score";
+import { estimateCompose } from "@/lib/credits/costs";
+
+// Batch may generate several drafts — give it room on Vercel.
+export const maxDuration = 60;
 
 export type IdeasResult =
   | { ok: true; count: number }
@@ -104,5 +110,82 @@ export async function markIdeaUsed(ideaId: string): Promise<{ ok: boolean }> {
     return { ok: true };
   } catch {
     return { ok: false };
+  }
+}
+
+/** Batch-generate drafts from selected ideas (Phase 2 #8). For each idea we
+ * compose a post in the brand's voice, score + save it as a draft, and mark the
+ * idea "used". Capped at 6 per call to stay within the function budget. */
+export async function batchGenerate(
+  ideaIds: string[],
+  opts?: { platform?: string },
+): Promise<{ ok: true; created: number } | { ok: false; error: string }> {
+  try {
+    const provider = currentProvider();
+    if (!hasKeyFor(provider)) return { ok: false, error: "no_key" };
+    if (!db) return { ok: false, error: "no_session" };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false, error: "no_session" };
+
+    const ids = Array.from(new Set(ideaIds)).slice(0, 6);
+    if (!ids.length) return { ok: false, error: "none_selected" };
+
+    const t = forOrg(db, ctx.orgId);
+    const dna = await t.currentDna(ctx.brandId);
+    if (!dna) return { ok: false, error: "no_dna" };
+    if ((await t.balance()) < estimateCompose() * ids.length) return { ok: false, error: "insufficient_credits" };
+
+    // The ideas to write (title/angle become the prompt).
+    const all = await t.listIdeas(ctx.brandId, { limit: 100 });
+    const chosen = all.filter((i) => ids.includes(i.id));
+    if (!chosen.length) return { ok: false, error: "none_selected" };
+
+    let brand: string | undefined;
+    try {
+      const [profile, products] = await Promise.all([t.getBrandProfile(ctx.brandId), t.listProducts(ctx.brandId)]);
+      brand = buildBrandContext({ profile, products }) || undefined;
+    } catch {
+      /* best-effort */
+    }
+
+    const platform = opts?.platform || "linkedin";
+    let created = 0;
+    for (const idea of chosen) {
+      try {
+        const prompt = idea.angle ? `${idea.title} — ${idea.angle}` : idea.title;
+        const res = await generateText({
+          system: STUDIO_SYSTEM,
+          user: buildStudioMessage({ dna, prompt, platform, format: "post", tone: "professional", length: "medium", brand }),
+          maxTokens: 4096,
+          anthropicModel: process.env.ANTHROPIC_DRAFT_MODEL || MODELS.SONNET,
+          schema: STUDIO_SCHEMA,
+          provider,
+        });
+        if (res.truncated) continue;
+        const parsed = extractJson<{ hooks?: unknown; body?: unknown }>(res.text);
+        const hooks = Array.isArray(parsed?.hooks) ? parsed.hooks.map((h) => String(h)).filter(Boolean) : [];
+        const body = typeof parsed?.body === "string" ? parsed.body : "";
+        if (!hooks.length || !body) continue;
+        await t.saveDraft(ctx.brandId, {
+          platform,
+          topic: idea.title,
+          hook: hooks[0],
+          body,
+          ideaId: idea.id,
+          postScore: postScore(hooks[0], body),
+          dnaMatch: dnaMatch(`${hooks[0]}\n${body}`, dna),
+        });
+        await t.setIdeaStatus(ctx.brandId, idea.id, "used");
+        await t.debit(estimateCompose(), "batch_compose", "idea", idea.id);
+        created++;
+      } catch {
+        /* skip a failed item, keep going */
+      }
+    }
+    if (!created) return { ok: false, error: "failed" };
+    revalidatePath("/ideas");
+    return { ok: true, created };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
   }
 }

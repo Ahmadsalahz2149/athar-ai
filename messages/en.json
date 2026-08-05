@@ -31,7 +31,9 @@
     "planUsageReal": "{used} of {limit} knowledge files used",
     "upgrade": "Upgrade plan",
     "brand": "Identity",
-    "distribute": "Distribute"
+    "distribute": "Distribute",
+    "plan": "Planning",
+    "activity": "Creation Center"
   },
   "Home": {
     "badge": "✦ Personal Brand Growth OS",
@@ -651,7 +653,21 @@
     "awaitingTitle": "{n} sources awaiting analysis",
     "awaitingBody": "Run analysis to extract ideas & quotes.",
     "processingTitle": "{n} sources processing",
-    "processingBody": "Transcribing & analyzing in the background — appears automatically."
+    "processingBody": "Transcribing & analyzing in the background — appears automatically.",
+    "suggUpload": "Start by uploading your first knowledge source so the AI learns your voice.",
+    "suggUploadCta": "Upload now",
+    "suggDna": "Your DNA is {pct}% — add another source to raise it and improve quality.",
+    "suggDnaCta": "Improve DNA",
+    "suggWrite": "Your DNA is ready — write your first post in your voice.",
+    "suggWriteCta": "Open Studio",
+    "suggPlan": "Plan your whole month in one click — content plan + trends.",
+    "suggPlanCta": "Plan the month",
+    "suggReview": "You have {n} draft(s) waiting for review.",
+    "suggReviewCta": "Review now",
+    "suggSchedule": "You have ready drafts — schedule them on the calendar.",
+    "suggScheduleCta": "Schedule",
+    "suggDistribute": "Distribute your published posts to your audience for free.",
+    "suggDistributeCta": "Distribution Hub"
   },
   "Ideas": {
     "title": "Ideas Bank",
@@ -689,7 +705,13 @@
     "sort_score": "Highest score",
     "sort_recent": "Newest",
     "save": "Save idea",
-    "unsave": "Unsave"
+    "unsave": "Unsave",
+    "selectForBatch": "Select for batch",
+    "batchSelected": "{n} idea(s) selected",
+    "batchClear": "Clear",
+    "batchGenerate": "Generate {n} drafts",
+    "batchRunning": "Generating…",
+    "batchDone": "Generated {n} drafts ✓ — review them in Approvals"
   },
   "Approvals": {
     "title": "Approvals",
@@ -987,5 +1009,54 @@
     "markPosted": "Mark posted",
     "notDueYet": "Not due yet",
     "assistHint": "After posting, click “Mark posted” so the system records the time and respects each group's cadence (prevents spam and duplicates)."
+  },
+  "Plan": {
+    "title": "Planning Hub",
+    "subtitle": "A full AI monthly content plan, your field's trends, and world days — all ready to write in one click.",
+    "planTitle": "{month} plan",
+    "planDesc": "Posts spread across the month and balanced across your content pillars.",
+    "generate": "Generate plan",
+    "generating": "Generating…",
+    "regenerate": "Regenerate",
+    "needDna": "Build your Content DNA first so the AI plans in your voice.",
+    "planEmpty": "Click “Generate plan” and the AI builds your whole month.",
+    "pillar_educational": "Educational",
+    "pillar_story": "Story",
+    "pillar_proof": "Proof",
+    "pillar_soft_sell": "Soft sell",
+    "pillar_thought_leadership": "Thought leadership",
+    "pillar_engagement": "Engagement",
+    "format_post": "Post",
+    "format_thread": "Thread",
+    "format_carousel": "Carousel",
+    "format_reel": "Reel",
+    "format_short": "Short",
+    "write": "Write",
+    "writePost": "Write post",
+    "trendsTitle": "This month's trends",
+    "trendsDesc": "Trending angles in your field you can ride this month.",
+    "trendsEmpty": "No trends — regenerate the plan.",
+    "trendsGenerateHint": "Generate the plan above to see this month's trends.",
+    "occasionsTitle": "World days & occasions",
+    "occasionsDesc": "Upcoming occasions you can build content around.",
+    "errNoDna": "No Content DNA yet.",
+    "errCredits": "Not enough credits.",
+    "errNoKey": "AI key not configured.",
+    "errGeneric": "Generation failed. Try again."
+  },
+  "Activity": {
+    "title": "Creation Center",
+    "subtitle": "Every AI operation — analysis, DNA building, generation — in one place with live status.",
+    "running": "{n} operation(s) running now…",
+    "emptyTitle": "No operations yet",
+    "emptyBody": "Once you upload a source or build your DNA, operations show here with live status.",
+    "type_ingest_source": "Processing source",
+    "type_analyze_source": "Analyzing source",
+    "type_synthesize_dna": "Building Content DNA",
+    "status_queued": "Queued",
+    "status_running": "Running",
+    "status_done": "Done",
+    "status_failed": "Retrying",
+    "status_dead": "Failed"
   }
 }

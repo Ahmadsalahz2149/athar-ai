@@ -5,6 +5,7 @@ import type { ContentDna } from "@/lib/ai/prompts";
 import { normalizeDna } from "@/lib/ai/normalize";
 import { type BrandProfile, normalizeProfile } from "@/lib/brand/profile";
 import { type DistributionKit, normalizeKit } from "@/lib/distribution/types";
+import { type MonthlyPlan, normalizePlan } from "@/lib/plan/types";
 
 /**
  * Tenancy façade (ADR-005). ALL tenant-table access must go through forOrg(db, orgId):
@@ -955,6 +956,63 @@ export function forOrg(db: Db, orgId: string) {
         .update(schema.targetGroups)
         .set({ lastPostedAt: new Date(), status: "active" })
         .where(and(eq(schema.targetGroups.id, groupId), eq(schema.targetGroups.orgId, orgId), eq(schema.targetGroups.brandId, brandId)));
+    },
+
+    // --- Monthly content plan + trends (Phase 2 #5/#6) ---
+    async getPlan(brandId: string, month: string): Promise<MonthlyPlan> {
+      const rows = await db
+        .select({ payload: schema.contentPlans.payload })
+        .from(schema.contentPlans)
+        .where(and(eq(schema.contentPlans.orgId, orgId), eq(schema.contentPlans.brandId, brandId), eq(schema.contentPlans.month, month)))
+        .limit(1);
+      return normalizePlan(rows[0]?.payload ?? null);
+    },
+
+    async savePlan(brandId: string, month: string, plan: MonthlyPlan): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .insert(schema.contentPlans)
+        .values({ orgId, brandId, month, payload: normalizePlan(plan) })
+        .onConflictDoUpdate({
+          target: [schema.contentPlans.orgId, schema.contentPlans.brandId, schema.contentPlans.month],
+          set: { payload: normalizePlan(plan), updatedAt: new Date() },
+        });
+    },
+
+    // --- Dismissed smart suggestions (Phase 2 #19) ---
+    async listDismissed(brandId: string): Promise<string[]> {
+      const rows = await db
+        .select({ key: schema.dismissedSuggestions.key })
+        .from(schema.dismissedSuggestions)
+        .where(and(eq(schema.dismissedSuggestions.orgId, orgId), eq(schema.dismissedSuggestions.brandId, brandId)));
+      return rows.map((r) => r.key);
+    },
+
+    async dismissSuggestion(brandId: string, key: string): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .insert(schema.dismissedSuggestions)
+        .values({ orgId, brandId, key: key.slice(0, 120) })
+        .onConflictDoNothing({ target: [schema.dismissedSuggestions.orgId, schema.dismissedSuggestions.brandId, schema.dismissedSuggestions.key] });
+    },
+
+    /** Recent AI/background operations for the Creation Center (Phase 2 #21). */
+    async recentJobs(brandId: string, limit = 30) {
+      return db
+        .select({
+          id: schema.jobs.id,
+          type: schema.jobs.type,
+          status: schema.jobs.status,
+          progress: schema.jobs.progress,
+          phase: schema.jobs.phase,
+          lastError: schema.jobs.lastError,
+          createdAt: schema.jobs.createdAt,
+          updatedAt: schema.jobs.updatedAt,
+        })
+        .from(schema.jobs)
+        .where(and(eq(schema.jobs.orgId, orgId), eq(schema.jobs.brandId, brandId)))
+        .orderBy(desc(schema.jobs.createdAt))
+        .limit(limit);
     },
 
     /** Bulk-insert AI-suggested groups (dedupe by name within the brand). */

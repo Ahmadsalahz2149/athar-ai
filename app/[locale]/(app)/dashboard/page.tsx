@@ -7,6 +7,7 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import { ProcessingWatcher } from "@/components/ProcessingWatcher";
 import { activeJobsCount } from "../ingest/actions";
 import { CountUp } from "@/components/CountUp";
+import { SmartSuggestions } from "./SmartSuggestions";
 import {
   ScoreRadial,
   StatCard,
@@ -50,11 +51,12 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     const full = (data.user?.user_metadata?.full_name as string) || data.user?.email?.split("@")[0] || "";
     firstName = full.split(" ")[0];
   }
+  let dismissed: string[] = [];
   if (db) {
     const ctx = await currentContext();
     if (ctx) {
       const org = forOrg(db, ctx.orgId);
-      const [c, dna, ii, ss, sc, la, dd] = await Promise.all([
+      const [c, dna, ii, ss, sc, la, dd, dis] = await Promise.all([
         org.counts(ctx.brandId),
         org.currentDna(ctx.brandId),
         org.listIdeas(ctx.brandId, { limit: 3 }),
@@ -62,6 +64,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         org.scheduledDrafts(ctx.brandId),
         org.lastAnalysisAt(ctx.brandId),
         org.dnaCompletionDelta(ctx.brandId),
+        org.listDismissed(ctx.brandId),
       ]);
       counts = c;
       completeness = dna?.completion_pct ?? 0;
@@ -71,8 +74,20 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       scheduled = sc;
       lastAnalysis = la;
       dnaDelta = dd;
+      dismissed = dis;
     }
   }
+
+  // Smart, dismissible suggestions (Phase 2 #19) — derived from real state.
+  const allSuggestions: { key: string; text: string; cta: string; href: string }[] = [];
+  if (counts.sources === 0) allSuggestions.push({ key: "upload_first", text: t("suggUpload"), cta: t("suggUploadCta"), href: "/ingest" });
+  if (completeness > 0 && completeness < 90 && counts.sources > 0) allSuggestions.push({ key: "improve_dna", text: t("suggDna", { pct: nf.format(completeness) }), cta: t("suggDnaCta"), href: "/ingest" });
+  if (completeness >= 40 && counts.drafts === 0) allSuggestions.push({ key: "write_first", text: t("suggWrite"), cta: t("suggWriteCta"), href: "/studio" });
+  if (completeness >= 40) allSuggestions.push({ key: "monthly_plan", text: t("suggPlan"), cta: t("suggPlanCta"), href: "/plan" });
+  if (counts.pending > 0) allSuggestions.push({ key: "review_pending", text: t("suggReview", { n: nf.format(counts.pending) }), cta: t("suggReviewCta"), href: "/approvals" });
+  if (counts.drafts > 0 && counts.scheduled === 0) allSuggestions.push({ key: "schedule_posts", text: t("suggSchedule"), cta: t("suggScheduleCta"), href: "/calendar" });
+  if (counts.published > 0) allSuggestions.push({ key: "distribute_posts", text: t("suggDistribute"), cta: t("suggDistributeCta"), href: "/distribute" });
+  const suggestions = allSuggestions.filter((s) => !dismissed.includes(s.key)).slice(0, 3);
 
   const awaiting = allSources.filter((s) => !s.analyzed && s.status !== "processing").length;
   const processing = allSources.filter((s) => s.status === "processing").length;
@@ -121,6 +136,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         </div>
         {lastAnalysis && <StatusPill tone="teal" dot>{t("lastAnalysis", { when: relTime(lastAnalysis, locale) })}</StatusPill>}
       </div>
+
+      {suggestions.length > 0 && <SmartSuggestions items={suggestions} />}
 
       {/* KPI row */}
       <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,168px),1fr))", gap: 14, marginBlockStart: 22 }}>

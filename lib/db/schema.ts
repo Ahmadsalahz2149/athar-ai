@@ -322,3 +322,36 @@ export const sourceChunks = pgTable(
     index("source_chunks_brand_idx").on(t.orgId, t.brandId),
   ],
 );
+
+// Monthly content plan + trends (Phase 2). One row per brand-month holds the
+// AI-generated plan (array of scheduled post ideas) and the month's trend
+// angles, so the Planning hub can render and regenerate them cheaply.
+export const contentPlans = pgTable(
+  "content_plans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    brandId: uuid("brand_id").notNull(),
+    // 'YYYY-MM'
+    month: text("month").notNull(),
+    // { plan: {day,pillar,title,angle,format}[], trends: string[], generatedAt }
+    payload: jsonb("payload").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("content_plans_brand_month_idx").on(t.orgId, t.brandId, t.month)],
+);
+
+// Per-user dismissed smart suggestions (Phase 2 #19). Keyed by a stable
+// suggestion key so a dismissed tip stays hidden without re-showing.
+export const dismissedSuggestions = pgTable(
+  "dismissed_suggestions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    brandId: uuid("brand_id").notNull(),
+    key: text("key").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("dismissed_suggestions_key_idx").on(t.orgId, t.brandId, t.key)],
+);

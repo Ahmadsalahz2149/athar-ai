@@ -49,3 +49,8 @@ export function estimateDna(): number {
 export function estimateAudience(): number {
   return COSTS.analyze;
 }
+
+/** Monthly content plan + trends (planning hub). A big generation. */
+export function estimatePlan(): number {
+  return COSTS.dna;
+}

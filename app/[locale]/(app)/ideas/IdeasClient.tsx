@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { generateIdeas, toggleSaveIdea, markIdeaUsed } from "./actions";
+import { generateIdeas, toggleSaveIdea, markIdeaUsed, batchGenerate } from "./actions";
 import { Chip, StatusPill, EmptyState, IconTile, GlyphIcon, btnTeal, btnNavy } from "@/components/ui/display";
 
 type Idea = {
@@ -43,6 +43,25 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
   const [saved, setSaved] = useState<Record<string, boolean>>(
     Object.fromEntries(ideas.map((i) => [i.id, i.status === "saved"])),
   );
+
+  // Batch generation (#8): select ideas → generate drafts for all at once.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [batchPending, startBatch] = useTransition();
+  const [batchMsg, setBatchMsg] = useState<string | null>(null);
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else if (next.size < 6) next.add(id);
+      return next;
+    });
+  const runBatch = () => {
+    setBatchMsg(null);
+    startBatch(async () => {
+      const r = await batchGenerate([...selected]);
+      if (r.ok) { setBatchMsg(t("batchDone", { n: nf.format(r.created) })); setSelected(new Set()); router.refresh(); }
+      else setBatchMsg(r.error === "no_dna" ? t("needDna") : r.error === "insufficient_credits" ? t("insufficientCredits") : t("error"));
+    });
+  };
 
   const gen = () => {
     setErr(null);
@@ -114,10 +133,20 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
       ) : (
         <div style={{ marginBlockStart: 16, display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
           {shown.map((i) => (
-            <div key={i.id} className="lift" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 11 }}>
+            <div key={i.id} className="lift" style={{ background: "var(--card)", border: `1px solid ${selected.has(i.id) ? "var(--teal)" : "var(--border)"}`, borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 11 }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                 <IconTile tint={CAT_TINT[i.category ?? "educational"] ?? "var(--teal-tint)"} size={38}><GlyphIcon name={CAT_GLYPH[i.category ?? "educational"] ?? "bulb"} size={19} color="var(--teal-deep)" /></IconTile>
-                {statusPill(i)}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {statusPill(i)}
+                  <button
+                    onClick={() => toggleSelect(i.id)}
+                    aria-label={t("selectForBatch")}
+                    aria-pressed={selected.has(i.id)}
+                    style={{ width: 24, height: 24, borderRadius: 7, cursor: "pointer", flexShrink: 0, display: "grid", placeItems: "center", border: `1.5px solid ${selected.has(i.id) ? "var(--teal)" : "var(--border-2)"}`, background: selected.has(i.id) ? "var(--teal)" : "transparent", color: "#fff", fontSize: 13, lineHeight: 1 }}
+                  >
+                    {selected.has(i.id) ? "✓" : ""}
+                  </button>
+                </div>
               </div>
               <div style={{ fontWeight: 700, color: "var(--heading)", lineHeight: 1.6, fontSize: 15 }}>{i.title}</div>
               {i.angle && <div style={{ fontSize: 13, color: "var(--slate-2)", lineHeight: 1.7, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{i.angle}</div>}
@@ -145,6 +174,21 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Batch generation bar (#8) — appears when ideas are selected */}
+      {(selected.size > 0 || batchMsg) && (
+        <div className="glass-bar" style={{ position: "sticky", insetBlockEnd: 12, marginBlockStart: 16, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 16px", borderRadius: 14, border: "1px solid var(--teal)", background: "var(--surface,#fff)", boxShadow: "0 6px 24px rgba(16,42,67,.12)" }}>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--heading)", flex: 1, minWidth: 140 }}>
+            {batchMsg ?? t("batchSelected", { n: nf.format(selected.size) })}
+          </span>
+          {selected.size > 0 && (
+            <>
+              <button onClick={() => { setSelected(new Set()); setBatchMsg(null); }} style={{ ...btnNavy, background: "transparent", color: "var(--slate)", border: "1px solid var(--border-2)", height: 40 }}>{t("batchClear")}</button>
+              <button onClick={runBatch} disabled={batchPending} style={{ ...btnTeal, height: 40, opacity: batchPending ? 0.7 : 1 }}>✦ {batchPending ? t("batchRunning") : t("batchGenerate", { n: nf.format(selected.size) })}</button>
+            </>
+          )}
         </div>
       )}
     </div>
