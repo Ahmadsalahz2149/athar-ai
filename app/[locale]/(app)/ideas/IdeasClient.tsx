@@ -51,7 +51,7 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
   const toggleSelect = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else if (next.size < 6) next.add(id);
+      if (next.has(id)) next.delete(id); else if (next.size < 4) next.add(id);
       return next;
     });
   const runBatch = () => {

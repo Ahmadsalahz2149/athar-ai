@@ -43,8 +43,10 @@ export async function generateMonthlyPlan(month: string): Promise<{ ok: true; pl
 
     const res = await generateText({
       system: PLAN_SYSTEM,
-      user: buildPlanMessage({ dna, brand, monthName, daysInMonth: dim, count: 20, occasions }),
-      maxTokens: 4096,
+      // 16 items with Arabic angles fit comfortably; 8192 tokens leaves headroom
+      // so the JSON never truncates (a 20-item plan overflowed 4096 and failed).
+      user: buildPlanMessage({ dna, brand, monthName, daysInMonth: dim, count: 16, occasions }),
+      maxTokens: 8192,
       anthropicModel: process.env.ANTHROPIC_DRAFT_MODEL || MODELS.SONNET,
       schema: PLAN_SCHEMA,
       provider,

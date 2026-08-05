@@ -112,7 +112,7 @@ export async function markIdeaUsed(ideaId: string): Promise<{ ok: boolean }> {
 
 /** Batch-generate drafts from selected ideas (Phase 2 #8). For each idea we
  * compose a post in the brand's voice, score + save it as a draft, and mark the
- * idea "used". Capped at 6 per call to stay within the function budget. */
+ * idea "used". Capped at 4 per call to stay within the 60s function budget. */
 export async function batchGenerate(
   ideaIds: string[],
   opts?: { platform?: string },
@@ -124,7 +124,7 @@ export async function batchGenerate(
     const ctx = await currentContext();
     if (!ctx) return { ok: false, error: "no_session" };
 
-    const ids = Array.from(new Set(ideaIds)).slice(0, 6);
+    const ids = Array.from(new Set(ideaIds)).slice(0, 4); // cap keeps the batch under the 60s function limit
     if (!ids.length) return { ok: false, error: "none_selected" };
 
     const t = forOrg(db, ctx.orgId);
