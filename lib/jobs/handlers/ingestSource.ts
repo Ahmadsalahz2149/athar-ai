@@ -58,9 +58,12 @@ export const ingestSourceHandler: JobHandler = async ({ db, job, progress }) => 
     if (p.mode === "file") {
       try { await removeObject(p.storagePath); } catch { /* best-effort cleanup */ }
     }
-    // Chain analysis when the user asked for ideas/DNA on upload.
+    // Chain analysis + DNA synthesis when the user asked for ideas/DNA on upload.
+    // Synthesis reads ALL the brand's chunks (including these), so uploading
+    // posts actually builds the Content DNA — the core "learn my voice" step.
     if (p.analyzeAfter) {
       await org.enqueueJob(brandId, "analyze_source", { sourceId: p.sourceId });
+      await org.enqueueJob(brandId, "synthesize_dna", { trigger: `ingest:${p.sourceId}` });
     }
     await progress(100, "done");
     return { sourceId: p.sourceId, chunks: chunks.length };

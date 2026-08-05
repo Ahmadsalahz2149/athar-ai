@@ -6,8 +6,10 @@
 import { registerHandler } from "./runner";
 import { ingestSourceHandler } from "./handlers/ingestSource";
 import { analyzeSourceHandler } from "./handlers/analyzeSource";
+import { synthesizeDnaHandler } from "./handlers/synthesizeDna";
 
 registerHandler("ingest_source", ingestSourceHandler);
 registerHandler("analyze_source", analyzeSourceHandler);
+registerHandler("synthesize_dna", synthesizeDnaHandler);
 
 export {};

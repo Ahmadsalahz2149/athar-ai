@@ -6,7 +6,7 @@ import { fetchUrlText } from "@/lib/ingest/fetchUrl";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
-import { estimateIngest, estimateTranscribe } from "@/lib/credits/costs";
+import { estimateIngest, estimateTranscribe, estimateDna } from "@/lib/credits/costs";
 import { uploadBytes, hasStorage } from "@/lib/storage/uploads";
 import { kickWorker } from "@/lib/jobs/kick";
 import { runBatch } from "@/lib/jobs/runner";
@@ -94,6 +94,22 @@ export async function pumpWorker(): Promise<{ processed: number }> {
   } catch {
     return { processed: 0 };
   }
+}
+
+/** Build (or rebuild) the brand's Content DNA from its already-uploaded sources.
+ * Enqueues a synthesize_dna job and returns its id so the client can poll (and
+ * pump) it to completion. Used by the DNA page when sources exist but no DNA has
+ * been synthesized yet. */
+export async function buildDna(): Promise<{ ok: true; jobId: string } | { ok: false; error: string }> {
+  if (!db) return { ok: false, error: "no_session" };
+  const ctx = await currentContext();
+  if (!ctx) return { ok: false, error: "no_session" };
+  const t = forOrg(db, ctx.orgId);
+  if ((await t.countChunks(ctx.brandId)) === 0) return { ok: false, error: "no_sources" };
+  if ((await t.balance()) < estimateDna()) return { ok: false, error: "insufficient_credits" };
+  const jobId = await t.enqueueJob(ctx.brandId, "synthesize_dna", { trigger: `manual:${ctx.brandId}:${Date.now()}` });
+  kickWorker();
+  return { ok: true, jobId };
 }
 
 /** Count of active (queued/running) jobs for the current brand — drives the

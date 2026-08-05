@@ -7,6 +7,7 @@ import type { ContentDna } from "@/lib/ai/prompts";
 import { ScoreRadial, SegmentMeter, EmptyState, GlyphIcon, btnNavy, btnGhost } from "@/components/ui/display";
 import { EditDnaModal } from "./EditDnaModal";
 import { TraitSources } from "./TraitSources";
+import { BuildDnaButton } from "./BuildDnaButton";
 
 const PILLAR_META = [
   { key: "educational", glyph: "book", tint: "var(--gold-tint)", fg: "var(--gold-dark)" },
@@ -72,18 +73,26 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
 
   let dna: ContentDna | null = null;
   let meta: { version: number; createdAt: Date; count: number } | null = null;
+  let hasSources = false;
   if (db) {
     const ctx = await currentContext();
     if (ctx) {
       const t = forOrg(db, ctx.orgId);
-      [dna, meta] = await Promise.all([t.currentDna(ctx.brandId), t.dnaMeta(ctx.brandId)]);
+      const [d, m, chunks] = await Promise.all([t.currentDna(ctx.brandId), t.dnaMeta(ctx.brandId), t.countChunks(ctx.brandId)]);
+      dna = d;
+      meta = m;
+      hasSources = chunks > 0;
     }
   }
 
   if (!dna) {
     return (
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "clamp(40px,8vw,90px) clamp(16px,4vw,32px)", textAlign: "center", animation: "floatUp .4s ease" }}>
-        <EmptyState title={t("emptyTitle")} body={t("emptyBody")} cta={<Link href="/onboarding/1" style={btnNavy}>{t("buildNow")}</Link>} />
+        <EmptyState
+          title={t("emptyTitle")}
+          body={hasSources ? t("emptyBodyHasSources") : t("emptyBody")}
+          cta={<BuildDnaButton hasSources={hasSources} buildLabel={t("buildFromSources")} onboardLabel={t("buildNow")} />}
+        />
       </main>
     );
   }

@@ -1,6 +1,6 @@
 /** Background job contracts (INFRA phase 1). */
 
-export type JobType = "ingest_source" | "analyze_source";
+export type JobType = "ingest_source" | "analyze_source" | "synthesize_dna";
 export type JobStatus = "queued" | "running" | "done" | "failed" | "dead";
 
 export type JobRow = {

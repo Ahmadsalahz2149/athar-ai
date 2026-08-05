@@ -533,7 +533,15 @@
     "traitSrcNone": "No matching source",
     "traitSrcNoKey": "Attribution unavailable (embeddings not configured).",
     "traitSrcNoSources": "Add sources first so we can attribute traits.",
-    "traitSrcEmpty": "Not enough traits to attribute yet."
+    "traitSrcEmpty": "Not enough traits to attribute yet.",
+    "emptyBodyHasSources": "You've already uploaded sources — click to build your DNA from them now (the AI reads your writing and extracts your voice and tone).",
+    "buildFromSources": "Build my DNA from my sources",
+    "building": "Building your DNA…",
+    "buildingHint": "The AI is reading your writing to extract your voice — this can take a minute.",
+    "errCredits": "Not enough credits to build the DNA.",
+    "errNoSources": "No sources yet — upload your posts first.",
+    "errGeneric": "Couldn't build the DNA. Try again.",
+    "errTimeout": "It took longer than expected. Refresh the page and try again."
   },
   "Vault": {
     "title": "Knowledge Vault",

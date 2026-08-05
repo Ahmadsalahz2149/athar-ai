@@ -616,6 +616,19 @@ export function forOrg(db: Db, orgId: string) {
       return rows[0] ?? null;
     },
 
+    /** Sample text from ALL the brand's sources (their posts/writing), for DNA
+     * synthesis. Pulls the earliest chunks across sources so the voice model
+     * sees a broad spread rather than one long document. */
+    async brandSampleText(brandId: string, limit = 40): Promise<string> {
+      const rows = await db
+        .select({ content: schema.sourceChunks.content })
+        .from(schema.sourceChunks)
+        .where(and(eq(schema.sourceChunks.orgId, orgId), eq(schema.sourceChunks.brandId, brandId)))
+        .orderBy(schema.sourceChunks.sourceId, schema.sourceChunks.idx)
+        .limit(limit);
+      return rows.map((r, i) => `[${i + 1}] ${r.content}`).join("\n\n");
+    },
+
     async sourceChunkTexts(brandId: string, sourceId: string, limit = 40): Promise<string[]> {
       const rows = await db
         .select({ content: schema.sourceChunks.content })

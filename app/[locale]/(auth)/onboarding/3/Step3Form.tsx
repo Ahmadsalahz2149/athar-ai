@@ -70,6 +70,8 @@ export function Step3Form() {
   const upload = (file: File) => {
     const fd = new FormData();
     fd.append("file", file);
+    // Onboarding step 3 is the "build my DNA" flow → always synthesize the DNA.
+    fd.append("actions", JSON.stringify(["dna"]));
     const ext = file.name.split(".").pop()?.toUpperCase() ?? "TXT";
     run(() => ingestFile(fd), file.name, ext, (file.size / 1048576).toFixed(1));
   };
@@ -136,8 +138,8 @@ export function Step3Form() {
             <button
               onClick={() =>
                 mode === "url"
-                  ? run(() => ingestUrl({ url: text }), text, "URL")
-                  : run(() => ingestText({ text, title: t("s3PostsTitle") }), t("s3PostsTitle"), "TXT")
+                  ? run(() => ingestUrl({ url: text, opts: { actions: ["dna"] } }), text, "URL")
+                  : run(() => ingestText({ text, title: t("s3PostsTitle"), opts: { actions: ["dna"] } }), t("s3PostsTitle"), "TXT")
               }
               disabled={pending || !text.trim()}
               style={{ ...btnTeal, height: 42, marginBlockStart: 10, opacity: pending || !text.trim() ? 0.6 : 1 }}
