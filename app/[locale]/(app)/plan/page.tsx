@@ -7,6 +7,8 @@ import { upcomingDays } from "@/lib/plan/worldDays";
 import { PlanClient, type Occasion } from "./PlanClient";
 
 export const dynamic = "force-dynamic";
+// Give the plan-generation server action room on Vercel.
+export const maxDuration = 60;
 
 export default async function PlanPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

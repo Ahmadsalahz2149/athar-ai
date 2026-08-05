@@ -12,9 +12,6 @@ import { PLAN_SYSTEM, PLAN_SCHEMA, buildPlanMessage, buildBrandContext } from "@
 import { normalizePlan, type MonthlyPlan } from "@/lib/plan/types";
 import { daysInMonth } from "@/lib/plan/worldDays";
 
-// Give the plan generation room on Vercel.
-export const maxDuration = 60;
-
 /** Generate (or regenerate) the monthly content plan + trends for `month`
  * ('YYYY-MM') from the brand's DNA + profile + products + the month's occasions. */
 export async function generateMonthlyPlan(month: string): Promise<{ ok: true; plan: MonthlyPlan } | { ok: false; error: string }> {

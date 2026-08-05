@@ -15,9 +15,6 @@ import { IDEAS_SYSTEM, IDEAS_SCHEMA, buildIdeasUserMessage, buildBrandContext, S
 import { postScore, dnaMatch } from "@/lib/ai/score";
 import { estimateCompose } from "@/lib/credits/costs";
 
-// Batch may generate several drafts — give it room on Vercel.
-export const maxDuration = 60;
-
 export type IdeasResult =
   | { ok: true; count: number }
   | {

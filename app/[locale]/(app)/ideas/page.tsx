@@ -4,6 +4,9 @@ import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { IdeasClient } from "./IdeasClient";
 
+// Give the batch-generation server action room on Vercel.
+export const maxDuration = 60;
+
 export default async function IdeasPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
