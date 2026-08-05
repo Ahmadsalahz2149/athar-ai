@@ -2,6 +2,9 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { IngestPanel } from "./IngestPanel";
 import { NumberedStepper, IconTile } from "@/components/ui/display";
 
+// Give the worker-pump server action room to process a batch on Vercel.
+export const maxDuration = 60;
+
 export default async function IngestPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);

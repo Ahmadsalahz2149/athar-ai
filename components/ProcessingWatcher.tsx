@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "@/i18n/navigation";
+import { pumpWorker } from "@/app/[locale]/(app)/ingest/actions";
 
 /**
  * Live-status watcher (INFRA phase 3). Mounted by a server page only when it has
@@ -17,7 +18,10 @@ export function ProcessingWatcher({ poll, intervalMs = 3000 }: { poll: () => Pro
     const tick = async () => {
       if (stopped) return;
       let active = 0;
-      try { active = await poll(); } catch { /* transient — try again */ }
+      try {
+        await pumpWorker().catch(() => {}); // drive the queue (no always-on worker on serverless)
+        active = await poll();
+      } catch { /* transient — try again */ }
       if (stopped) return;
       router.refresh();
       if (active > 0) handle = setTimeout(tick, intervalMs); // keep watching

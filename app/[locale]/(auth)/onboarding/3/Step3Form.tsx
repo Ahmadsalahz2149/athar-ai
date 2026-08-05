@@ -3,12 +3,15 @@
 import { useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { ingestFile, ingestText, ingestUrl, jobStatus, type IngestResult } from "@/app/[locale]/(app)/ingest/actions";
+import { ingestFile, ingestText, ingestUrl, jobStatus, pumpWorker, type IngestResult } from "@/app/[locale]/(app)/ingest/actions";
 import { FileTypeBadge, StatusPill, ProgressMeter, btnTeal, btnGhost } from "@/components/ui/display";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function pollJob(jobId: string): Promise<{ done: boolean; chunks?: number; error?: string }> {
   for (let i = 0; i < 200; i++) {
+    // Serverless has no always-on worker, so the client drives it: each tick we
+    // pump a batch (processes this job) then read its status.
+    await pumpWorker().catch(() => {});
     const s = await jobStatus(jobId);
     if (s.ok) {
       if (s.status === "done") return { done: true, chunks: s.chunks };

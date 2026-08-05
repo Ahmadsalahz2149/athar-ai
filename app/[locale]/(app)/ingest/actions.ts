@@ -9,6 +9,9 @@ import { currentContext } from "@/lib/auth/current";
 import { estimateIngest, estimateTranscribe } from "@/lib/credits/costs";
 import { uploadBytes, hasStorage } from "@/lib/storage/uploads";
 import { kickWorker } from "@/lib/jobs/kick";
+import { runBatch } from "@/lib/jobs/runner";
+import { reapStale } from "@/lib/jobs/queue";
+import "@/lib/jobs/handlers"; // ensure job handlers are registered for the pump
 
 /** Options captured on the Upload screen (design parity, really stored/applied). */
 export type IngestOptions = {
@@ -73,6 +76,24 @@ async function enqueueText(
   });
   kickWorker();
   return { ok: true, sourceId, jobId };
+}
+
+/**
+ * Drive the background worker from the client while it polls for a job.
+ * Serverless has no always-on worker: the `after()` kick can be cut short by the
+ * function duration cap, and on Hobby the durable cron only runs once daily. So
+ * the client calls this each poll to actually push its job through the pipeline.
+ * Safe to call repeatedly and concurrently — runBatch claims jobs with
+ * FOR UPDATE SKIP LOCKED, so overlapping pumps never double-process. */
+export async function pumpWorker(): Promise<{ processed: number }> {
+  if (!db) return { processed: 0 };
+  try {
+    await reapStale(db); // recover jobs a prior (killed) invocation left locked
+    const processed = await runBatch(db, `pump_${Date.now()}`, 5);
+    return { processed };
+  } catch {
+    return { processed: 0 };
+  }
 }
 
 /** Count of active (queued/running) jobs for the current brand — drives the

@@ -3,13 +3,16 @@
 import { useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { ingestFile, ingestText, ingestUrl, jobStatus, type IngestResult } from "./actions";
+import { ingestFile, ingestText, ingestUrl, jobStatus, pumpWorker, type IngestResult } from "./actions";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Poll a job to completion, reporting progress. Terminal states are done | dead. */
+/** Poll a job to completion, reporting progress. Terminal states are done | dead.
+ * Serverless has no always-on worker, so each tick also pumps a batch to actually
+ * push the job through the pipeline (the `after()` kick can be cut short on Hobby). */
 async function pollJob(jobId: string, onTick: (progress: number, phase: string | null) => void): Promise<{ done: boolean; chunks?: number; error?: string }> {
   for (let i = 0; i < 200; i++) {
+    await pumpWorker().catch(() => {});
     const s = await jobStatus(jobId);
     if (s.ok) {
       onTick(s.progress, s.phase);
