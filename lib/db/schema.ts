@@ -36,6 +36,9 @@ export const brands = pgTable("brands", {
   // These feed the generation prompts alongside the DNA.
   logoUrl: text("logo_url"),
   profile: jsonb("profile"),
+  // Phase 2 (distribution hub): cached AI-generated audience profile + group
+  // search keywords, shape { audience, keywords, generatedAt } (see lib/distribution).
+  distribution: jsonb("distribution"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
@@ -58,6 +61,34 @@ export const products = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => [index("products_brand_idx").on(t.orgId, t.brandId)],
+);
+
+// Target groups/communities the brand distributes posts to (Phase 2 —
+// distribution hub). This is the curated "sheet": the user (aided by AI
+// suggestions) tracks groups, their rules, cadence, and last-posted time so
+// assisted posting can dedupe and respect each community's pace. No automation
+// of the user's account — posting stays human-in-the-loop by design.
+export const targetGroups = pgTable(
+  "target_groups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    brandId: uuid("brand_id").notNull(),
+    platform: text("platform").notNull().default("facebook"),
+    name: text("name").notNull(),
+    url: text("url"),
+    memberCount: integer("member_count"),
+    rules: text("rules"),
+    // prospect | active | paused | blocked
+    status: text("status").notNull().default("prospect"),
+    // minimum days between posts to this group (anti-spam cadence)
+    cadenceDays: integer("cadence_days").notNull().default(3),
+    notes: text("notes"),
+    lastPostedAt: timestamp("last_posted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("target_groups_brand_idx").on(t.orgId, t.brandId)],
 );
 
 export const dnaVersions = pgTable("dna_versions", {

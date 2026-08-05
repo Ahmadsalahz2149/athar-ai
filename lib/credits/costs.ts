@@ -44,3 +44,8 @@ export function estimateStudio(count: number): number {
 export function estimateDna(): number {
   return COSTS.dna;
 }
+
+/** Audience + group-keyword analysis (distribution hub). Analysis-tier cost. */
+export function estimateAudience(): number {
+  return COSTS.analyze;
+}

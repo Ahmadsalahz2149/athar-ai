@@ -4,6 +4,7 @@ import * as schema from "./schema";
 import type { ContentDna } from "@/lib/ai/prompts";
 import { normalizeDna } from "@/lib/ai/normalize";
 import { type BrandProfile, normalizeProfile } from "@/lib/brand/profile";
+import { type DistributionKit, normalizeKit } from "@/lib/distribution/types";
 
 /**
  * Tenancy façade (ADR-005). ALL tenant-table access must go through forOrg(db, orgId):
@@ -867,6 +868,103 @@ export function forOrg(db: Db, orgId: string) {
         .update(schema.products)
         .set({ deletedAt: new Date() })
         .where(and(eq(schema.products.id, productId), eq(schema.products.orgId, orgId), eq(schema.products.brandId, brandId)));
+    },
+
+    // --- Distribution hub (Phase 2): audience kit + target groups ---
+
+    /** The cached audience/keywords kit, normalized (safe even if never set). */
+    async getDistribution(brandId: string): Promise<DistributionKit> {
+      const rows = await db
+        .select({ distribution: schema.brands.distribution })
+        .from(schema.brands)
+        .where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)))
+        .limit(1);
+      return normalizeKit(rows[0]?.distribution ?? null);
+    },
+
+    async setDistribution(brandId: string, kit: DistributionKit): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .update(schema.brands)
+        .set({ distribution: normalizeKit(kit) })
+        .where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)));
+    },
+
+    async listGroups(brandId: string) {
+      return db
+        .select()
+        .from(schema.targetGroups)
+        .where(and(eq(schema.targetGroups.orgId, orgId), eq(schema.targetGroups.brandId, brandId), isNull(schema.targetGroups.deletedAt)))
+        .orderBy(desc(schema.targetGroups.createdAt));
+    },
+
+    async saveGroup(
+      brandId: string,
+      g: { id?: string; platform?: string; name: string; url?: string | null; memberCount?: number | null; rules?: string | null; status?: string; cadenceDays?: number; notes?: string | null },
+    ): Promise<string> {
+      await assertBrand(brandId);
+      const values = {
+        platform: g.platform?.trim().slice(0, 30) || "facebook",
+        name: g.name.trim().slice(0, 200),
+        url: g.url?.trim().slice(0, 500) || null,
+        memberCount: typeof g.memberCount === "number" && g.memberCount >= 0 ? Math.floor(g.memberCount) : null,
+        rules: g.rules?.trim().slice(0, 2000) || null,
+        status: ["prospect", "active", "paused", "blocked"].includes(g.status ?? "") ? (g.status as string) : "prospect",
+        cadenceDays: typeof g.cadenceDays === "number" && g.cadenceDays > 0 ? Math.min(60, Math.floor(g.cadenceDays)) : 3,
+        notes: g.notes?.trim().slice(0, 1000) || null,
+      };
+      if (g.id) {
+        await db
+          .update(schema.targetGroups)
+          .set(values)
+          .where(and(eq(schema.targetGroups.id, g.id), eq(schema.targetGroups.orgId, orgId), eq(schema.targetGroups.brandId, brandId)));
+        return g.id;
+      }
+      const [row] = await db
+        .insert(schema.targetGroups)
+        .values({ orgId, brandId, ...values })
+        .returning({ id: schema.targetGroups.id });
+      return row.id;
+    },
+
+    async deleteGroup(brandId: string, groupId: string): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .update(schema.targetGroups)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(schema.targetGroups.id, groupId), eq(schema.targetGroups.orgId, orgId), eq(schema.targetGroups.brandId, brandId)));
+    },
+
+    /** Record that a post was shared to this group now (cadence + dedupe). */
+    async markGroupPosted(brandId: string, groupId: string): Promise<void> {
+      await assertBrand(brandId);
+      await db
+        .update(schema.targetGroups)
+        .set({ lastPostedAt: new Date(), status: "active" })
+        .where(and(eq(schema.targetGroups.id, groupId), eq(schema.targetGroups.orgId, orgId), eq(schema.targetGroups.brandId, brandId)));
+    },
+
+    /** Bulk-insert AI-suggested groups (dedupe by name within the brand). */
+    async addSuggestedGroups(brandId: string, items: { platform: string; name: string; url?: string | null }[]): Promise<number> {
+      await assertBrand(brandId);
+      if (!items.length) return 0;
+      const existing = await db
+        .select({ name: schema.targetGroups.name })
+        .from(schema.targetGroups)
+        .where(and(eq(schema.targetGroups.orgId, orgId), eq(schema.targetGroups.brandId, brandId), isNull(schema.targetGroups.deletedAt)));
+      const seen = new Set(existing.map((e) => e.name.trim().toLowerCase()));
+      const fresh = items.filter((it) => it.name?.trim() && !seen.has(it.name.trim().toLowerCase()));
+      if (!fresh.length) return 0;
+      await db.insert(schema.targetGroups).values(
+        fresh.map((it) => ({
+          orgId, brandId,
+          platform: it.platform?.trim().slice(0, 30) || "facebook",
+          name: it.name.trim().slice(0, 200),
+          url: it.url?.trim().slice(0, 500) || null,
+          status: "prospect",
+        })),
+      );
+      return fresh.length;
     },
   };
 }
