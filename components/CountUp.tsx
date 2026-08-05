@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
  * Count-up number (perceived-quality trick #3). Animates from 0 to the target
@@ -11,20 +11,27 @@ export function CountUp({
   value,
   duration = 900,
   suffix = "",
-  format,
+  locale,
   className,
   style,
 }: {
   value: number;
   duration?: number;
   suffix?: string;
-  format?: (n: number) => string;
+  /** Locale for number formatting. A string (serializable) rather than a
+   * formatter function, so this client component can be used from a Server
+   * Component without crossing the RSC boundary with a function prop. */
+  locale?: string;
   className?: string;
   style?: React.CSSProperties;
 }) {
   const [display, setDisplay] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
   const done = useRef(false);
+  const format = useMemo(() => {
+    const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
+    return (n: number) => nf.format(n);
+  }, [locale]);
 
   useEffect(() => {
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -55,6 +62,5 @@ export function CountUp({
     return () => io.disconnect();
   }, [value, duration]);
 
-  const text = format ? format(display) : String(display);
-  return <span ref={ref} className={className} style={style}>{text}{suffix}</span>;
+  return <span ref={ref} className={className} style={style}>{format(display)}{suffix}</span>;
 }
