@@ -959,6 +959,50 @@ export function forOrg(db: Db, orgId: string) {
         .where(and(eq(schema.targetGroups.id, groupId), eq(schema.targetGroups.orgId, orgId), eq(schema.targetGroups.brandId, brandId)));
     },
 
+    // --- Coupons (Phase 4 #24): redeem a code for credits ---
+    async redeemCoupon(code: string): Promise<{ ok: true; credits: number; balance: number } | { ok: false; error: string }> {
+      const norm = code.trim().toUpperCase().slice(0, 40);
+      if (!norm) return { ok: false, error: "invalid" };
+      const rows = await db.select().from(schema.coupons).where(eq(schema.coupons.code, norm)).limit(1);
+      const coupon = rows[0];
+      if (!coupon) return { ok: false, error: "invalid" };
+      if (coupon.active !== "yes") return { ok: false, error: "inactive" };
+      if (coupon.expiresAt && coupon.expiresAt.getTime() < Date.now()) return { ok: false, error: "expired" };
+      if (coupon.redemptions >= coupon.maxRedemptions) return { ok: false, error: "exhausted" };
+      // Record the redemption first; the unique (org, coupon) index is the real
+      // guard against double-redeeming (even under a race).
+      try {
+        await db.insert(schema.couponRedemptions).values({ orgId, couponId: coupon.id });
+      } catch (e) {
+        if ((e as { code?: string })?.code === "23505") return { ok: false, error: "already" };
+        throw e;
+      }
+      await db.update(schema.coupons).set({ redemptions: sql`${schema.coupons.redemptions} + 1` }).where(eq(schema.coupons.id, coupon.id));
+      const balance = await appendLedger(Math.abs(coupon.credits), `coupon_${coupon.code}`);
+      return { ok: true, credits: coupon.credits, balance };
+    },
+
+    // --- Learning center progress (Phase 4 #18) ---
+    async completedLessons(): Promise<string[]> {
+      const rows = await db.select({ lessonId: schema.lessonProgress.lessonId }).from(schema.lessonProgress).where(eq(schema.lessonProgress.orgId, orgId));
+      return rows.map((r) => r.lessonId);
+    },
+    async completeLesson(lessonId: string): Promise<void> {
+      await db.insert(schema.lessonProgress).values({ orgId, lessonId: lessonId.slice(0, 60) }).onConflictDoNothing({ target: [schema.lessonProgress.orgId, schema.lessonProgress.lessonId] });
+    },
+
+    // --- Affiliate referral (Phase 4 #25) ---
+    async getReferral(): Promise<{ code: string; count: number }> {
+      const rows = await db.select({ code: schema.organizations.referralCode }).from(schema.organizations).where(eq(schema.organizations.id, orgId)).limit(1);
+      let code = rows[0]?.code ?? null;
+      if (!code) {
+        code = "AF" + orgId.replace(/-/g, "").slice(0, 8).toUpperCase();
+        await db.update(schema.organizations).set({ referralCode: code }).where(eq(schema.organizations.id, orgId));
+      }
+      const cnt = await db.select({ n: sql<number>`count(*)::int` }).from(schema.organizations).where(eq(schema.organizations.referredBy, orgId));
+      return { code, count: cnt[0]?.n ?? 0 };
+    },
+
     // --- Public link page (Phase 3 #17) ---
     async getLinkInfo(brandId: string) {
       const rows = await db

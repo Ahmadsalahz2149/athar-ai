@@ -32,6 +32,9 @@ const NAV: { href: string; key: string; icon: ReactNode }[] = [
   { href: "/analytics", key: "analytics", icon: <Icon d="M4 19V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM8 15l3-4 3 3 3-5" /> },
   { href: "/mylink", key: "mylink", icon: <Icon d="M9 15l6-6M10 6l1-1a3.5 3.5 0 0 1 5 5l-1 1M14 18l-1 1a3.5 3.5 0 0 1-5-5l1-1" /> },
   { href: "/activity", key: "activity", icon: <Icon d="M3 12h4l2 6 4-14 2 8h6" /> },
+  { href: "/readiness", key: "readiness", icon: <Icon d="M9 11l3 3L20 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /> },
+  { href: "/billing", key: "billing", icon: <Icon d="M3 10h18M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM7 15h4" /> },
+  { href: "/help", key: "help", icon: <Icon d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.5-1.6 1.3-1.6 2.4M12 17h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z" /> },
   { href: "/settings", key: "settings", icon: <Icon d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM4.3 15a1.7 1.7 0 0 0-.3 1.9l.1.1a2 2 0 1 0 2.8 2.8l.1-.1a1.7 1.7 0 0 1 2.9 1.2V21a2 2 0 1 0 4 0v-.1a1.7 1.7 0 0 1 2.9-1.2l.1.1a2 2 0 1 0 2.8-2.8l-.1-.1a1.7 1.7 0 0 1 1.2-2.9H21a2 2 0 1 0 0-4h-.1a1.7 1.7 0 0 1-1.2-2.9l.1-.1a2 2 0 1 0-2.8-2.8l-.1.1a1.7 1.7 0 0 1-2.9-1.2V3a2 2 0 1 0-4 0v.1A1.7 1.7 0 0 1 7.1 4.3L7 4.2a2 2 0 1 0-2.8 2.8l.1.1A1.7 1.7 0 0 1 3.2 10H3a2 2 0 1 0 0 4h.1a1.7 1.7 0 0 1 1.2 1z" /> },
 ];
 

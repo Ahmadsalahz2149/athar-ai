@@ -21,6 +21,10 @@ import { sql } from "drizzle-orm";
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
+  // Affiliate referral code (#25) — an org's shareable code; new signups that
+  // use it are attributed via referred_by.
+  referralCode: text("referral_code"),
+  referredBy: uuid("referred_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -389,4 +393,47 @@ export const linkEvents = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index("link_events_brand_idx").on(t.orgId, t.brandId, t.createdAt)],
+);
+
+// --- Phase 4 (growth & business) ---
+
+// Discount/credit coupons (#24). Redeeming a code grants credits — a real way
+// to hand out credits (beta, promos) without a payment gateway.
+export const coupons = pgTable(
+  "coupons",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    code: text("code").notNull(),
+    credits: integer("credits").notNull().default(0),
+    maxRedemptions: integer("max_redemptions").notNull().default(1),
+    redemptions: integer("redemptions").notNull().default(0),
+    active: text("active").notNull().default("yes"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("coupons_code_idx").on(t.code)],
+);
+
+// One redemption per org per coupon.
+export const couponRedemptions = pgTable(
+  "coupon_redemptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    couponId: uuid("coupon_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("coupon_redemptions_idx").on(t.orgId, t.couponId)],
+);
+
+// Learning-center progress (#18): which lessons an org completed.
+export const lessonProgress = pgTable(
+  "lesson_progress",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    lessonId: text("lesson_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("lesson_progress_idx").on(t.orgId, t.lessonId)],
 );
