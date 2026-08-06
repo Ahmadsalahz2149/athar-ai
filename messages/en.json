@@ -33,7 +33,8 @@
     "brand": "Identity",
     "distribute": "Distribute",
     "plan": "Planning",
-    "activity": "Creation Center"
+    "activity": "Creation Center",
+    "media": "Media Studio"
   },
   "Home": {
     "badge": "✦ Personal Brand Growth OS",
@@ -1058,5 +1059,39 @@
     "status_done": "Done",
     "status_failed": "Retrying",
     "status_dead": "Failed"
+  },
+  "Media": {
+    "title": "Media Studio",
+    "subtitle": "Turn your posts into voice-overs, images, and videos — with AI, right here.",
+    "tab_voice": "Voice",
+    "tab_image": "Image",
+    "tab_video": "Video",
+    "fromDraft": "From a ready draft",
+    "pickDraft": "Pick a draft…",
+    "voiceText": "Text",
+    "voicePh": "Paste or type the text to turn into a voice-over…",
+    "generating": "Generating…",
+    "genVoice": "🔊 Generate voice",
+    "download": "Download",
+    "imagePrompt": "Image description",
+    "imagePh": "e.g. minimalist teal & navy design, modern, clean…",
+    "genImage": "🖼️ Generate image",
+    "openFull": "Open",
+    "videoPrompt": "Video description",
+    "videoPh": "e.g. a calm ocean wave at sunset, cinematic…",
+    "genVideo": "🎬 Generate video",
+    "submitting": "Submitting…",
+    "videoWait": "may take a few minutes",
+    "vstatus_queueing": "Queued",
+    "vstatus_processing": "Processing",
+    "vstatus_success": "Done",
+    "vstatus_fail": "Failed",
+    "videoNeedsCredits": "Video generation needs MiniMax credits — the current plan is out of video credits. The feature is ready and works the moment credits are added.",
+    "videoFailed": "Video generation failed. Try a simpler prompt.",
+    "videoTimeout": "It took longer than expected.",
+    "noKey": "Generation key not configured for this feature.",
+    "errCredits": "Not enough credits.",
+    "errEmpty": "Enter some text first.",
+    "errGeneric": "Generation failed. Try again."
   }
 }

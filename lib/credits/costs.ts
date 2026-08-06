@@ -54,3 +54,14 @@ export function estimateAudience(): number {
 export function estimatePlan(): number {
   return COSTS.dna;
 }
+
+/** Media generation (Phase 3): voice-over, image, video. */
+export function estimateVoice(): number {
+  return COSTS.analyze;
+}
+export function estimateImage(): number {
+  return COSTS.analyze;
+}
+export function estimateVideo(): number {
+  return COSTS.transcribe;
+}
