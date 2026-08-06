@@ -1008,7 +1008,12 @@ export function forOrg(db: Db, orgId: string) {
       try {
         await db.insert(schema.couponRedemptions).values({ orgId, couponId: coupon.id });
       } catch (e) {
-        if ((e as { code?: string })?.code === "23505") return { ok: false, error: "already" };
+        // 23505 = unique_violation. Drizzle may wrap the pg error, so check the
+        // cause chain and message too (same as debitOnce).
+        const err = e as { code?: string; cause?: { code?: string }; message?: string };
+        if (err?.code === "23505" || err?.cause?.code === "23505" || /23505|duplicate key/i.test(err?.message ?? "")) {
+          return { ok: false, error: "already" };
+        }
         throw e;
       }
       await db.update(schema.coupons).set({ redemptions: sql`${schema.coupons.redemptions} + 1` }).where(eq(schema.coupons.id, coupon.id));
