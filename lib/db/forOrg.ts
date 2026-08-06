@@ -6,6 +6,7 @@ import { normalizeDna } from "@/lib/ai/normalize";
 import { type BrandProfile, normalizeProfile } from "@/lib/brand/profile";
 import { type DistributionKit, normalizeKit } from "@/lib/distribution/types";
 import { type MonthlyPlan, normalizePlan } from "@/lib/plan/types";
+import { type LinkPage, normalizeLinkPage } from "@/lib/link/types";
 
 /**
  * Tenancy façade (ADR-005). ALL tenant-table access must go through forOrg(db, orgId):
@@ -956,6 +957,46 @@ export function forOrg(db: Db, orgId: string) {
         .update(schema.targetGroups)
         .set({ lastPostedAt: new Date(), status: "active" })
         .where(and(eq(schema.targetGroups.id, groupId), eq(schema.targetGroups.orgId, orgId), eq(schema.targetGroups.brandId, brandId)));
+    },
+
+    // --- Public link page (Phase 3 #17) ---
+    async getLinkInfo(brandId: string) {
+      const rows = await db
+        .select({ handle: schema.brands.handle, linkPage: schema.brands.linkPage, name: schema.brands.name, logoUrl: schema.brands.logoUrl })
+        .from(schema.brands)
+        .where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)))
+        .limit(1);
+      const b = rows[0];
+      return { handle: b?.handle ?? null, page: normalizeLinkPage(b?.linkPage ?? null), name: b?.name ?? "", logoUrl: b?.logoUrl ?? null };
+    },
+
+    async setLinkPage(brandId: string, page: LinkPage): Promise<void> {
+      await assertBrand(brandId);
+      await db.update(schema.brands).set({ linkPage: normalizeLinkPage(page) }).where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)));
+    },
+
+    /** Claim a handle. Returns false if already taken by another brand. */
+    async setHandle(brandId: string, handle: string): Promise<boolean> {
+      await assertBrand(brandId);
+      const taken = await db
+        .select({ id: schema.brands.id })
+        .from(schema.brands)
+        .where(and(eq(schema.brands.handle, handle), isNull(schema.brands.deletedAt)))
+        .limit(1);
+      if (taken.length && taken[0].id !== brandId) return false;
+      await db.update(schema.brands).set({ handle }).where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)));
+      return true;
+    },
+
+    /** View/click totals for the link page (last 30 days + all time). */
+    async linkStats(brandId: string) {
+      const rows = await db
+        .select({ kind: schema.linkEvents.kind, n: sql<number>`count(*)::int` })
+        .from(schema.linkEvents)
+        .where(and(eq(schema.linkEvents.orgId, orgId), eq(schema.linkEvents.brandId, brandId)))
+        .groupBy(schema.linkEvents.kind);
+      const map = new Map(rows.map((r) => [r.kind, r.n]));
+      return { views: map.get("view") ?? 0, clicks: map.get("click") ?? 0 };
     },
 
     // --- Floating assistant chat (Phase 3 #20) ---

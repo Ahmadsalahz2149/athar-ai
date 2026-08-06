@@ -41,6 +41,9 @@ const eslintConfig = defineConfig([
       "lib/db/forOrg.ts",
       "lib/db/index.ts",
       "lib/auth/bootstrap.ts",
+      // Public link page (#17) — no org context; the handle is the lookup key,
+      // and it only touches public link-page data. See lib/link/publicLookup.ts.
+      "lib/link/publicLookup.ts",
       "tests/**/*.{ts,tsx}",
       "eval/**/*.{ts,tsx}",
     ],

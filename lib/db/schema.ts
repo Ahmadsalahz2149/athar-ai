@@ -39,6 +39,10 @@ export const brands = pgTable("brands", {
   // Phase 2 (distribution hub): cached AI-generated audience profile + group
   // search keywords, shape { audience, keywords, generatedAt } (see lib/distribution).
   distribution: jsonb("distribution"),
+  // Phase 3 (#17): public "link in bio" page — a unique handle + a JSON config
+  // { headline, bio, links: {label,url}[] }.
+  handle: text("handle"),
+  linkPage: jsonb("link_page"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
@@ -370,4 +374,19 @@ export const assistantMessages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index("assistant_messages_brand_idx").on(t.orgId, t.brandId, t.createdAt)],
+);
+
+// Analytics for the public link page (Phase 3 #17): a row per view/click.
+export const linkEvents = pgTable(
+  "link_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    brandId: uuid("brand_id").notNull(),
+    // view | click
+    kind: text("kind").notNull(),
+    ref: text("ref"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("link_events_brand_idx").on(t.orgId, t.brandId, t.createdAt)],
 );

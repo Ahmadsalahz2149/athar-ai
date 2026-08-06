@@ -34,7 +34,8 @@
     "distribute": "Distribute",
     "plan": "Planning",
     "activity": "Creation Center",
-    "media": "Media Studio"
+    "media": "Media Studio",
+    "mylink": "My Link"
   },
   "Home": {
     "badge": "✦ Personal Brand Growth OS",
@@ -1107,5 +1108,31 @@
     "errCredits": "Not enough credits.",
     "errNoKey": "AI key not configured.",
     "errGeneric": "Couldn't reply. Try again."
+  },
+  "MyLink": {
+    "title": "My Link page",
+    "subtitle": "One public page for all your links — share it in your bio and track its views and clicks.",
+    "views": "Views",
+    "clicks": "Clicks",
+    "yourLink": "Your public link:",
+    "copy": "Copy",
+    "handle": "Handle (URL)",
+    "handlePh": "yourname",
+    "handleHint": "Lowercase letters, numbers and ( - _ ), at least 3 characters.",
+    "headline": "Headline",
+    "headlinePh": "Your brand name",
+    "bio": "Bio",
+    "bioPh": "A line or two about you…",
+    "links": "Links",
+    "linkLabelPh": "Link label (e.g. My channel)",
+    "linkUrlPh": "https://…",
+    "addLink": "Add link",
+    "remove": "Remove",
+    "save": "Save & publish",
+    "saving": "Saving…",
+    "saved": "Saved ✓",
+    "errTaken": "That handle is taken, try another.",
+    "errHandle": "Invalid handle (at least 3 characters).",
+    "errGeneric": "Couldn't save. Try again."
   }
 }
