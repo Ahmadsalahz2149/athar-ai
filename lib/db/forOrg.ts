@@ -958,6 +958,28 @@ export function forOrg(db: Db, orgId: string) {
         .where(and(eq(schema.targetGroups.id, groupId), eq(schema.targetGroups.orgId, orgId), eq(schema.targetGroups.brandId, brandId)));
     },
 
+    // --- Floating assistant chat (Phase 3 #20) ---
+    async listAssistantMessages(brandId: string, limit = 40) {
+      const rows = await db
+        .select({ role: schema.assistantMessages.role, content: schema.assistantMessages.content, createdAt: schema.assistantMessages.createdAt })
+        .from(schema.assistantMessages)
+        .where(and(eq(schema.assistantMessages.orgId, orgId), eq(schema.assistantMessages.brandId, brandId)))
+        .orderBy(desc(schema.assistantMessages.createdAt))
+        .limit(limit);
+      return rows.reverse(); // chronological
+    },
+
+    async saveAssistantMessages(brandId: string, msgs: { role: string; content: string }[]): Promise<void> {
+      await assertBrand(brandId);
+      if (!msgs.length) return;
+      await db.insert(schema.assistantMessages).values(msgs.map((m) => ({ orgId, brandId, role: m.role, content: m.content.slice(0, 8000) })));
+    },
+
+    async clearAssistant(brandId: string): Promise<void> {
+      await assertBrand(brandId);
+      await db.delete(schema.assistantMessages).where(and(eq(schema.assistantMessages.orgId, orgId), eq(schema.assistantMessages.brandId, brandId)));
+    },
+
     // --- Monthly content plan + trends (Phase 2 #5/#6) ---
     async getPlan(brandId: string, month: string): Promise<MonthlyPlan> {
       const rows = await db

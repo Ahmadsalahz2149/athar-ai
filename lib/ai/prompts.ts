@@ -405,6 +405,31 @@ export function buildRewriteMessage(opts: { body: string; tool: string; dna: Con
   ].join("\n");
 }
 
+// ---- Floating brand assistant (Phase 3 #20) ----
+export const ASSISTANT_SYSTEM = `أنت «مساعد أثر» — مساعد ذكي داخل منصّة أثر AI لبناء العلامات الشخصية. تساعد صاحب العلامة في أفكار المحتوى، تحسين المنشورات، استراتيجية النشر، وأي سؤال عن التسويق وبناء الجمهور.
+
+قواعد:
+- الكتلة بين <BRAND>...</BRAND> (إن وُجدت) هي بصمة العلامة وهويتها ومنتجاتها — استعن بها لتجعل ردودك مخصّصة لهذه العلامة تحديدًا، لا عامة.
+- تكلّم بلهجة عملية ودودة ومباشرة، بالعربية غالبًا (أو بلغة المستخدم).
+- ردود قصيرة قابلة للتنفيذ؛ لو المستخدم طلب أفكارًا أعطِه قائمة مركّزة.
+- لا تخترع حقائق عن العلامة غير الموجودة في <BRAND>.
+- أنت داخل التطبيق: يمكنك توجيه المستخدم للشاشات (الاستوديو للكتابة، بنك الأفكار، مركز التخطيط، التوزيع، استوديو الوسائط).`;
+
+/** Compact brand brief for the assistant's system context. */
+export function buildAssistantContext(opts: { dna?: ContentDna | null; brand?: string }): string {
+  const parts: string[] = [];
+  if (opts.dna) {
+    parts.push(`ملخّص الصوت: ${opts.dna.summary}`);
+    if (opts.dna.dialect) parts.push(`اللهجة: ${opts.dna.dialect}`);
+    if (opts.dna.audience) parts.push(`الجمهور: ${opts.dna.audience}`);
+    if (opts.dna.tone_traits?.length) parts.push(`النبرة: ${opts.dna.tone_traits.join("، ")}`);
+  }
+  const body = parts.join("\n");
+  const brand = opts.brand ?? "";
+  if (!body && !brand) return "";
+  return `\n<BRAND>\n${body}${brand}\n</BRAND>`;
+}
+
 // ---- Monthly content plan + trends (Phase 2 #5/#6) ----
 export const PLAN_PROMPT_ID = "monthly-plan";
 export const PLAN_PROMPT_VERSION = "v1";

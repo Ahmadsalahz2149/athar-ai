@@ -1093,5 +1093,19 @@
     "errCredits": "Not enough credits.",
     "errEmpty": "Enter some text first.",
     "errGeneric": "Generation failed. Try again."
+  },
+  "Assistant": {
+    "title": "Athar Assistant",
+    "subtitle": "Knows your brand, helps you",
+    "open": "Open assistant",
+    "close": "Close",
+    "clear": "Clear",
+    "send": "Send",
+    "placeholder": "Ask me anything…",
+    "thinking": "Thinking…",
+    "empty": "I'm your AI assistant — I know your DNA and brand.\nAsk me for ideas, post improvements, or a posting plan.",
+    "errCredits": "Not enough credits.",
+    "errNoKey": "AI key not configured.",
+    "errGeneric": "Couldn't reply. Try again."
   }
 }

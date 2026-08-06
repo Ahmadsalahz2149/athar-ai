@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { AppTopBar } from "@/components/AppTopBar";
 import { NavProvider } from "@/components/nav-context";
+import { FloatingAssistant } from "@/components/assistant/FloatingAssistant";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { ensureUserContext } from "@/lib/auth/bootstrap";
 import { db } from "@/lib/db";
@@ -49,6 +50,7 @@ export default async function AppLayout({
           <AppTopBar userEmail={userEmail} />
           <div className="app-content scb">{children}</div>
         </div>
+        <FloatingAssistant />
       </NavProvider>
     </div>
   );

@@ -355,3 +355,19 @@ export const dismissedSuggestions = pgTable(
   },
   (t) => [uniqueIndex("dismissed_suggestions_key_idx").on(t.orgId, t.brandId, t.key)],
 );
+
+// Floating AI assistant chat history (Phase 3 #20). Brand-scoped so the
+// assistant remembers the conversation and stays in the brand's context.
+export const assistantMessages = pgTable(
+  "assistant_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    brandId: uuid("brand_id").notNull(),
+    // user | assistant
+    role: text("role").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("assistant_messages_brand_idx").on(t.orgId, t.brandId, t.createdAt)],
+);
