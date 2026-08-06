@@ -124,7 +124,7 @@ export async function activeJobsCount(): Promise<number> {
 
 /** Poll a job's status for the live-progress UI (tenancy-scoped). */
 export async function jobStatus(jobId: string): Promise<
-  | { ok: true; status: string; progress: number; phase: string | null; chunks?: number; error?: string | null }
+  | { ok: true; status: string; progress: number; phase: string | null; chunks?: number; error?: string | null; dnaBuilt?: boolean; dnaSkipped?: string }
   | { ok: false }
 > {
   if (!db) return { ok: false };
@@ -132,8 +132,16 @@ export async function jobStatus(jobId: string): Promise<
   if (!ctx) return { ok: false };
   const job = await forOrg(db, ctx.orgId).getJob(ctx.brandId, jobId);
   if (!job) return { ok: false };
-  const chunks = (job.result as { chunks?: number } | null)?.chunks;
-  return { ok: true, status: job.status, progress: job.progress, phase: job.phase, chunks, error: job.lastError };
+  const result = job.result as { chunks?: number; completion?: number; versionId?: string; skipped?: string } | null;
+  // For synthesize_dna jobs: distinguish "done + built" from "done but skipped
+  // (not enough content)" so the UI can guide instead of showing a silent 0%.
+  const dnaBuilt = typeof result?.completion === "number" || !!result?.versionId;
+  return {
+    ok: true, status: job.status, progress: job.progress, phase: job.phase,
+    chunks: result?.chunks, error: job.lastError,
+    dnaBuilt: dnaBuilt || undefined,
+    dnaSkipped: result?.skipped,
+  };
 }
 
 /** Ingest pasted text: chunk (Arabic-aware) → embed (Voyage) → store as a source

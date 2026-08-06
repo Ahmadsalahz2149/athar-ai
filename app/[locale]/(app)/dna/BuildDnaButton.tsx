@@ -32,7 +32,13 @@ export function BuildDnaButton({ hasSources, buildLabel, onboardLabel }: { hasSo
       for (let i = 0; i < 200; i++) {
         await pumpWorker().catch(() => {}); // serverless has no always-on worker
         const s = await jobStatus(r.jobId);
-        if (s.ok && s.status === "done") { router.refresh(); return; }
+        if (s.ok && s.status === "done") {
+          // Job finished but the synthesizer may have skipped for thin content —
+          // guide the user instead of silently refreshing to a 0% DNA.
+          if (s.dnaSkipped || s.dnaBuilt === undefined) { setErr(t("errThin")); return; }
+          router.refresh();
+          return;
+        }
         if (s.ok && s.status === "dead") { setErr(t("errGeneric")); return; }
         await sleep(1500);
       }
