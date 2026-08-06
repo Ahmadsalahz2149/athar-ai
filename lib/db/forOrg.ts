@@ -959,6 +959,40 @@ export function forOrg(db: Db, orgId: string) {
         .where(and(eq(schema.targetGroups.id, groupId), eq(schema.targetGroups.orgId, orgId), eq(schema.targetGroups.brandId, brandId)));
     },
 
+    // --- Internal analytics (from our own data) ---
+    /** Drafts created per ISO week for the last `weeks` weeks (content velocity). */
+    async weeklyContent(brandId: string, weeks = 8): Promise<{ week: string; n: number }[]> {
+      const rows = await db.execute(sql`
+        SELECT to_char(date_trunc('week', created_at), 'YYYY-MM-DD') AS week, count(*)::int AS n
+        FROM drafts
+        WHERE org_id = ${orgId} AND brand_id = ${brandId} AND deleted_at IS NULL
+          AND created_at > now() - (${weeks} * interval '1 week')
+        GROUP BY 1 ORDER BY 1
+      `);
+      return (rows as unknown as { week: string; n: number }[]).map((r) => ({ week: r.week, n: Number(r.n) }));
+    },
+
+    /** Credit spend grouped by reason (absolute), for the usage breakdown. */
+    async creditUsage(): Promise<{ reason: string; spent: number }[]> {
+      const rows = await db
+        .select({ reason: schema.creditLedger.reason, d: schema.creditLedger.delta })
+        .from(schema.creditLedger)
+        .where(eq(schema.creditLedger.orgId, orgId));
+      const map = new Map<string, number>();
+      for (const r of rows) if (r.d < 0) map.set(r.reason, (map.get(r.reason) ?? 0) + Math.abs(r.d));
+      return [...map.entries()].map(([reason, spent]) => ({ reason, spent })).sort((a, b) => b.spent - a.spent);
+    },
+
+    /** DNA completeness across versions (growth line). */
+    async dnaGrowth(brandId: string): Promise<{ version: number; pct: number }[]> {
+      const rows = await db
+        .select({ version: schema.dnaVersions.version, pct: schema.dnaVersions.completionPct })
+        .from(schema.dnaVersions)
+        .where(and(eq(schema.dnaVersions.orgId, orgId), eq(schema.dnaVersions.brandId, brandId)))
+        .orderBy(schema.dnaVersions.version);
+      return rows.map((r) => ({ version: r.version, pct: r.pct }));
+    },
+
     // --- Coupons (Phase 4 #24): redeem a code for credits ---
     async redeemCoupon(code: string): Promise<{ ok: true; credits: number; balance: number } | { ok: false; error: string }> {
       const norm = code.trim().toUpperCase().slice(0, 40);
