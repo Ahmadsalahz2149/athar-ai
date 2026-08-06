@@ -60,3 +60,28 @@ export async function removeObject(path: string): Promise<void> {
   if (!client) return;
   await client.storage.from(BUCKET).remove([path]);
 }
+
+// Public bucket for brand assets (logos) — served by a stable public URL so the
+// image never bloats a DB row as a data URI (Phase 3 perf).
+const PUBLIC_BUCKET = "public-assets";
+let publicBucketReady = false;
+async function ensurePublicBucket(client: SupabaseClient): Promise<void> {
+  if (publicBucketReady) return;
+  const { data } = await client.storage.getBucket(PUBLIC_BUCKET);
+  if (!data) {
+    const { error } = await client.storage.createBucket(PUBLIC_BUCKET, { public: true });
+    if (error && !/exist/i.test(error.message)) throw new Error(`createBucket: ${error.message}`);
+  }
+  publicBucketReady = true;
+}
+
+/** Upload public bytes and return a stable public URL (throws if storage/bucket
+ * unavailable so callers can fall back). */
+export async function uploadPublic(path: string, bytes: Uint8Array, contentType: string): Promise<string> {
+  const client = service();
+  if (!client) throw new Error("storage not configured");
+  await ensurePublicBucket(client);
+  const { error } = await client.storage.from(PUBLIC_BUCKET).upload(path, bytes, { contentType, upsert: true });
+  if (error) throw new Error(`upload: ${error.message}`);
+  return client.storage.from(PUBLIC_BUCKET).getPublicUrl(path).data.publicUrl;
+}

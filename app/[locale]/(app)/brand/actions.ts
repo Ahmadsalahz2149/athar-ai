@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { normalizeProfile, type BrandProfile } from "@/lib/brand/profile";
+import { uploadPublic } from "@/lib/storage/uploads";
 
 type Res<T = unknown> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -75,11 +76,19 @@ export async function uploadLogo(form: FormData): Promise<Res<{ logoUrl: string 
     }
     if (!LOGO_TYPES.includes(file.type)) return { ok: false, error: "bad_type" };
     if (file.size > LOGO_MAX) return { ok: false, error: "too_large" };
-    const b64 = Buffer.from(await file.arrayBuffer()).toString("base64");
-    const dataUri = `data:${file.type};base64,${b64}`;
-    await forOrg(db, ctx.orgId).setBrandLogo(ctx.brandId, dataUri);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const ext = (file.type.split("/")[1] || "png").replace("+xml", "");
+    // Prefer a public storage URL (keeps the DB row light); fall back to an
+    // inline data URI when storage isn't available so the feature never breaks.
+    let logoUrl: string;
+    try {
+      logoUrl = await uploadPublic(`logos/${ctx.brandId}.${ext}`, bytes, file.type);
+    } catch {
+      logoUrl = `data:${file.type};base64,${Buffer.from(bytes).toString("base64")}`;
+    }
+    await forOrg(db, ctx.orgId).setBrandLogo(ctx.brandId, logoUrl);
     revalidatePath("/brand");
-    return { ok: true, data: { logoUrl: dataUri } };
+    return { ok: true, data: { logoUrl } };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
