@@ -18,13 +18,13 @@ export default async function PublicLinkPage({ params }: { params: Promise<{ loc
   const links = brand.page.links.map((l) => ({ label: l.label, url: safeUrl(l.url) })).filter((l) => l.url);
 
   return (
-    <main style={{ minHeight: "100vh", background: "linear-gradient(180deg,#0B1F33,#102A43)", display: "flex", justifyContent: "center", padding: "48px 18px" }}>
+    <main style={{ minHeight: "100vh", background: "linear-gradient(180deg,#1F2937,#273343)", display: "flex", justifyContent: "center", padding: "48px 18px" }}>
       <div style={{ width: "100%", maxWidth: 460, textAlign: "center", color: "#fff" }}>
         {brand.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={brand.logoUrl} alt="" width={92} height={92} style={{ width: 92, height: 92, borderRadius: 22, objectFit: "cover", margin: "0 auto", border: "2px solid rgba(255,255,255,.15)" }} />
         ) : (
-          <div style={{ width: 92, height: 92, borderRadius: 22, margin: "0 auto", display: "grid", placeItems: "center", background: "rgba(20,184,166,.2)", color: "var(--teal-light,#5eead4)", fontSize: 40, fontWeight: 800 }}>{initial}</div>
+          <div style={{ width: 92, height: 92, borderRadius: 22, margin: "0 auto", display: "grid", placeItems: "center", background: "rgba(15, 118, 110,.2)", color: "var(--teal-light,#5eead4)", fontSize: 40, fontWeight: 800 }}>{initial}</div>
         )}
         <h1 style={{ fontSize: 24, fontWeight: 800, marginBlockStart: 16, letterSpacing: "-.4px" }}>{brand.page.headline || brand.name}</h1>
         {brand.page.bio && <p style={{ fontSize: 15, color: "#B7C4D4", lineHeight: 1.8, marginBlock: "10px 4px" }}>{brand.page.bio}</p>}

@@ -53,7 +53,7 @@ export default async function ReadinessPage({ params }: { params: Promise<{ loca
       <h1 className="headline-gradient" style={{ fontSize: "clamp(21px,3.2vw,27px)", fontWeight: 700, letterSpacing: "-.4px" }}>{t("title")}</h1>
       <p style={{ fontSize: 14.5, color: "var(--muted)", marginBlock: "6px 20px" }}>{t("subtitle")}</p>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 18, background: "linear-gradient(160deg,#102A43,#0B1F33)", borderRadius: 18, padding: 22, color: "#fff", marginBlockEnd: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 18, background: "linear-gradient(160deg,#273343,#1F2937)", borderRadius: 18, padding: 22, color: "#fff", marginBlockEnd: 18 }}>
         <ScoreRadial value={pct} size={92} suffix="%" track="rgba(255,255,255,.14)" valueColor="#fff" label={t("ready")} />
         <div>
           <div style={{ fontSize: 17, fontWeight: 700 }}>{t("readyN", { done: doneN, total: items.length })}</div>

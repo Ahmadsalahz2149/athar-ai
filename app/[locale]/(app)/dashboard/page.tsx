@@ -141,7 +141,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
       {/* KPI row */}
       <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,168px),1fr))", gap: 14, marginBlockStart: 22 }}>
-        <div style={{ background: "linear-gradient(160deg,#102A43,#0B1F33)", borderRadius: 16, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ background: "linear-gradient(160deg,#273343,#1F2937)", borderRadius: 16, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
           <ScoreRadial value={completeness} size={74} suffix="%" track="rgba(255,255,255,.14)" valueColor="#fff" label={t("kpiDna")} />
           <div>
             <div style={{ fontSize: 12.5, color: "#9FB3C8" }}>{t("kpiDna")}</div>
@@ -161,9 +161,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       </div>
 
       {/* Recommendation hero */}
-      <div style={{ marginBlockStart: 20, background: "linear-gradient(160deg,#102A43,#0B1F33)", color: "#fff", borderRadius: 18, padding: 24 }}>
+      <div style={{ marginBlockStart: 20, background: "linear-gradient(160deg,#273343,#1F2937)", color: "#fff", borderRadius: 18, padding: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBlockEnd: 10 }}>
-          <IconTile tint="rgba(20,184,166,.18)" size={30} radius={9}><span style={{ color: "var(--teal-light)", fontSize: 14 }}>✦</span></IconTile>
+          <IconTile tint="rgba(15, 118, 110,.18)" size={30} radius={9}><span style={{ color: "var(--teal-light)", fontSize: 14 }}>✦</span></IconTile>
           <span style={{ fontSize: 12.5, color: "var(--teal-light)", fontWeight: 700 }}>{t("recTitle")}</span>
         </div>
         <div style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.8, marginBlockEnd: 18, maxWidth: 720 }}>{rec.body}</div>

@@ -252,8 +252,8 @@ export function StudioClient({
 
         {/* CENTER — compose */}
         <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
-          <div style={{ background: "linear-gradient(160deg,#102A43,#0B1F33)", borderRadius: 14, padding: 12, display: "flex", gap: 10, alignItems: "center" }}>
-            <span style={{ display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: 9, background: "rgba(20,184,166,.18)", color: "var(--teal-light)", flex: "none" }}>✦</span>
+          <div style={{ background: "linear-gradient(160deg,#273343,#1F2937)", borderRadius: 14, padding: 12, display: "flex", gap: 10, alignItems: "center" }}>
+            <span style={{ display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: 9, background: "rgba(15, 118, 110,.18)", color: "var(--teal-light)", flex: "none" }}>✦</span>
             <input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t("promptPh")} onKeyDown={(e) => e.key === "Enter" && !pending && generate()} style={{ flex: 1, height: 40, background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: 14 }} />
             <button onClick={generate} disabled={pending} style={{ ...btnTeal, height: 40, opacity: pending ? 0.7 : 1 }}>{pending && !busy ? t("generating") : t("generate")}</button>
           </div>

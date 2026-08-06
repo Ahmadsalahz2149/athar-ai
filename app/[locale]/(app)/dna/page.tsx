@@ -119,7 +119,7 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
   return (
     <main style={{ maxWidth: 1040, margin: "0 auto", padding: "clamp(20px,3.4vw,32px) clamp(16px,4vw,32px) 90px", animation: "floatUp .4s ease" }}>
       {/* Navy hero */}
-      <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(160deg,#102A43,#0B1F33)", color: "#fff", borderRadius: 20, padding: 26 }}>
+      <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(160deg,#273343,#1F2937)", color: "#fff", borderRadius: 20, padding: 26 }}>
         <svg aria-hidden viewBox="0 0 300 300" style={{ position: "absolute", insetInlineStart: -40, insetBlockStart: -40, width: 320, height: 320, opacity: 0.4 }}>
           {[50, 90, 130].map((r) => <circle key={r} cx="150" cy="150" r={r} fill="none" stroke="rgba(94,234,212,.14)" strokeWidth="1.4" />)}
         </svg>
@@ -237,7 +237,7 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
         <Link href="/ingest" style={btnGhost}>{t("actUpdate")}</Link>
         <Link href="/ingest" style={btnGhost}>{t("actSamples")}</Link>
         <Link href="/studio" style={btnGhost}>{t("actTry")}</Link>
-        <Link href="/ingest" style={{ ...btnGhost, background: "var(--teal-tint-2)", border: "1px solid rgba(20,184,166,.3)", color: "var(--teal-deep)" }}>{t("actImprove")}</Link>
+        <Link href="/ingest" style={{ ...btnGhost, background: "var(--teal-tint-2)", border: "1px solid rgba(15, 118, 110,.3)", color: "var(--teal-deep)" }}>{t("actImprove")}</Link>
       </div>
     </main>
   );

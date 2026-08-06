@@ -7,7 +7,7 @@ import { SignUpForm } from "./SignUpForm";
 function Feature({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <span style={{ display: "grid", placeItems: "center", width: 34, height: 34, flex: "none", borderRadius: 9, background: "rgba(20,184,166,.16)", color: "var(--teal-light)" }}>{icon}</span>
+      <span style={{ display: "grid", placeItems: "center", width: 34, height: 34, flex: "none", borderRadius: 9, background: "rgba(15, 118, 110,.16)", color: "var(--teal-light)" }}>{icon}</span>
       <span style={{ fontSize: 14, color: "#CBD5E1" }}>{children}</span>
     </div>
   );
@@ -28,7 +28,7 @@ export default async function SignUpPage({ params }: { params: Promise<{ locale:
     <AuthSplit
       panel={
         <>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 999, background: "rgba(20,184,166,.14)", border: "1px solid rgba(20,184,166,.3)", color: "var(--teal-light)", fontSize: 12.5, fontWeight: 700, fontFamily: "var(--font-latin)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 999, background: "rgba(15, 118, 110,.14)", border: "1px solid rgba(15, 118, 110,.3)", color: "var(--teal-light)", fontSize: 12.5, fontWeight: 700, fontFamily: "var(--font-latin)" }}>
             Personal Brand Growth OS ✦
           </span>
           <h2 style={{ fontSize: "clamp(26px,3vw,34px)", fontWeight: 700, lineHeight: 1.5, marginBlock: "22px 14px" }}>

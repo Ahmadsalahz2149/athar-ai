@@ -106,7 +106,7 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
   return (
     <div>
       {/* Generator bar */}
-      <div style={{ background: "linear-gradient(160deg,#102A43,#0B1F33)", borderRadius: 14, padding: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ background: "linear-gradient(160deg,#273343,#1F2937)", borderRadius: 14, padding: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <span style={{ fontSize: 13, color: "#9FB3C8", fontWeight: 600, paddingInline: 6, flex: "none" }}>{t("aboutWhat")}</span>
         <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder={t("topicPlaceholder")} onKeyDown={(e) => e.key === "Enter" && !pending && gen()} style={{ flex: 1, minWidth: 160, height: 42, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 11, padding: "0 14px", color: "#fff", fontSize: 14, outline: "none" }} />
         <select value={count} onChange={(e) => setCount(Number(e.target.value))} aria-label={t("countLabel")} style={{ height: 42, borderRadius: 11, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.06)", color: "#fff", fontSize: 13, padding: "0 10px", outline: "none" }}>

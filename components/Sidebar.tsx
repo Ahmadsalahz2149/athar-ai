@@ -64,7 +64,7 @@ export function Sidebar({
       <aside
         className={`app-sidebar${open ? " open" : ""}`}
         style={{
-          background: "linear-gradient(180deg,#102A43,#0B1F33)",
+          background: "linear-gradient(180deg,#273343,#1F2937)",
           color: "#fff",
           borderInlineStart: "1px solid rgba(255,255,255,.06)",
         }}
@@ -97,7 +97,7 @@ export function Sidebar({
                   gap: 11,
                   padding: "11px 12px",
                   borderRadius: 11,
-                  background: active ? "rgba(20,184,166,.15)" : "transparent",
+                  background: active ? "rgba(15, 118, 110,.15)" : "transparent",
                   color: active ? "#fff" : "#9FB3C8",
                   fontWeight: active ? 600 : 500,
                   fontSize: 14,

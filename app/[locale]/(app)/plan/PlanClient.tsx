@@ -82,7 +82,7 @@ export function PlanClient({ plan, month, monthName, occasions, hasDna, locale }
               const tone = PILLAR_TINT[it.pillar] ?? PILLAR_TINT.educational;
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12, border: "1px solid var(--border)", flexWrap: "wrap" }}>
-                  <span style={{ display: "grid", placeItems: "center", width: 40, height: 40, borderRadius: 10, background: "var(--navy,#102A43)", color: "#fff", flexShrink: 0, lineHeight: 1 }}>
+                  <span style={{ display: "grid", placeItems: "center", width: 40, height: 40, borderRadius: 10, background: "var(--navy,#273343)", color: "#fff", flexShrink: 0, lineHeight: 1 }}>
                     <span style={{ fontSize: 15, fontWeight: 800, fontFamily: "var(--font-latin)" }}>{nf.format(it.day)}</span>
                   </span>
                   <div style={{ flex: 1, minWidth: 160 }}>

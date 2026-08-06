@@ -162,7 +162,7 @@ function LogoThumb({ url, name, size }: { url: string | null; name: string; size
   if (url) return <img src={url} alt="" width={size} height={size} style={{ width: size, height: size, borderRadius: 9, objectFit: "cover", border: "1px solid var(--border)" }} />;
   const initial = (name || "؟").trim().charAt(0);
   return (
-    <span style={{ width: size, height: size, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--navy,#102A43)", color: "#fff", fontWeight: 700, fontSize: size * 0.42 }}>
+    <span style={{ width: size, height: size, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--navy,#273343)", color: "#fff", fontWeight: 700, fontSize: size * 0.42 }}>
       {initial}
     </span>
   );
@@ -326,7 +326,7 @@ function ProfileSection({ profile, t }: { profile: BrandProfile; t: ReturnType<t
       {/* Single save for all profile fields */}
       <div style={{ position: "sticky", insetBlockEnd: 12, display: "flex", justifyContent: "flex-end", gap: 10, marginBlockStart: 4 }}>
         {saved && <span style={{ alignSelf: "center", fontSize: 13, fontWeight: 600, color: "var(--teal)" }}>{t("savedProfile")}</span>}
-        <button onClick={save} disabled={pending} className="glass-bar" style={{ ...btnTeal, height: 46, paddingInline: 28, fontSize: 14.5, boxShadow: "0 6px 20px rgba(20,184,166,.28)" }}>
+        <button onClick={save} disabled={pending} className="glass-bar" style={{ ...btnTeal, height: 46, paddingInline: 28, fontSize: 14.5, boxShadow: "0 6px 20px rgba(15, 118, 110,.28)" }}>
           {pending ? t("saving") : t("saveProfile")}
         </button>
       </div>

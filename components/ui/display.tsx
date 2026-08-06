@@ -10,7 +10,7 @@ import type { CSSProperties, ReactNode } from "react";
 export type PillTone = "teal" | "amber" | "red" | "neutral" | "blue" | "gold";
 
 const PILL: Record<PillTone, CSSProperties> = {
-  teal: { background: "var(--teal-tint-2)", color: "var(--teal-deep)", borderColor: "rgba(20,184,166,.3)" },
+  teal: { background: "var(--teal-tint-2)", color: "var(--teal-deep)", borderColor: "rgba(15, 118, 110,.3)" },
   amber: { background: "var(--gold-tint)", color: "var(--gold-dark)", borderColor: "rgba(214,168,79,.35)" },
   red: { background: "var(--coral-tint)", color: "var(--coral)", borderColor: "rgba(224,101,74,.3)" },
   neutral: { background: "var(--border-3)", color: "var(--slate-2)", borderColor: "var(--border-2)" },
@@ -299,7 +299,7 @@ export function DarkCard({
   style?: CSSProperties;
 }) {
   return (
-    <div style={{ background: "linear-gradient(160deg,#102A43,#0B1F33)", color: "#fff", borderRadius: 18, padding: 22, ...style }}>
+    <div style={{ background: "linear-gradient(160deg,#273343,#1F2937)", color: "#fff", borderRadius: 18, padding: 22, ...style }}>
       {eyebrow && <div style={{ fontSize: 12.5, color: "var(--teal-light)", fontWeight: 700, marginBlockEnd: 8 }}>{eyebrow}</div>}
       {children}
     </div>
@@ -322,7 +322,7 @@ export function NumberedStepper({ steps }: { steps: { title: string; desc: strin
                 borderRadius: 8,
                 display: "grid",
                 placeItems: "center",
-                background: last ? "var(--gold)" : "rgba(20,184,166,.9)",
+                background: last ? "var(--gold)" : "rgba(15, 118, 110,.9)",
                 color: last ? "#3a2b0c" : "#04211d",
                 fontWeight: 800,
                 fontSize: 13,
@@ -540,7 +540,7 @@ export const btnNavy: CSSProperties = {
   padding: "0 20px",
   borderRadius: 11,
   border: "none",
-  background: "linear-gradient(135deg,#102A43,#0B1F33)",
+  background: "linear-gradient(135deg,#273343,#1F2937)",
   color: "#fff",
   fontWeight: 700,
   fontSize: 13.5,

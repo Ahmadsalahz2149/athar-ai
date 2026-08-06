@@ -81,7 +81,7 @@ export function FloatingAssistant() {
           position: "fixed", insetBlockEnd: 20, insetInlineEnd: 20, zIndex: 60,
           width: 56, height: 56, borderRadius: "50%", border: "none", cursor: "pointer",
           background: "linear-gradient(160deg,var(--teal),var(--teal-deep,#0f766e))", color: "#fff",
-          boxShadow: "0 8px 24px rgba(20,184,166,.4)", display: "grid", placeItems: "center", fontSize: 22,
+          boxShadow: "0 8px 24px rgba(15, 118, 110,.4)", display: "grid", placeItems: "center", fontSize: 22,
         }}
         className="lift"
       >
@@ -101,8 +101,8 @@ export function FloatingAssistant() {
           }}
         >
           {/* Header */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "linear-gradient(160deg,#102A43,#0B1F33)", color: "#fff" }}>
-            <span style={{ width: 30, height: 30, borderRadius: 9, display: "grid", placeItems: "center", background: "rgba(20,184,166,.25)", color: "var(--teal-light)" }}>✦</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "linear-gradient(160deg,#273343,#1F2937)", color: "#fff" }}>
+            <span style={{ width: 30, height: 30, borderRadius: 9, display: "grid", placeItems: "center", background: "rgba(15, 118, 110,.25)", color: "var(--teal-light)" }}>✦</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{t("title")}</div>
               <div style={{ fontSize: 11, color: "#9FB3C8" }}>{t("subtitle")}</div>

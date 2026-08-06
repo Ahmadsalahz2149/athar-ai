@@ -24,7 +24,7 @@ export default function AppError({ reset }: { error: Error & { digest?: string }
       <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--heading)" }}>{T.title}</h1>
       <p style={{ color: "var(--muted)", lineHeight: 1.8, marginBlock: "10px 22px", fontSize: 14.5 }}>{T.body}</p>
       <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-        <button onClick={reset} style={{ height: 46, padding: "0 22px", borderRadius: 12, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#102A43,#0B1F33)", color: "#fff", fontWeight: 700, fontSize: 14.5 }}>{T.retry}</button>
+        <button onClick={reset} style={{ height: 46, padding: "0 22px", borderRadius: 12, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#273343,#1F2937)", color: "#fff", fontWeight: 700, fontSize: 14.5 }}>{T.retry}</button>
         <a href={home} style={{ height: 46, padding: "0 22px", borderRadius: 12, display: "inline-grid", placeItems: "center", border: "1px solid var(--border-2)", background: "var(--card)", color: "var(--slate)", fontWeight: 600, fontSize: 14.5, textDecoration: "none" }}>{T.home}</a>
       </div>
     </main>

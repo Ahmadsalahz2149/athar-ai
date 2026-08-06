@@ -130,7 +130,7 @@ const createBtn: React.CSSProperties = {
   height: 40,
   padding: "0 16px",
   borderRadius: 11,
-  background: "linear-gradient(135deg,#102A43,#0B1F33)",
+  background: "linear-gradient(135deg,#273343,#1F2937)",
   color: "#fff",
   fontSize: 13.5,
   fontWeight: 700,

@@ -167,7 +167,7 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
 
       {/* Bulk bar */}
       {selIds.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBlockStart: 14, padding: "10px 16px", borderRadius: 12, background: "var(--teal-tint-2)", border: "1px solid rgba(20,184,166,.3)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBlockStart: 14, padding: "10px 16px", borderRadius: 12, background: "var(--teal-tint-2)", border: "1px solid rgba(15, 118, 110,.3)" }}>
           <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--teal-deep)" }}>{t("selectedN", { n: nf.format(selIds.length) })}</span>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setSelected({})} style={{ ...btnGhost, height: 34, fontSize: 12.5 }}>{t("clearSel")}</button>

@@ -62,7 +62,7 @@ export function ForgotForm() {
             onChange={(e) => setEmail(e.target.value)}
             style={{ width: "100%", height: 46, padding: "0 14px", borderRadius: 12, border: "1px solid var(--border-2)", background: "var(--card)", fontSize: 14.5, outline: "none", marginBlock: "8px 16px" }}
           />
-          <button type="submit" disabled={pending} style={{ width: "100%", height: 48, borderRadius: 12, border: "none", cursor: pending ? "default" : "pointer", background: "linear-gradient(135deg,#102A43,#0B1F33)", color: "#fff", fontWeight: 700, fontSize: 15, opacity: pending ? 0.7 : 1 }}>
+          <button type="submit" disabled={pending} style={{ width: "100%", height: 48, borderRadius: 12, border: "none", cursor: pending ? "default" : "pointer", background: "linear-gradient(135deg,#273343,#1F2937)", color: "#fff", fontWeight: 700, fontSize: 15, opacity: pending ? 0.7 : 1 }}>
             {pending ? "…" : t("sendReset")}
           </button>
           <div style={{ textAlign: "center", marginBlockStart: 16 }}>

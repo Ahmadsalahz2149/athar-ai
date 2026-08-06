@@ -122,14 +122,14 @@ export function SettingsClient(p: Props) {
         )}
 
         {tab === "brand" && (
-          <Panel title={t("tab_brand")} action={<Link href="/dna" style={{ ...btnGhost, height: 38, background: "var(--teal-tint-2)", border: "1px solid rgba(20,184,166,.3)", color: "var(--teal-deep)" }}>{t("openDna")}</Link>}>
+          <Panel title={t("tab_brand")} action={<Link href="/dna" style={{ ...btnGhost, height: 38, background: "var(--teal-tint-2)", border: "1px solid rgba(15, 118, 110,.3)", color: "var(--teal-deep)" }}>{t("openDna")}</Link>}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,200px),1fr))", gap: 12 }}>
               <ReadTile label={t("brandType")} value={p.brandType || "—"} />
               <ReadTile label={t("brandField")} value={p.field || "—"} />
               <ReadTile label={t("brandAudience")} value={p.audience || "—"} />
               <ReadTile label={t("brandDialect")} value={p.dialect || "—"} />
             </div>
-            <div style={{ marginBlockStart: 16, padding: 16, borderRadius: 14, background: "var(--teal-tint-2)", border: "1px solid rgba(20,184,166,.25)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ marginBlockStart: 16, padding: 16, borderRadius: 14, background: "var(--teal-tint-2)", border: "1px solid rgba(15, 118, 110,.25)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div>
                 <div style={{ fontWeight: 700, color: "var(--heading)" }}>{t("completeness", { pct: nf.format(p.completeness) })}</div>
                 <div style={{ fontSize: 13, color: "var(--slate-2)", marginBlockStart: 3 }}>{t("completenessHint")}</div>

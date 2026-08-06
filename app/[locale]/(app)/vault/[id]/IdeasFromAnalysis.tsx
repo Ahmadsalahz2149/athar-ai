@@ -24,7 +24,7 @@ export function IdeasFromAnalysis({ sourceId }: { sourceId: string }) {
         })
       }
       disabled={pending || done}
-      style={{ ...btnGhost, height: 34, fontSize: 12.5, background: "var(--teal-tint-2)", border: "1px solid rgba(20,184,166,.3)", color: "var(--teal-deep)" }}
+      style={{ ...btnGhost, height: 34, fontSize: 12.5, background: "var(--teal-tint-2)", border: "1px solid rgba(15, 118, 110,.3)", color: "var(--teal-deep)" }}
     >
       {done ? t("addedToIdeas") : pending ? t("adding") : `+ ${t("addAllToIdeas")}`}
     </button>
