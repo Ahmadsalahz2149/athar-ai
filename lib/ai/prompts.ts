@@ -430,6 +430,13 @@ export function buildAssistantContext(opts: { dna?: ContentDna | null; brand?: s
   return `\n<BRAND>\n${body}${brand}\n</BRAND>`;
 }
 
+// ---- Visual prompt from a post (media studio) ----
+export const IMAGE_PROMPT_SYSTEM = `You turn an Arabic social post into ONE concise English image-generation prompt (image models perform best in English). Describe a single striking, brand-appropriate visual that fits the post's message — subject, setting, style, mood, lighting, composition. No text/words in the image. Keep it under 60 words. Honor any brand facts/constraints given. Return ONLY the prompt text, nothing else.`;
+
+export function buildImagePromptMessage(opts: { postText: string; brand?: string }): string {
+  return [`Post:\n${opts.postText.slice(0, 1200)}`, opts.brand ?? ``, `\nWrite the image prompt:`].filter(Boolean).join("\n");
+}
+
 // ---- Monthly content plan + trends (Phase 2 #5/#6) ----
 export const PLAN_PROMPT_ID = "monthly-plan";
 export const PLAN_PROMPT_VERSION = "v1";

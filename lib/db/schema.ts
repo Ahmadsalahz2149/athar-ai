@@ -437,3 +437,24 @@ export const lessonProgress = pgTable(
   },
   (t) => [uniqueIndex("lesson_progress_idx").on(t.orgId, t.lessonId)],
 );
+
+// Generated media assets (Phase 3 media studio, upgraded). Every voice/image/
+// video generation is persisted to the public bucket and recorded here so the
+// user has a durable gallery, and assets can be linked back to the draft they
+// were made for (connecting media to content).
+export const mediaAssets = pgTable(
+  "media_assets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    brandId: uuid("brand_id").notNull(),
+    // voice | image | video
+    kind: text("kind").notNull(),
+    url: text("url").notNull(),
+    prompt: text("prompt"),
+    draftId: uuid("draft_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("media_assets_brand_idx").on(t.orgId, t.brandId)],
+);

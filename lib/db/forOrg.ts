@@ -959,6 +959,36 @@ export function forOrg(db: Db, orgId: string) {
         .where(and(eq(schema.targetGroups.id, groupId), eq(schema.targetGroups.orgId, orgId), eq(schema.targetGroups.brandId, brandId)));
     },
 
+    // --- Media assets (media studio gallery) ---
+    async saveMediaAsset(brandId: string, a: { kind: string; url: string; prompt?: string | null; draftId?: string | null }): Promise<string> {
+      await assertBrand(brandId);
+      const [row] = await db
+        .insert(schema.mediaAssets)
+        .values({ orgId, brandId, kind: a.kind, url: a.url, prompt: a.prompt?.slice(0, 500) ?? null, draftId: a.draftId ?? null })
+        .returning({ id: schema.mediaAssets.id });
+      return row.id;
+    },
+    async listMediaAssets(brandId: string, kind?: string) {
+      const conds = [eq(schema.mediaAssets.orgId, orgId), eq(schema.mediaAssets.brandId, brandId), isNull(schema.mediaAssets.deletedAt)];
+      if (kind) conds.push(eq(schema.mediaAssets.kind, kind));
+      return db.select().from(schema.mediaAssets).where(and(...conds)).orderBy(desc(schema.mediaAssets.createdAt)).limit(60);
+    },
+    async deleteMediaAsset(brandId: string, assetId: string): Promise<void> {
+      await assertBrand(brandId);
+      await db.update(schema.mediaAssets).set({ deletedAt: new Date() }).where(and(eq(schema.mediaAssets.id, assetId), eq(schema.mediaAssets.orgId, orgId), eq(schema.mediaAssets.brandId, brandId)));
+    },
+    /** One draft's text (for the media studio to voice/imagine). */
+    async draftText(brandId: string, draftId: string): Promise<{ text: string; label: string } | null> {
+      const rows = await db
+        .select({ hook: schema.drafts.hook, body: schema.drafts.body, topic: schema.drafts.topic })
+        .from(schema.drafts)
+        .where(and(eq(schema.drafts.id, draftId), eq(schema.drafts.orgId, orgId), eq(schema.drafts.brandId, brandId)))
+        .limit(1);
+      if (!rows.length) return null;
+      const r = rows[0];
+      return { text: [r.hook, r.body].filter(Boolean).join("\n\n"), label: (r.topic || r.hook || "").slice(0, 80) };
+    },
+
     // --- Internal analytics (from our own data) ---
     /** Drafts created per ISO week for the last `weeks` weeks (content velocity). */
     async weeklyContent(brandId: string, weeks = 8): Promise<{ week: string; n: number }[]> {

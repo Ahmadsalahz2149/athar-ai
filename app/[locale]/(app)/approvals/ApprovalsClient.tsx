@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { setDraftStatus, approveAll, reviewDraft } from "./actions";
 import { PlatformBadge, EmptyState, btnTeal, btnGhost, btnNavy } from "@/components/ui/display";
 
@@ -133,6 +133,8 @@ export function ApprovalsClient({ drafts }: { drafts: Draft[] }) {
                       <span style={{ fontSize: 11.5, fontWeight: 700, padding: "4px 11px", borderRadius: 999, background: d.status === "rejected" || d.status === "needs_edit" ? "var(--coral-tint)" : "var(--teal-tint-2)", color: d.status === "rejected" || d.status === "needs_edit" ? "var(--coral)" : "var(--teal-deep)" }}>{t(`st_${d.status}`)}</span>
                     </div>
                   )}
+                  {/* Bridge to the Media Studio — turn this post into a voice-over / image / video. */}
+                  <Link href={`/media?draft=${d.id}&kind=image`} style={{ ...btnGhost, height: 32, fontSize: 12, marginBlockStart: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>🎬 {t("createMedia")}</Link>
                 </div>
               </div>
             );

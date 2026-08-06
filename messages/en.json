@@ -756,7 +756,8 @@
     "editTitle": "Send back for edit",
     "rejectTitle": "Reject draft",
     "noteHelper": "Add a reason for the writer (optional).",
-    "notePh": "e.g. weak hook, clarify the CTA…"
+    "notePh": "e.g. weak hook, clarify the CTA…",
+    "createMedia": "Create media"
   },
   "Calendar": {
     "title": "Calendar",
@@ -1135,7 +1136,20 @@
     "noKey": "Generation key not configured for this feature.",
     "errCredits": "Not enough credits.",
     "errEmpty": "Enter some text first.",
-    "errGeneric": "Generation failed. Try again."
+    "errGeneric": "Generation failed. Try again.",
+    "fromPost": "From your posts",
+    "choosePost": "Choose a post…",
+    "voice": "Voice",
+    "suggestVisual": "Suggest a visual from the post",
+    "suggesting": "Suggesting…",
+    "savedToGallery": "Saved to your gallery ✓",
+    "galleryTitle": "Media gallery ({n})",
+    "delete": "Delete",
+    "errNoKey": "Generation key not configured.",
+    "errVideoCredits": "Video generation needs provider credits topped up.",
+    "errTimeout": "Took too long. Try again.",
+    "videoQueued": "Queued…",
+    "videoProcessing": "Generating video (may take a minute)…"
   },
   "Assistant": {
     "title": "Athar Assistant",
