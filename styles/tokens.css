@@ -4,9 +4,9 @@
 
 :root {
   /* Brand — navy */
-  --navy: #0b1f33;
-  --navy-2: #102a43;
-  --navy-3: #081826;
+  --navy: #0a1a2b;
+  --navy-2: #10283e;
+  --navy-3: #06121e;
 
   /* Accent — teal */
   --teal: #14b8a6;
@@ -17,13 +17,18 @@
   --teal-tint-2: #ecfaf6;
 
   /* Accent — gold */
-  --gold: #d6a84f;
-  --gold-dark: #836726;
-  --gold-tint: #fef6e7;
+  /* Brass — the "signature" accent (Signature System). Teal is reserved for
+     live/positive states; brass carries identity: headlines, highlights, CTAs. */
+  --gold: #c1963f;
+  --gold-dark: #806326; /* AA-safe brass for small text on tint (~5.3:1) */
+  --gold-tint: #f6edd7;
+  --brass: #b3862f;
+  --brass-bright: #cca24c;
+  --brass-line: #e6d5a9;
 
   /* Surfaces */
-  --bg: #f8f5ef;
-  --surface: #fbfaf7;
+  --bg: #f4f3ef;
+  --surface: #faf9f6;
   --card: #ffffff;
 
   /* Borders / warm neutrals */
@@ -483,7 +488,7 @@ button[disabled]:active {
 
 /* Trick #4 — a single gold-accented gradient headline per screen (price signal). */
 .headline-gradient {
-  background: linear-gradient(100deg, var(--navy) 30%, var(--gold-dark) 130%);
+  background: linear-gradient(100deg, var(--navy) 18%, var(--brass) 118%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
