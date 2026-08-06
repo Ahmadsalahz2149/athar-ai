@@ -60,6 +60,7 @@
   /* Fonts (bound to next/font CSS variables in the layout) */
   --font-ar: var(--font-plex-arabic), system-ui, sans-serif;
   --font-latin: var(--font-inter), system-ui, sans-serif;
+  --font-heading: var(--font-display), var(--font-plex-arabic), system-ui, sans-serif;
 }
 
 * {
@@ -490,6 +491,26 @@ button[disabled]:active {
 }
 
 /* Trick #4 — a single gold-accented gradient headline per screen (price signal). */
+/* ---- Display typography: headings speak in the display face ---- */
+h1, h2, h3, .headline-gradient, .display {
+  font-family: var(--font-heading);
+  text-wrap: balance;
+}
+/* Arabic is a connected script — letter-spacing disconnects the letters, so
+   force it to normal in RTL (overriding any inline tracking). Latin keeps its
+   tighter tracking for a crisper display look. */
+[dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3,
+[dir="rtl"] .headline-gradient, [dir="rtl"] .display {
+  letter-spacing: normal !important;
+}
+[dir="ltr"] h1, [dir="ltr"] h2, [dir="ltr"] .display {
+  letter-spacing: -0.018em;
+}
+/* Numbers line up: tabular figures wherever the Latin/mono font runs. */
+.num, [style*="font-latin"] {
+  font-variant-numeric: tabular-nums;
+}
+
 .headline-gradient {
   background: linear-gradient(100deg, var(--navy) 15%, var(--teal) 115%);
   -webkit-background-clip: text;

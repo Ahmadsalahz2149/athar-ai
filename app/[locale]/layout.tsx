@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { IBM_Plex_Sans_Arabic, Inter } from "next/font/google";
+import { IBM_Plex_Sans_Arabic, Inter, Rubik } from "next/font/google";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
@@ -11,6 +11,15 @@ const plexArabic = IBM_Plex_Sans_Arabic({
   subsets: ["arabic", "latin"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-plex-arabic",
+  display: "swap",
+});
+
+// Display face for headings — confident geometric, real Arabic support; gives
+// the product a distinctive voice vs the Plex/Inter default.
+const rubik = Rubik({
+  subsets: ["arabic", "latin"],
+  weight: ["500", "600", "700", "800"],
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -44,7 +53,7 @@ export default async function LocaleLayout({
   const fontFamily = locale === "ar" ? "var(--font-ar)" : "var(--font-latin)";
 
   return (
-    <html lang={locale} dir={dir} className={`${plexArabic.variable} ${inter.variable}`}>
+    <html lang={locale} dir={dir} className={`${plexArabic.variable} ${rubik.variable} ${inter.variable}`}>
       <body style={{ fontFamily, minHeight: "100vh" }} suppressHydrationWarning>
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
