@@ -447,6 +447,21 @@ button:active,
   transform: scale(0.97);
   transition-duration: 0.09s;
 }
+/* Disabled controls must READ as disabled everywhere — greyed, no pointer, no
+   hover lift. Fixes the "looks clickable but does nothing" trap globally, so a
+   button gated on state (no DNA, empty input) is unmistakably inactive. */
+button:disabled,
+button[disabled] {
+  opacity: 0.5 !important;
+  filter: grayscale(0.4) saturate(0.7);
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+button:disabled:active,
+button[disabled]:active {
+  transform: none !important;
+}
 
 /* Trick #2 — staggered reveal. Children fade+rise in sequence (system "thinking"
    look à la Linear/Stripe). Add class="stagger" to a container. */
