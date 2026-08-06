@@ -35,11 +35,35 @@ export function FloatingAssistant() {
     const history = msgs;
     setMsgs((p) => [...p, { role: "user", content: m }]);
     start(async () => {
+      // Stream the reply token-by-token; fall back to the non-streaming action.
+      try {
+        const res = await fetch("/api/assistant/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: m, history }),
+        });
+        if (!res.ok || !res.body) throw new Error(String(res.status));
+        setMsgs((p) => [...p, { role: "assistant", content: "" }]);
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let acc = "";
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          acc += dec.decode(value, { stream: true });
+          const clean = acc.replace(/\n ERROR$/, "");
+          setMsgs((p) => { const c = [...p]; c[c.length - 1] = { role: "assistant", content: clean }; return c; });
+        }
+        if (acc.endsWith("\n ERROR") && !acc.replace(/\n ERROR$/, "").trim()) throw new Error("stream");
+        return;
+      } catch {
+        /* fall through to the action */
+      }
       const r = await askAssistant(m, history);
-      if (r.ok) setMsgs((p) => [...p, { role: "assistant", content: r.reply }]);
+      if (r.ok) setMsgs((p) => { const c = p[p.length - 1]?.role === "assistant" && !p[p.length - 1].content ? p.slice(0, -1) : p; return [...c, { role: "assistant", content: r.reply }]; });
       else {
         setErr(r.error === "insufficient_credits" ? t("errCredits") : r.error === "no_key" ? t("errNoKey") : t("errGeneric"));
-        setMsgs((p) => p.slice(0, -1)); // roll back the optimistic user msg
+        setMsgs((p) => { const last = p[p.length - 1]; const c = last?.role === "assistant" && !last.content ? p.slice(0, -1) : p; return c.slice(0, -1); });
         setText(m);
       }
     });
