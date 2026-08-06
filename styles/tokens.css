@@ -255,6 +255,10 @@ select {
     border-inline-start: none !important;
     border-block-start: 1px solid var(--border);
   }
+  /* Top bar is tight on phones — the "Create post" button becomes icon-only. */
+  .tb-label {
+    display: none;
+  }
 }
 
 /* Mobile-only controls (the ☰ button) are hidden on desktop. */

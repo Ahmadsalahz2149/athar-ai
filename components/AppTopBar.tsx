@@ -47,7 +47,7 @@ export function AppTopBar({ userEmail }: { userEmail?: string }) {
             <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
         </button>
-        <Link href="/studio" style={createBtn}>✦ {nav("createPost")}</Link>
+        <Link href="/studio" style={createBtn} aria-label={nav("createPost")}>✦<span className="tb-label">&nbsp;{nav("createPost")}</span></Link>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -134,6 +134,7 @@ const createBtn: React.CSSProperties = {
   color: "#fff",
   fontSize: 13.5,
   fontWeight: 700,
+  whiteSpace: "nowrap",
   boxShadow: "0 10px 22px -12px rgba(11,31,51,.7)",
 };
 const iconBtn: React.CSSProperties = {
@@ -154,6 +155,7 @@ const langBtn = (other: string): React.CSSProperties => ({
   background: "var(--card)",
   fontSize: 13.5,
   fontWeight: 600,
+  whiteSpace: "nowrap",
   fontFamily: other === "en" ? "var(--font-latin)" : "var(--font-ar)",
 });
 const dropdown: React.CSSProperties = {
