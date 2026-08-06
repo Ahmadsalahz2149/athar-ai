@@ -18,7 +18,7 @@ export const EMPTY_PROFILE: BrandProfile = {
 export function normalizeProfile(raw: unknown): BrandProfile {
   const o = (raw ?? {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" ? v : "");
-  const arr = (v: unknown) => (Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, 20) : []);
+  const arr = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim().length > 0).slice(0, 20) : []);
   const qa = Array.isArray(o.qa)
     ? (o.qa as unknown[])
         .filter((x): x is { q: unknown; a: unknown } => !!x && typeof x === "object")
