@@ -757,7 +757,8 @@
     "rejectTitle": "Reject draft",
     "noteHelper": "Add a reason for the writer (optional).",
     "notePh": "e.g. weak hook, clarify the CTA…",
-    "createMedia": "Create media"
+    "createMedia": "Create media",
+    "attachedMedia": "Attached media ({n})"
   },
   "Calendar": {
     "title": "Calendar",

@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 import type { ContentDna } from "@/lib/ai/prompts";
@@ -973,6 +973,21 @@ export function forOrg(db: Db, orgId: string) {
       if (kind) conds.push(eq(schema.mediaAssets.kind, kind));
       return db.select().from(schema.mediaAssets).where(and(...conds)).orderBy(desc(schema.mediaAssets.createdAt)).limit(60);
     },
+    /** Media assets grouped by the draft they were made for (for showing
+     * attached media on posts in Approvals / Calendar). */
+    async assetsForDrafts(brandId: string, draftIds: string[]): Promise<Record<string, { id: string; kind: string; url: string }[]>> {
+      const ids = draftIds.filter(Boolean);
+      if (!ids.length) return {};
+      const rows = await db
+        .select({ id: schema.mediaAssets.id, kind: schema.mediaAssets.kind, url: schema.mediaAssets.url, draftId: schema.mediaAssets.draftId })
+        .from(schema.mediaAssets)
+        .where(and(eq(schema.mediaAssets.orgId, orgId), eq(schema.mediaAssets.brandId, brandId), isNull(schema.mediaAssets.deletedAt), inArray(schema.mediaAssets.draftId, ids)))
+        .orderBy(desc(schema.mediaAssets.createdAt));
+      const map: Record<string, { id: string; kind: string; url: string }[]> = {};
+      for (const r of rows) if (r.draftId) (map[r.draftId] ??= []).push({ id: r.id, kind: r.kind, url: r.url });
+      return map;
+    },
+
     async deleteMediaAsset(brandId: string, assetId: string): Promise<void> {
       await assertBrand(brandId);
       await db.update(schema.mediaAssets).set({ deletedAt: new Date() }).where(and(eq(schema.mediaAssets.id, assetId), eq(schema.mediaAssets.orgId, orgId), eq(schema.mediaAssets.brandId, brandId)));

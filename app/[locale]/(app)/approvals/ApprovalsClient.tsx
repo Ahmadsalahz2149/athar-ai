@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- generated media thumbnails, not next/image-optimizable */
 
 import { useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -20,7 +21,9 @@ type Draft = {
 
 const TABS = ["pending", "approved", "needs_edit", "rejected"] as const;
 
-export function ApprovalsClient({ drafts }: { drafts: Draft[] }) {
+type Asset = { id: string; kind: string; url: string };
+
+export function ApprovalsClient({ drafts, media = {} }: { drafts: Draft[]; media?: Record<string, Asset[]> }) {
   const t = useTranslations("Approvals");
   const locale = useLocale();
   const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
@@ -110,6 +113,21 @@ export function ApprovalsClient({ drafts }: { drafts: Draft[] }) {
                   {d.reviewNote && (
                     <div style={{ marginBlockStart: 10, padding: "9px 12px", borderRadius: 10, background: "var(--coral-tint)", fontSize: 12.5, color: "var(--coral)" }}>
                       <b>{t("reviewerNote")}:</b> {d.reviewNote}
+                    </div>
+                  )}
+                  {/* Attached media generated for this post (from the Media Studio). */}
+                  {(media[d.id]?.length ?? 0) > 0 && (
+                    <div style={{ marginBlockStart: 12 }}>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--teal-deep)", marginBlockEnd: 6 }}>🎬 {t("attachedMedia", { n: media[d.id].length })}</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {media[d.id].map((a) => (
+                          <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", width: 60, height: 60, borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", background: "var(--bg)", flexShrink: 0 }}>
+                            {a.kind === "image" && <img src={a.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                            {a.kind === "video" && <video src={a.url} style={{ width: "100%", height: "100%", objectFit: "cover" }} muted />}
+                            {a.kind === "voice" && <span style={{ display: "grid", placeItems: "center", width: "100%", height: "100%", fontSize: 22 }}>🔊</span>}
+                          </a>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
