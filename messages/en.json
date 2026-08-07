@@ -155,7 +155,12 @@
     "translating": "Translating in your voice…",
     "englishVersion": "English version",
     "arabicVersion": "Arabic version",
-    "useTranslation": "Use this"
+    "useTranslation": "Use this",
+    "repurposeTo": "Repurpose to",
+    "repurposing": "Working…",
+    "rep_thread": "🧵 Thread",
+    "rep_carousel": "🖼️ Carousel",
+    "rep_reel": "🎬 Reel script"
   },
   "Legal": {
     "termsTitle": "Terms of Service",

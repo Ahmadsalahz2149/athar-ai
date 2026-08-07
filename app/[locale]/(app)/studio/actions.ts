@@ -26,6 +26,9 @@ import {
   TRANSLATE_SYSTEM,
   TRANSLATE_SCHEMA,
   buildTranslateMessage,
+  REPURPOSE_SYSTEM,
+  REPURPOSE_SCHEMA,
+  buildRepurposeMessage,
   type ContentDna,
 } from "@/lib/ai/prompts";
 
@@ -263,6 +266,46 @@ export async function translatePost(input: { hook: string; body: string; target:
     if (!body) return { ok: false, error: "failed" };
     await t.debit(estimate, "studio_translate", "brand", ctx.brandId);
     return { ok: true, hook, body };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export type RepurposeResult = { ok: true; hook: string; body: string; format: string } | { ok: false; error: string };
+
+/** Repurpose the current post into another format (thread / carousel / reel
+ * script), preserving the writer's voice. */
+export async function repurposePost(input: { hook: string; body: string; target: "thread" | "carousel" | "reel"; provider?: string; model?: string }): Promise<RepurposeResult> {
+  const { provider, model } = resolveProvider(input);
+  if (!hasKeyFor(provider)) return { ok: false, error: "no_key" };
+  if (!input.body || input.body.trim().length < 20) return { ok: false, error: "too_short" };
+  if (!db) return { ok: false, error: "no_dna" };
+  const ctx = await currentContext();
+  if (!ctx) return { ok: false, error: "no_dna" };
+  const t = forOrg(db, ctx.orgId);
+  const dna = await t.currentDna(ctx.brandId);
+  if (!dna) return { ok: false, error: "no_dna" };
+  const estimate = estimateRewrite();
+  if ((await t.balance()) < estimate) return { ok: false, error: "insufficient_credits" };
+  try {
+    const res = await generateText({
+      system: REPURPOSE_SYSTEM,
+      user: buildRepurposeMessage({ hook: input.hook, body: input.body, target: input.target, dna }),
+      maxTokens: 4096,
+      anthropicModel: process.env.ANTHROPIC_DRAFT_MODEL || MODELS.SONNET,
+      schema: REPURPOSE_SCHEMA,
+      provider,
+      model,
+    });
+    if (res.truncated) return { ok: false, error: "truncated" };
+    const parsed = extractJson<{ hook?: unknown; body?: unknown }>(res.text);
+    const hook = typeof parsed?.hook === "string" ? parsed.hook : "";
+    const body = typeof parsed?.body === "string" ? parsed.body : "";
+    if (!body) return { ok: false, error: "failed" };
+    await t.debit(estimate, "studio_repurpose", "brand", ctx.brandId);
+    // thread/carousel render in the slide editor; reel stays a single script.
+    const format = input.target === "reel" ? "post" : input.target;
+    return { ok: true, hook, body, format };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

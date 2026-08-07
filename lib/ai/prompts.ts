@@ -405,6 +405,31 @@ export function buildRewriteMessage(opts: { body: string; tool: string; dna: Con
   ].join("\n");
 }
 
+export const REPURPOSE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: { hook: { type: "string" }, body: { type: "string" } },
+  required: ["hook", "body"],
+} as const;
+
+export const REPURPOSE_SYSTEM = `أنت خبير إعادة توظيف المحتوى (repurposing) للمنصات الاجتماعية في الخليج. تأخذ بوستًا واحدًا وتعيد صياغته إلى صيغة أخرى مع الحفاظ التامّ على صوت الكاتب (Content DNA) وجوهر الرسالة. أعد JSON فقط: { "hook": string, "body": string }.`;
+
+const REPURPOSE_TASK: Record<string, string> = {
+  thread: "حوّل البوست إلى سلسلة تغريدات (Thread). افصل كل تغريدة بسطر فارغ. اجعل التغريدة الأولى خطّافًا قويًا، وكل تغريدة ≤ 270 حرفًا وتقف بذاتها. أعد الخطّاف في hook والسلسلة كاملة في body مفصولة بأسطر فارغة.",
+  carousel: "حوّل البوست إلى كاروسيل (شرائح). افصل كل شريحة بسطر فارغ. الشريحة الأولى عنوان جذّاب، كل شريحة فكرة واحدة مركّزة بجملة أو جملتين، والأخيرة دعوة لإجراء. أعد الشرائح في body مفصولة بأسطر فارغة.",
+  reel: "حوّل البوست إلى سكربت ريلز/فيديو قصير (٢٠–٤٠ ثانية). اكتبه كمشاهد: [مشهد]/[صوت]/[نص على الشاشة]. ابدأ بخطّاف بصري في أول ٣ ثوانٍ. أعد السكربت في body.",
+};
+
+export function buildRepurposeMessage(opts: { hook: string; body: string; target: string; dna: ContentDna }): string {
+  return [
+    `المطلوب: ${REPURPOSE_TASK[opts.target] ?? REPURPOSE_TASK.thread}`,
+    ``,
+    `<DNA>\n${JSON.stringify(opts.dna, null, 2)}\n</DNA>`,
+    `\n<HOOK>\n${opts.hook}\n</HOOK>`,
+    `\n<BODY>\n${opts.body}\n</BODY>`,
+  ].join("\n");
+}
+
 export const TRANSLATE_SCHEMA = {
   type: "object",
   additionalProperties: false,

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { studioGenerate, studioRewrite, setDraftState, suggestHashtags, translatePost, type StudioResult, type StudioSource } from "./actions";
+import { studioGenerate, studioRewrite, setDraftState, suggestHashtags, translatePost, repurposePost, type StudioResult, type StudioSource } from "./actions";
 import { SlideEditor } from "./SlideEditor";
 import { postScore, dnaMatch, scoreBreakdown } from "@/lib/ai/score";
 import { checkContent } from "@/lib/ai/guardrails";
@@ -66,6 +66,7 @@ export function StudioClient({
   const [tagsBusy, setTagsBusy] = useState(false);
   const [trans, setTrans] = useState<{ hook: string; body: string } | null>(null);
   const [transBusy, setTransBusy] = useState(false);
+  const [repBusy, setRepBusy] = useState<string | null>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [savedSig, setSavedSig] = useState<string | null>(null);
 
@@ -173,6 +174,21 @@ export function StudioClient({
       if (r.ok) setTrans({ hook: r.hook, body: r.body });
     });
   };
+  const repurpose = (kind: "thread" | "carousel" | "reel") => {
+    setRepBusy(kind);
+    start(async () => {
+      const r = await repurposePost({ hook, body, target: kind, provider, model });
+      setRepBusy(null);
+      if (r.ok) {
+        prevBody.current = body;
+        setCanUndo(true);
+        if (r.hook) setResult((prev) => (prev && prev.ok ? { ...prev, hooks: prev.hooks.map((h, i) => (i === hookIdx ? r.hook : h)) } : prev));
+        setFormat(r.format);
+        setBody(r.body);
+      }
+    });
+  };
+
   const useTranslation = () => {
     if (!trans) return;
     prevBody.current = body;
@@ -348,6 +364,16 @@ export function StudioClient({
                 <span style={{ marginInlineStart: "auto", fontSize: 11.5, color: "var(--subtle)", display: "inline-flex", alignItems: "center", gap: 5 }}>
                   {autosaved ? <>✓ {t("autosaved")}</> : ok?.id ? t("autosaving") : null}
                 </span>
+              </div>
+
+              {/* Repurpose row (Phase: general features) */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", paddingBlock: 4 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--muted)" }}>♻ {t("repurposeTo")}</span>
+                {(["thread", "carousel", "reel"] as const).map((k) => (
+                  <button key={k} onClick={() => repurpose(k)} disabled={pending || body.trim().length < 20} style={{ height: 32, padding: "0 12px", borderRadius: 9, border: "1px solid var(--border-2)", background: "var(--card)", color: "var(--slate)", fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: repBusy === k ? 0.6 : 1, whiteSpace: "nowrap" }}>
+                    {repBusy === k ? t("repurposing") : t(`rep_${k}`)}
+                  </button>
+                ))}
               </div>
 
               {/* Editor */}

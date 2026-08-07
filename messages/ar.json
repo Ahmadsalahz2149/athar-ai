@@ -155,7 +155,12 @@
     "translating": "جارٍ الترجمة بصوتك…",
     "englishVersion": "النسخة الإنجليزية",
     "arabicVersion": "النسخة العربية",
-    "useTranslation": "استخدم هذه"
+    "useTranslation": "استخدم هذه",
+    "repurposeTo": "أعد توظيفه إلى",
+    "repurposing": "جارٍ…",
+    "rep_thread": "🧵 سلسلة",
+    "rep_carousel": "🖼️ كاروسيل",
+    "rep_reel": "🎬 سكربت ريلز"
   },
   "Legal": {
     "termsTitle": "شروط الاستخدام",
