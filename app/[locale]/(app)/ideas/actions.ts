@@ -186,3 +186,80 @@ export async function batchGenerate(
     return { ok: false, error: (e as Error).message };
   }
 }
+
+/** Compose a post from a single idea and schedule it on the calendar in one
+ * step (Idea → Calendar direct). Defaults to tomorrow 10:00 if no date given. */
+export async function scheduleIdea(
+  ideaId: string,
+  opts?: { iso?: string; platform?: string },
+): Promise<{ ok: true; when: string } | { ok: false; error: string }> {
+  try {
+    const provider = currentProvider();
+    if (!hasKeyFor(provider)) return { ok: false, error: "no_key" };
+    if (!db) return { ok: false, error: "no_session" };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false, error: "no_session" };
+
+    const t = forOrg(db, ctx.orgId);
+    const dna = await t.currentDna(ctx.brandId);
+    if (!dna) return { ok: false, error: "no_dna" };
+    if ((await t.balance()) < estimateCompose()) return { ok: false, error: "insufficient_credits" };
+
+    const all = await t.listIdeas(ctx.brandId, { limit: 100 });
+    const idea = all.find((i) => i.id === ideaId);
+    if (!idea) return { ok: false, error: "not_found" };
+
+    // When to schedule: caller-provided ISO, else tomorrow at 10:00 local.
+    let when: Date;
+    if (opts?.iso) {
+      when = new Date(opts.iso);
+      if (Number.isNaN(when.getTime())) return { ok: false, error: "bad_date" };
+    } else {
+      when = new Date();
+      when.setDate(when.getDate() + 1);
+      when.setHours(10, 0, 0, 0);
+    }
+
+    let brand: string | undefined;
+    try {
+      const [profile, products] = await Promise.all([t.getBrandProfile(ctx.brandId), t.listProducts(ctx.brandId)]);
+      brand = buildBrandContext({ profile, products }) || undefined;
+    } catch {
+      /* best-effort */
+    }
+
+    const platform = opts?.platform || "linkedin";
+    const prompt = idea.angle ? `${idea.title} — ${idea.angle}` : idea.title;
+    const res = await generateText({
+      system: STUDIO_SYSTEM,
+      user: buildStudioMessage({ dna, prompt, platform, format: "post", tone: "professional", length: "medium", brand }),
+      maxTokens: 4096,
+      anthropicModel: process.env.ANTHROPIC_DRAFT_MODEL || MODELS.SONNET,
+      schema: STUDIO_SCHEMA,
+      provider,
+    });
+    if (res.truncated) return { ok: false, error: "failed" };
+    const parsed = extractJson<{ hooks?: unknown; body?: unknown }>(res.text);
+    const hooks = Array.isArray(parsed?.hooks) ? parsed.hooks.map((h) => String(h)).filter(Boolean) : [];
+    const body = typeof parsed?.body === "string" ? parsed.body : "";
+    if (!hooks.length || !body) return { ok: false, error: "failed" };
+
+    const draftId = await t.saveDraft(ctx.brandId, {
+      platform,
+      topic: idea.title,
+      hook: hooks[0],
+      body,
+      ideaId: idea.id,
+      postScore: postScore(hooks[0], body),
+      dnaMatch: dnaMatch(`${hooks[0]}\n${body}`, dna),
+    });
+    await t.setDraftStatus(ctx.brandId, draftId, "scheduled", when);
+    await t.setIdeaStatus(ctx.brandId, idea.id, "used");
+    await t.debit(estimateCompose(), "schedule_idea", "idea", idea.id);
+    revalidatePath("/ideas");
+    revalidatePath("/calendar");
+    return { ok: true, when: when.toISOString() };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}

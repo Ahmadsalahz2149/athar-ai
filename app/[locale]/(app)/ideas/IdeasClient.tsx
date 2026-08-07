@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { generateIdeas, toggleSaveIdea, markIdeaUsed, batchGenerate } from "./actions";
+import { generateIdeas, toggleSaveIdea, markIdeaUsed, batchGenerate, scheduleIdea } from "./actions";
 import { Chip, StatusPill, EmptyState, IconTile, GlyphIcon, btnTeal, btnNavy } from "@/components/ui/display";
 
 type Idea = {
@@ -80,6 +80,19 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
     markIdeaUsed(i.id);
     const prompt = i.angle ? `${i.title} — ${i.angle}` : i.title;
     router.push(`/studio?prompt=${encodeURIComponent(prompt)}`);
+  };
+
+  // Idea → Calendar direct: compose + schedule (tomorrow 10:00) in one step.
+  const [schedId, setSchedId] = useState<string | null>(null);
+  const schedule = (i: Idea) => {
+    setSchedId(i.id);
+    setErr(null);
+    start(async () => {
+      const r = await scheduleIdea(i.id);
+      setSchedId(null);
+      if (r.ok) { setBatchMsg(t("scheduledToast")); router.refresh(); }
+      else setErr(r.error === "no_dna" ? t("needDna") : r.error === "no_key" ? t("needKey") : r.error === "insufficient_credits" ? t("insufficientCredits") : t("error"));
+    });
   };
 
   const shown = useMemo(() => {
@@ -169,6 +182,7 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
                   >
                     {saved[i.id] ? "★" : "☆"}
                   </button>
+                  <button onClick={() => schedule(i)} disabled={pending} title={t("scheduleHint")} style={{ height: 34, padding: "0 12px", fontSize: 12.5, fontWeight: 600, borderRadius: 10, border: "1px solid var(--teal)", background: "var(--teal-tint)", color: "var(--teal-deep)", cursor: "pointer", opacity: schedId === i.id ? 0.6 : 1, whiteSpace: "nowrap" }}>📅 {schedId === i.id ? t("scheduling") : t("schedule")}</button>
                   <button onClick={() => write(i)} style={{ ...btnNavy, height: 34, padding: "0 16px", fontSize: 12.5 }}>{t("write")}</button>
                 </div>
               </div>

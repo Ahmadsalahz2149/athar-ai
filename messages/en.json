@@ -731,7 +731,11 @@
     "batchClear": "Clear",
     "batchGenerate": "Generate {n} drafts",
     "batchRunning": "Generating…",
-    "batchDone": "Generated {n} drafts ✓ — review them in Approvals"
+    "batchDone": "Generated {n} drafts ✓ — review them in Approvals",
+    "schedule": "Schedule",
+    "scheduling": "Scheduling…",
+    "scheduleHint": "Write the post and schedule it on the calendar (tomorrow 10 AM)",
+    "scheduledToast": "Post written and scheduled on the calendar ✓"
   },
   "Approvals": {
     "title": "Approvals",
