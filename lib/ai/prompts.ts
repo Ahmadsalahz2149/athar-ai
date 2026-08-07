@@ -405,6 +405,19 @@ export function buildRewriteMessage(opts: { body: string; tool: string; dna: Con
   ].join("\n");
 }
 
+export const HASHTAG_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: { hashtags: { type: "array", items: { type: "string" }, maxItems: 8 } },
+  required: ["hashtags"],
+} as const;
+
+export const HASHTAG_SYSTEM = `أنت خبير نمو على منصات التواصل في الخليج. اقترح هاشتاغات دقيقة وذات صلة بموضوع البوست، يمزج بين العربية والإنجليزية عند الحاجة، ويشمل وسومًا محلية خليجية عندما تكون مناسبة. تجنّب الوسوم العامة المفرطة (#followme) والوسوم غير المرتبطة. أعد JSON فقط: { "hashtags": string[] } — من ٥ إلى ٨ وسوم، كل وسم يبدأ بـ #، دون مسافات داخله.`;
+
+export function buildHashtagMessage(body: string): string {
+  return `اقترح هاشتاغات لهذا البوست:\n\n<POST>\n${body.slice(0, 1500)}\n</POST>`;
+}
+
 // ---- Floating brand assistant (Phase 3 #20) ----
 export const ASSISTANT_SYSTEM = `أنت «مساعد أثر» — مساعد ذكي داخل منصّة أثر AI لبناء العلامات الشخصية. تساعد صاحب العلامة في أفكار المحتوى، تحسين المنشورات، استراتيجية النشر، وأي سؤال عن التسويق وبناء الجمهور.
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { studioGenerate, studioRewrite, setDraftState, type StudioResult, type StudioSource } from "./actions";
+import { studioGenerate, studioRewrite, setDraftState, suggestHashtags, type StudioResult, type StudioSource } from "./actions";
 import { SlideEditor } from "./SlideEditor";
 import { postScore, dnaMatch, scoreBreakdown } from "@/lib/ai/score";
 import { checkContent } from "@/lib/ai/guardrails";
@@ -62,6 +62,8 @@ export function StudioClient({
   const [showWhy, setShowWhy] = useState(false);
   const prevBody = useRef<string | null>(null); // one-level undo before a rewrite/regenerate
   const [canUndo, setCanUndo] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagsBusy, setTagsBusy] = useState(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [savedSig, setSavedSig] = useState<string | null>(null);
 
@@ -138,6 +140,24 @@ export function StudioClient({
     setBody(prevBody.current);
     prevBody.current = null;
     setCanUndo(false);
+  };
+
+  const getTags = () => {
+    setTagsBusy(true);
+    setTags([]);
+    start(async () => {
+      const r = await suggestHashtags({ body, provider, model });
+      setTagsBusy(false);
+      if (r.ok) setTags(r.hashtags);
+    });
+  };
+
+  const addTag = (tag: string) => {
+    if (body.includes(tag)) return;
+    prevBody.current = body;
+    setCanUndo(true);
+    setBody((b) => `${b.trimEnd()}\n\n${tag}`);
+    setTags((ts) => ts.filter((t) => t !== tag));
   };
 
   const act = (state: "draft" | "pending" | "scheduled", labelKey: string) => {
@@ -296,6 +316,7 @@ export function StudioClient({
                     {tool === "regenerate" ? "↺ " : ""}{t(`tool_${tool}`)}
                   </button>
                 ))}
+                <button onClick={getTags} disabled={pending || body.trim().length < 20} style={{ ...btnGhost, height: 36, fontSize: 12.5, opacity: tagsBusy ? 0.6 : 1 }}># {t("suggestTags")}</button>
                 {canUndo && (
                   <button onClick={undo} disabled={pending} title="⌘Z" style={{ ...btnGhost, height: 36, fontSize: 12.5, color: "var(--gold-dark)", borderColor: "var(--gold)" }}>↶ {t("undo")}</button>
                 )}
@@ -322,6 +343,18 @@ export function StudioClient({
                   <span>{format === "thread" || format === "carousel" ? t("slideCount", { n: nf.format(body.split(/\n{2,}/).filter((s) => s.trim()).length) }) : t("wordCount", { n: nf.format(body.trim().split(/\s+/).filter(Boolean).length) })}</span>
                   <span style={{ color: "var(--teal-deep)", fontWeight: 600 }}>{t("dnaMatchInline", { pct: nf.format(scores.dm) })}</span>
                 </div>
+                {(tagsBusy || tags.length > 0) && (
+                  <div style={{ marginBlockStart: 12, paddingBlockStart: 12, borderBlockStart: "1px dashed var(--border)" }}>
+                    <div style={{ fontSize: 11.5, color: "var(--muted)", marginBlockEnd: 8 }}>{tagsBusy ? t("suggestingTags") : t("tapToAdd")}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                      {tags.map((tag) => (
+                        <button key={tag} onClick={() => addTag(tag)} style={{ height: 30, padding: "0 12px", borderRadius: 999, border: "1px solid var(--teal)", background: "var(--teal-tint)", color: "var(--teal-deep)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-latin)", direction: "ltr" }}>
+                          {tag} <span style={{ opacity: 0.6, marginInlineStart: 2 }}>+</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}

@@ -20,6 +20,9 @@ import {
   STUDIO_PROMPT_ID,
   STUDIO_PROMPT_VERSION,
   buildBrandContext,
+  HASHTAG_SYSTEM,
+  HASHTAG_SCHEMA,
+  buildHashtagMessage,
   type ContentDna,
 } from "@/lib/ai/prompts";
 
@@ -222,4 +225,43 @@ export async function setDraftState(
 
 export async function submitForApproval(draftId: string): Promise<{ ok: boolean }> {
   return setDraftState(draftId, "pending");
+}
+
+export type HashtagResult = { ok: true; hashtags: string[] } | { ok: false; error: string };
+
+/** Suggest on-topic, Gulf-aware hashtags for the current post body. */
+export async function suggestHashtags(input: { body: string; provider?: string; model?: string }): Promise<HashtagResult> {
+  const { provider, model } = resolveProvider(input);
+  if (!hasKeyFor(provider)) return { ok: false, error: "no_key" };
+  if (!input.body || input.body.trim().length < 20) return { ok: false, error: "too_short" };
+  if (!db) return { ok: false, error: "failed" };
+  const ctx = await currentContext();
+  if (!ctx) return { ok: false, error: "failed" };
+  const t = forOrg(db, ctx.orgId);
+  const estimate = estimateRewrite();
+  if ((await t.balance()) < estimate) return { ok: false, error: "insufficient_credits" };
+  try {
+    const res = await generateText({
+      system: HASHTAG_SYSTEM,
+      user: buildHashtagMessage(input.body),
+      maxTokens: 512,
+      anthropicModel: process.env.ANTHROPIC_DRAFT_MODEL || MODELS.HAIKU,
+      schema: HASHTAG_SCHEMA,
+      provider,
+      model,
+    });
+    if (res.truncated) return { ok: false, error: "failed" };
+    const parsed = extractJson<{ hashtags?: unknown }>(res.text);
+    const raw = Array.isArray(parsed?.hashtags) ? parsed.hashtags : [];
+    const hashtags = raw
+      .filter((h): h is string => typeof h === "string")
+      .map((h) => "#" + h.trim().replace(/^#+/, "").replace(/\s+/g, "_"))
+      .filter((h) => h.length > 1)
+      .slice(0, 8);
+    if (hashtags.length === 0) return { ok: false, error: "failed" };
+    await t.debit(estimate, "studio_hashtags", "brand", ctx.brandId);
+    return { ok: true, hashtags };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
