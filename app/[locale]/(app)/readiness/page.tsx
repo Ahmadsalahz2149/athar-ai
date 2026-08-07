@@ -16,7 +16,9 @@ export default async function ReadinessPage({ params }: { params: Promise<{ loca
   setRequestLocale(locale);
   const t = await getTranslations("Readiness");
 
+  const REWARD = 50;
   let items: Item[] = [];
+  let rewarded = false;
   if (db) {
     const ctx = await currentContext();
     if (ctx) {
@@ -42,6 +44,11 @@ export default async function ReadinessPage({ params }: { params: Promise<{ loca
         { key: "distribution", done: kitHasContent(dist), href: "/distribute" },
         { key: "link", done: !!link.handle, href: "/mylink" },
       ];
+      if (items.every((i) => i.done)) {
+        // All steps complete — grant the launch reward once (idempotent).
+        await org.grantOnce(REWARD, "readiness_complete").catch(() => {});
+        rewarded = true;
+      }
     }
   }
 
@@ -52,6 +59,16 @@ export default async function ReadinessPage({ params }: { params: Promise<{ loca
     <main style={{ maxWidth: 760, margin: "0 auto", padding: "clamp(20px,3.4vw,32px) clamp(16px,4vw,32px) 90px", animation: "floatUp .4s ease" }}>
       <h1 className="headline-gradient" style={{ fontSize: "clamp(21px,3.2vw,27px)", fontWeight: 700, letterSpacing: "-.4px" }}>{t("title")}</h1>
       <p style={{ fontSize: 14.5, color: "var(--muted)", marginBlock: "6px 20px" }}>{t("subtitle")}</p>
+
+      {rewarded && pct === 100 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 14, background: "var(--gold-tint)", border: "1px solid var(--gold)", marginBlockEnd: 16 }}>
+          <span style={{ fontSize: 22, flexShrink: 0 }}>🎉</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14.5, color: "var(--gold-dark)" }}>{t("rewardTitle")}</div>
+            <div style={{ fontSize: 12.8, color: "var(--gold-dark)", marginBlockStart: 2, opacity: 0.9 }}>{t("rewardBody", { credits: REWARD })}</div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 18, background: "linear-gradient(160deg,#273343,#1F2937)", borderRadius: 18, padding: 22, color: "#fff", marginBlockEnd: 18 }}>
         <ScoreRadial value={pct} size={92} suffix="%" track="rgba(255,255,255,.14)" valueColor="#fff" label={t("ready")} />

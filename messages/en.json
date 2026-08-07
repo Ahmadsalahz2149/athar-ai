@@ -1230,7 +1230,9 @@
     "item_distribution": "Analyze your audience",
     "hint_distribution": "Keywords to find relevant groups.",
     "item_link": "Create your link page",
-    "hint_link": "A public page for all your links."
+    "hint_link": "A public page for all your links.",
+    "rewardTitle": "You completed your brand readiness!",
+    "rewardBody": "You earned {credits} bonus credits for finishing every step."
   },
   "Billing": {
     "title": "Billing & plans",
