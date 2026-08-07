@@ -100,3 +100,40 @@ export async function saveDnaEdits(edits: DnaEdits): Promise<{ ok: boolean; erro
     return { ok: false, error: e instanceof Error ? e.message : "failed" };
   }
 }
+
+/** Voice test (DNA page): AI critique of how on-brand a piece of text is. */
+export async function voiceFeedback(text: string): Promise<
+  { ok: true; matches: string[]; breaks: string[]; tip: string } | { ok: false; error: string }
+> {
+  try {
+    const { generateText, hasKeyFor, currentProvider } = await import("@/lib/ai/generate");
+    const { extractJson } = await import("@/lib/ai/json");
+    const { MODELS } = await import("@/lib/ai/models");
+    const { VOICE_TEST_SYSTEM, VOICE_TEST_SCHEMA, buildVoiceTestMessage } = await import("@/lib/ai/prompts");
+    const { estimateRewrite } = await import("@/lib/credits/costs");
+    const provider = currentProvider();
+    if (!hasKeyFor(provider)) return { ok: false, error: "no_key" };
+    if (!text?.trim() || text.trim().length < 10) return { ok: false, error: "empty" };
+    if (!db) return { ok: false, error: "no_session" };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false, error: "no_session" };
+    const t = forOrg(db, ctx.orgId);
+    const dna = await t.currentDna(ctx.brandId);
+    if (!dna) return { ok: false, error: "no_dna" };
+    if ((await t.balance()) < estimateRewrite()) return { ok: false, error: "insufficient_credits" };
+    const res = await generateText({
+      system: VOICE_TEST_SYSTEM,
+      user: buildVoiceTestMessage({ text, dna }),
+      maxTokens: 800,
+      anthropicModel: process.env.ANTHROPIC_DRAFT_MODEL || MODELS.HAIKU,
+      schema: VOICE_TEST_SCHEMA,
+      provider,
+    });
+    const parsed = extractJson<{ matches?: unknown; breaks?: unknown; tip?: unknown }>(res.text);
+    const arr = (v: unknown) => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()).slice(0, 5) : []);
+    await t.debit(estimateRewrite(), "voice_test", "brand", ctx.brandId);
+    return { ok: true, matches: arr(parsed?.matches), breaks: arr(parsed?.breaks), tip: typeof parsed?.tip === "string" ? parsed.tip : "" };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}

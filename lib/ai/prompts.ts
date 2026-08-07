@@ -430,6 +430,29 @@ export function buildAssistantContext(opts: { dna?: ContentDna | null; brand?: s
   return `\n<BRAND>\n${body}${brand}\n</BRAND>`;
 }
 
+// ---- Voice test: how on-brand is a piece of text? (DNA page) ----
+export const VOICE_TEST_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    matches: { type: "array", items: { type: "string" }, description: "٢–٤ نقاط تطابق صوت البصمة." },
+    breaks: { type: "array", items: { type: "string" }, description: "١–٣ نقاط تخالف الصوت (فارغة إن لم توجد)." },
+    tip: { type: "string", description: "نصيحة واحدة عملية لجعله أكثر مطابقة لصوتك." },
+  },
+  required: ["matches", "breaks", "tip"],
+} as const;
+
+export const VOICE_TEST_SYSTEM = `أنت مدقّق صوت العلامة. قارن نصًّا ببصمة المحتوى (الصوت واللهجة والنبرة وأنماط الهوكس) وقيّم مدى مطابقته. كن محدّدًا لا عامًّا.
+
+قواعد:
+- البصمة بين <DNA>...</DNA> هي المرجع.
+- matches: ما يطابق الصوت فعلًا. breaks: ما يخرج عنه (اتركها فارغة إن كان مطابقًا).
+- tip: نصيحة واحدة عملية. أعد JSON المطلوب فقط بلغة البصمة.`;
+
+export function buildVoiceTestMessage(opts: { text: string; dna: ContentDna }): string {
+  return [`النص للفحص:\n${opts.text.slice(0, 1500)}`, ``, `<DNA>\n${JSON.stringify(opts.dna, null, 2)}\n</DNA>`].join("\n");
+}
+
 // ---- Visual prompt from a post (media studio) ----
 export const IMAGE_PROMPT_SYSTEM = `You turn an Arabic social post into ONE concise English image-generation prompt (image models perform best in English). Describe a single striking, brand-appropriate visual that fits the post's message — subject, setting, style, mood, lighting, composition. No text/words in the image. Keep it under 60 words. Honor any brand facts/constraints given. Return ONLY the prompt text, nothing else.`;
 

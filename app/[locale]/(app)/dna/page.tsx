@@ -7,6 +7,7 @@ import type { ContentDna } from "@/lib/ai/prompts";
 import { ScoreRadial, SegmentMeter, EmptyState, GlyphIcon, btnNavy, btnGhost } from "@/components/ui/display";
 import { EditDnaModal } from "./EditDnaModal";
 import { TraitSources } from "./TraitSources";
+import { VoiceTest } from "./VoiceTest";
 import { BuildDnaButton } from "./BuildDnaButton";
 
 const PILLAR_META = [
@@ -230,6 +231,9 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
           cat: { tone: t("vTone"), hook: t("hookTitle"), cta: t("ctaTitle"), do: t("strengthsTitle"), dont: t("gapsTitle") },
         }}
       />
+
+      {/* Voice test — paste text, see how on-brand it is + AI critique. */}
+      <VoiceTest dna={dna} />
 
       {/* Actions */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBlockStart: 20 }}>

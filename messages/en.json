@@ -549,7 +549,18 @@
     "errNoSources": "No sources yet — upload your posts first.",
     "errGeneric": "Couldn't build the DNA. Try again.",
     "errTimeout": "It took longer than expected. Refresh the page and try again.",
-    "errThin": "The uploaded content is too short to build an accurate DNA — add longer or more posts, then try again."
+    "errThin": "The uploaded content is too short to build an accurate DNA — add longer or more posts, then try again.",
+    "vtTitle": "Voice test",
+    "vtDesc": "Paste any text to instantly see how on-brand it is, then get specific feedback.",
+    "vtPh": "Paste a post or text to test against your voice…",
+    "vtMatch": "Match",
+    "vtInstant": "Instant score",
+    "vtFeedback": "Get feedback",
+    "vtAnalyzing": "Analyzing…",
+    "vtMatches": "What matches your voice",
+    "vtBreaks": "What breaks your voice",
+    "vtTip": "Tip",
+    "vtShort": "Text is too short."
   },
   "Vault": {
     "title": "Knowledge Vault",
