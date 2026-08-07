@@ -1301,5 +1301,10 @@
     "mins": "{n} min",
     "openScreen": "Open screen",
     "markDone": "Done ✓"
+  },
+  "Pwa": {
+    "prompt": "Install Athar on your device for quick access",
+    "install": "Install",
+    "later": "Later"
   }
 }

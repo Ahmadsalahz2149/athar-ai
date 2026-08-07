@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { IBM_Plex_Sans_Arabic, Inter, Rubik } from "next/font/google";
 import { routing } from "@/i18n/routing";
+import { PwaRegister } from "@/components/PwaRegister";
 import "../globals.css";
 
 const plexArabic = IBM_Plex_Sans_Arabic({
@@ -36,6 +37,16 @@ export function generateStaticParams() {
 export const metadata: Metadata = {
   title: "أثر AI — Athar",
   description: "Personal Brand Growth OS",
+  applicationName: "أثر AI",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "أثر" },
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0f766e",
 };
 
 export default async function LocaleLayout({
@@ -55,7 +66,10 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={dir} className={`${plexArabic.variable} ${rubik.variable} ${inter.variable}`}>
       <body style={{ fontFamily, minHeight: "100vh" }} suppressHydrationWarning>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          {children}
+          <PwaRegister />
+        </NextIntlClientProvider>
       </body>
     </html>
   );
