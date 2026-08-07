@@ -23,6 +23,9 @@ import {
   HASHTAG_SYSTEM,
   HASHTAG_SCHEMA,
   buildHashtagMessage,
+  TRANSLATE_SYSTEM,
+  TRANSLATE_SCHEMA,
+  buildTranslateMessage,
   type ContentDna,
 } from "@/lib/ai/prompts";
 
@@ -225,6 +228,44 @@ export async function setDraftState(
 
 export async function submitForApproval(draftId: string): Promise<{ ok: boolean }> {
   return setDraftState(draftId, "pending");
+}
+
+export type TranslateResult = { ok: true; hook: string; body: string } | { ok: false; error: string };
+
+/** Produce a voice-preserving translation of the current post to the other
+ * language (bilingual content). Not literal — idioms are localized. */
+export async function translatePost(input: { hook: string; body: string; target: "ar" | "en"; provider?: string; model?: string }): Promise<TranslateResult> {
+  const { provider, model } = resolveProvider(input);
+  if (!hasKeyFor(provider)) return { ok: false, error: "no_key" };
+  if (!input.body || input.body.trim().length < 10) return { ok: false, error: "too_short" };
+  if (!db) return { ok: false, error: "no_dna" };
+  const ctx = await currentContext();
+  if (!ctx) return { ok: false, error: "no_dna" };
+  const t = forOrg(db, ctx.orgId);
+  const dna = await t.currentDna(ctx.brandId);
+  if (!dna) return { ok: false, error: "no_dna" };
+  const estimate = estimateRewrite();
+  if ((await t.balance()) < estimate) return { ok: false, error: "insufficient_credits" };
+  try {
+    const res = await generateText({
+      system: TRANSLATE_SYSTEM,
+      user: buildTranslateMessage({ hook: input.hook, body: input.body, target: input.target, dna }),
+      maxTokens: 3072,
+      anthropicModel: process.env.ANTHROPIC_DRAFT_MODEL || MODELS.SONNET,
+      schema: TRANSLATE_SCHEMA,
+      provider,
+      model,
+    });
+    if (res.truncated) return { ok: false, error: "truncated" };
+    const parsed = extractJson<{ hook?: unknown; body?: unknown }>(res.text);
+    const hook = typeof parsed?.hook === "string" ? parsed.hook : "";
+    const body = typeof parsed?.body === "string" ? parsed.body : "";
+    if (!body) return { ok: false, error: "failed" };
+    await t.debit(estimate, "studio_translate", "brand", ctx.brandId);
+    return { ok: true, hook, body };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 export type HashtagResult = { ok: true; hashtags: string[] } | { ok: false; error: string };

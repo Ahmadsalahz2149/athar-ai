@@ -149,7 +149,13 @@
     "slideCount": "{n} شريحة",
     "suggestTags": "اقترح هاشتاغات",
     "suggestingTags": "جارٍ اقتراح وسوم…",
-    "tapToAdd": "اضغط لإضافة الوسم إلى نصّك"
+    "tapToAdd": "اضغط لإضافة الوسم إلى نصّك",
+    "toEnglish": "إنجليزي",
+    "toArabic": "عربي",
+    "translating": "جارٍ الترجمة بصوتك…",
+    "englishVersion": "النسخة الإنجليزية",
+    "arabicVersion": "النسخة العربية",
+    "useTranslation": "استخدم هذه"
   },
   "Legal": {
     "termsTitle": "شروط الاستخدام",

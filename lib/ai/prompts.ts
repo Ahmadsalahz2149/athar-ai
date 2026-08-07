@@ -405,6 +405,27 @@ export function buildRewriteMessage(opts: { body: string; tool: string; dna: Con
   ].join("\n");
 }
 
+export const TRANSLATE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: { hook: { type: "string" }, body: { type: "string" } },
+  required: ["hook", "body"],
+} as const;
+
+export const TRANSLATE_SYSTEM = `أنت مترجم إبداعي متخصص في المحتوى التسويقي ثنائي اللغة (عربي/إنجليزي) لجمهور الخليج. مهمتك ليست الترجمة الحرفية بل إعادة صياغة البوست باللغة الهدف مع الحفاظ التامّ على صوت الكاتب ونبرته (Content DNA)، وتحويل التعبيرات الاصطلاحية إلى ما يعادلها طبيعيًا في اللغة الهدف. حافظ على الإيموجي والهاشتاغات كما هي (لا تترجم الهاشتاغات). أعد JSON فقط: { "hook": string, "body": string }.`;
+
+export function buildTranslateMessage(opts: { hook: string; body: string; target: "ar" | "en"; dna: ContentDna }): string {
+  const lang = opts.target === "en" ? "الإنجليزية" : "العربية";
+  return [
+    `اللغة الهدف: ${lang}.`,
+    `أعد صياغة الخطّاف والنص التاليين إلى ${lang} مع الحفاظ على الصوت والأسلوب.`,
+    ``,
+    `<DNA>\n${JSON.stringify(opts.dna, null, 2)}\n</DNA>`,
+    `\n<HOOK>\n${opts.hook}\n</HOOK>`,
+    `\n<BODY>\n${opts.body}\n</BODY>`,
+  ].join("\n");
+}
+
 export const HASHTAG_SCHEMA = {
   type: "object",
   additionalProperties: false,

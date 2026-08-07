@@ -149,7 +149,13 @@
     "slideCount": "{n} slides",
     "suggestTags": "Suggest hashtags",
     "suggestingTags": "Suggesting hashtags…",
-    "tapToAdd": "Tap to add a hashtag to your post"
+    "tapToAdd": "Tap to add a hashtag to your post",
+    "toEnglish": "English",
+    "toArabic": "Arabic",
+    "translating": "Translating in your voice…",
+    "englishVersion": "English version",
+    "arabicVersion": "Arabic version",
+    "useTranslation": "Use this"
   },
   "Legal": {
     "termsTitle": "Terms of Service",

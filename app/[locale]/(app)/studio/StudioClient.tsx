@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { studioGenerate, studioRewrite, setDraftState, suggestHashtags, type StudioResult, type StudioSource } from "./actions";
+import { studioGenerate, studioRewrite, setDraftState, suggestHashtags, translatePost, type StudioResult, type StudioSource } from "./actions";
 import { SlideEditor } from "./SlideEditor";
 import { postScore, dnaMatch, scoreBreakdown } from "@/lib/ai/score";
 import { checkContent } from "@/lib/ai/guardrails";
@@ -64,6 +64,8 @@ export function StudioClient({
   const [canUndo, setCanUndo] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tagsBusy, setTagsBusy] = useState(false);
+  const [trans, setTrans] = useState<{ hook: string; body: string } | null>(null);
+  const [transBusy, setTransBusy] = useState(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [savedSig, setSavedSig] = useState<string | null>(null);
 
@@ -158,6 +160,28 @@ export function StudioClient({
     setCanUndo(true);
     setBody((b) => `${b.trimEnd()}\n\n${tag}`);
     setTags((ts) => ts.filter((t) => t !== tag));
+  };
+
+  // Bilingual: target is the opposite of whatever the body is written in.
+  const target: "ar" | "en" = /[؀-ۿ]/.test(body) ? "en" : "ar";
+  const translate = () => {
+    setTransBusy(true);
+    setTrans(null);
+    start(async () => {
+      const r = await translatePost({ hook, body, target, provider, model });
+      setTransBusy(false);
+      if (r.ok) setTrans({ hook: r.hook, body: r.body });
+    });
+  };
+  const useTranslation = () => {
+    if (!trans) return;
+    prevBody.current = body;
+    setCanUndo(true);
+    if (trans.hook) {
+      setResult((prev) => (prev && prev.ok ? { ...prev, hooks: prev.hooks.map((h, i) => (i === hookIdx ? trans.hook : h)) } : prev));
+    }
+    setBody(trans.body);
+    setTrans(null);
   };
 
   const act = (state: "draft" | "pending" | "scheduled", labelKey: string) => {
@@ -317,6 +341,7 @@ export function StudioClient({
                   </button>
                 ))}
                 <button onClick={getTags} disabled={pending || body.trim().length < 20} style={{ ...btnGhost, height: 36, fontSize: 12.5, opacity: tagsBusy ? 0.6 : 1 }}># {t("suggestTags")}</button>
+                <button onClick={translate} disabled={pending || body.trim().length < 10} style={{ ...btnGhost, height: 36, fontSize: 12.5, opacity: transBusy ? 0.6 : 1 }}>🌐 {target === "en" ? t("toEnglish") : t("toArabic")}</button>
                 {canUndo && (
                   <button onClick={undo} disabled={pending} title="⌘Z" style={{ ...btnGhost, height: 36, fontSize: 12.5, color: "var(--gold-dark)", borderColor: "var(--gold)" }}>↶ {t("undo")}</button>
                 )}
@@ -343,6 +368,22 @@ export function StudioClient({
                   <span>{format === "thread" || format === "carousel" ? t("slideCount", { n: nf.format(body.split(/\n{2,}/).filter((s) => s.trim()).length) }) : t("wordCount", { n: nf.format(body.trim().split(/\s+/).filter(Boolean).length) })}</span>
                   <span style={{ color: "var(--teal-deep)", fontWeight: 600 }}>{t("dnaMatchInline", { pct: nf.format(scores.dm) })}</span>
                 </div>
+                {(transBusy || trans) && (
+                  <div dir={target === "en" ? "ltr" : "rtl"} style={{ marginBlockStart: 12, padding: 14, borderRadius: 12, border: "1px solid var(--teal)", background: "var(--teal-tint)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBlockEnd: 8 }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--teal-deep)" }}>🌐 {target === "en" ? t("englishVersion") : t("arabicVersion")}</span>
+                      {trans && <button onClick={useTranslation} style={{ ...btnTeal, height: 30, fontSize: 12 }}>{t("useTranslation")}</button>}
+                    </div>
+                    {transBusy ? (
+                      <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("translating")}</div>
+                    ) : trans ? (
+                      <>
+                        {trans.hook && <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 14, lineHeight: 1.6, marginBlockEnd: 6 }}>{trans.hook}</div>}
+                        <div style={{ fontSize: 13.5, color: "var(--slate)", lineHeight: 1.85, whiteSpace: "pre-wrap" }}>{trans.body}</div>
+                      </>
+                    ) : null}
+                  </div>
+                )}
                 {(tagsBusy || tags.length > 0) && (
                   <div style={{ marginBlockStart: 12, paddingBlockStart: 12, borderBlockStart: "1px dashed var(--border)" }}>
                     <div style={{ fontSize: 11.5, color: "var(--muted)", marginBlockEnd: 8 }}>{tagsBusy ? t("suggestingTags") : t("tapToAdd")}</div>
