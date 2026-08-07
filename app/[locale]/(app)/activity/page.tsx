@@ -5,6 +5,7 @@ import { currentContext } from "@/lib/auth/current";
 import { activeJobsCount } from "../ingest/actions";
 import { ProcessingWatcher } from "@/components/ProcessingWatcher";
 import { StatusPill, EmptyState, GlyphIcon } from "@/components/ui/display";
+import { RetryButton } from "./RetryButton";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +80,10 @@ export default async function ActivityPage({ params }: { params: Promise<{ local
                   {(j.status === "failed" || j.status === "dead") && j.lastError ? ` · ${j.lastError.slice(0, 60)}` : ""}
                 </div>
               </div>
-              <StatusPill tone={statusTone(j.status)} dot>{t(`status_${j.status}`)}</StatusPill>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                {(j.status === "failed" || j.status === "dead") && <RetryButton jobId={j.id} />}
+                <StatusPill tone={statusTone(j.status)} dot>{t(`status_${j.status}`)}</StatusPill>
+              </div>
             </div>
           ))}
         </div>

@@ -1188,6 +1188,20 @@ export function forOrg(db: Db, orgId: string) {
     },
 
     /** Recent AI/background operations for the Creation Center (Phase 2 #21). */
+    /** Retry a failed/dead job (Creation Center). Resets it to queued so the
+     * worker picks it up again. Returns true if a job was actually reset. */
+    async retryJob(brandId: string, jobId: string): Promise<boolean> {
+      await assertBrand(brandId);
+      const res = await db.execute(sql`
+        UPDATE jobs SET status = 'queued', attempts = 0, run_after = now(),
+          locked_at = null, locked_by = null, last_error = null, updated_at = now()
+        WHERE id = ${jobId} AND org_id = ${orgId} AND brand_id = ${brandId}
+          AND status IN ('dead', 'failed')
+        RETURNING id
+      `);
+      return (res as unknown as unknown[]).length > 0;
+    },
+
     async recentJobs(brandId: string, limit = 30) {
       return db
         .select({

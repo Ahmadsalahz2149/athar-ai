@@ -1114,7 +1114,9 @@
     "status_running": "Running",
     "status_done": "Done",
     "status_failed": "Retrying",
-    "status_dead": "Failed"
+    "status_dead": "Failed",
+    "retry": "Retry",
+    "retrying": "Retrying…"
   },
   "Media": {
     "title": "Media Studio",

@@ -1114,7 +1114,9 @@
     "status_running": "قيد التنفيذ",
     "status_done": "اكتمل",
     "status_failed": "تعثّر",
-    "status_dead": "فشل"
+    "status_dead": "فشل",
+    "retry": "إعادة المحاولة",
+    "retrying": "جارٍ…"
   },
   "Media": {
     "title": "استوديو الوسائط",
