@@ -1195,7 +1195,13 @@
     "empty": "I'm your AI assistant — I know your DNA and brand.\nAsk me for ideas, post improvements, or a posting plan.",
     "errCredits": "Not enough credits.",
     "errNoKey": "AI key not configured.",
-    "errGeneric": "Couldn't reply. Try again."
+    "errGeneric": "Couldn't reply. Try again.",
+    "actWrite": "Write this in Studio",
+    "actIdeas": "Get ideas",
+    "actPlan": "Open content plan",
+    "actCalendar": "Open calendar",
+    "actDna": "Open voice DNA",
+    "actAnalytics": "Open analytics"
   },
   "MyLink": {
     "title": "My Link page",

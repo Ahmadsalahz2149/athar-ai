@@ -5,6 +5,7 @@ import { normalizePlan, planHasContent, monthKey } from "@/lib/plan/types";
 import { daysInMonth, upcomingDays, WORLD_DAYS } from "@/lib/plan/worldDays";
 import { normalizeLinkPage, normalizeHandle, safeUrl } from "@/lib/link/types";
 import { buildAudienceMessage, buildPlanMessage, buildAssistantContext, buildBrandContext } from "@/lib/ai/prompts";
+import { detectAction } from "@/lib/assistant/intent";
 
 const DNA = {
   summary: "s", dialect: "مصري", tone_traits: ["واثق"], hook_patterns: [], audience: "مسوقون", dos: [], donts: [],
@@ -118,5 +119,26 @@ describe("prompt builders inject brand + context", () => {
     const ctx = buildAssistantContext({ dna: DNA, brand: "" });
     expect(ctx).toContain("<BRAND>");
     expect(ctx).toContain("مصري"); // dialect
+  });
+});
+
+/* ---------- Actionable assistant intent (general feature) ---------- */
+describe("assistant intent detection", () => {
+  it("routes a write request to Studio with the topic prefilled", () => {
+    const a = detectAction("اكتب لي بوست عن رمضان");
+    expect(a?.href).toMatch(/^\/studio\?prompt=/);
+    expect(decodeURIComponent(a!.href)).toContain("رمضان");
+    expect(decodeURIComponent(a!.href)).not.toContain("اكتب"); // verb stripped
+  });
+  it("routes idea / plan / calendar / dna / analytics requests (AR + EN)", () => {
+    expect(detectAction("أعطني أفكار")?.href).toBe("/ideas");
+    expect(detectAction("اعمل خطة محتوى للشهر")?.href).toBe("/plan");
+    expect(detectAction("جدول هذا البوست")?.href).toBe("/calendar");
+    expect(detectAction("show me analytics")?.href).toBe("/analytics");
+    expect(detectAction("what is my brand voice dna")?.href).toBe("/dna");
+  });
+  it("returns null for chit-chat and too-short input", () => {
+    expect(detectAction("شكرا جزيلا")).toBeNull();
+    expect(detectAction("hi")).toBeNull();
   });
 });

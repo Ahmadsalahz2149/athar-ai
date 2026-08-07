@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { askAssistant, loadAssistantHistory, clearAssistantHistory, type ChatMsg } from "./actions";
+import { detectAction, type AssistantAction } from "@/lib/assistant/intent";
 
 export function FloatingAssistant() {
   const t = useTranslations("Assistant");
@@ -12,7 +14,9 @@ export function FloatingAssistant() {
   const [text, setText] = useState("");
   const [pending, start] = useTransition();
   const [err, setErr] = useState("");
+  const [action, setAction] = useState<AssistantAction | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     // Load persisted history once, the first time the panel opens. setMsgs runs
@@ -33,6 +37,7 @@ export function FloatingAssistant() {
     setErr("");
     setText("");
     const history = msgs;
+    setAction(detectAction(m)); // free, instant intent → one-tap action chip
     setMsgs((p) => [...p, { role: "user", content: m }]);
     start(async () => {
       // Stream the reply token-by-token; fall back to the non-streaming action.
@@ -69,7 +74,7 @@ export function FloatingAssistant() {
     });
   };
 
-  const clear = () => start(async () => { await clearAssistantHistory(); setMsgs([]); });
+  const clear = () => start(async () => { await clearAssistantHistory(); setMsgs([]); setAction(null); });
 
   return (
     <>
@@ -125,6 +130,15 @@ export function FloatingAssistant() {
               </div>
             ))}
             {pending && <div style={{ alignSelf: "flex-start", padding: "9px 12px", borderRadius: 13, background: "var(--card,#fff)", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 13 }}>{t("thinking")}</div>}
+            {action && !pending && (
+              <button
+                onClick={() => { const a = action; setOpen(false); router.push(a.href); }}
+                className="lift"
+                style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 14px", borderRadius: 13, border: "1px solid var(--teal)", background: "var(--teal-tint)", color: "var(--teal-deep)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+              >
+                <span>✦</span>{t(action.labelKey)}<span style={{ opacity: 0.6 }}>←</span>
+              </button>
+            )}
           </div>
 
           {err && <div style={{ padding: "6px 14px", fontSize: 12, color: "var(--danger,#dc2626)", background: "var(--bg,#f8fafc)" }}>{err}</div>}
