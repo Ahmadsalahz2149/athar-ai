@@ -25,8 +25,26 @@ export const organizations = pgTable("organizations", {
   // use it are attributed via referred_by.
   referralCode: text("referral_code"),
   referredBy: uuid("referred_by"),
+  // Admin panel: when set, the account is suspended (soft-blocked). The app shell
+  // checks this and locks the workspace; the row is never deleted.
+  suspendedAt: timestamp("suspended_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Platform super-admins (admin panel). Distinct from memberships.role, which is
+// per-workspace ("owner"). A row here grants access to /admin across ALL orgs.
+// Bootstrapped from the ADMIN_EMAILS env allowlist; additional admins can be
+// promoted from within the panel (writing a row here).
+export const platformAdmins = pgTable(
+  "platform_admins",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    email: text("email"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("platform_admins_user_uq").on(t.userId)],
+);
 
 export const brands = pgTable("brands", {
   id: uuid("id").primaryKey().defaultRandom(),

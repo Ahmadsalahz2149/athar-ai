@@ -40,7 +40,11 @@ const eslintConfig = defineConfig([
     files: [
       "lib/db/forOrg.ts",
       "lib/db/index.ts",
+      "lib/db/admin.ts",
       "lib/auth/bootstrap.ts",
+      // Admin panel (platform super-admin) — deliberately cross-tenant. Access is
+      // gated by requireAdmin(); queries span all orgs by design. See lib/db/admin.ts.
+      "lib/auth/admin.ts",
       // Public link page (#17) — no org context; the handle is the lookup key,
       // and it only touches public link-page data. See lib/link/publicLookup.ts.
       "lib/link/publicLookup.ts",

@@ -252,6 +252,17 @@ export function forOrg(db: Db, orgId: string) {
       return rows.reduce((s, r) => s + r.d, 0);
     },
 
+    // Admin panel: whether this org has been suspended (soft-block). The app
+    // shell checks this and locks the workspace for non-admins.
+    async isSuspended(): Promise<boolean> {
+      const [row] = await db
+        .select({ s: schema.organizations.suspendedAt })
+        .from(schema.organizations)
+        .where(eq(schema.organizations.id, orgId))
+        .limit(1);
+      return !!row?.s;
+    },
+
     async grant(amount: number, reason: string): Promise<number> {
       return appendLedger(Math.abs(amount), reason);
     },

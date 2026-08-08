@@ -7,8 +7,10 @@ import { NavProvider } from "@/components/nav-context";
 import { FloatingAssistant } from "@/components/assistant/FloatingAssistant";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { ensureUserContext } from "@/lib/auth/bootstrap";
+import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
+import { SuspendedNotice } from "@/components/SuspendedNotice";
 
 export default async function AppLayout({
   children,
@@ -25,6 +27,8 @@ export default async function AppLayout({
   let balance: number | null = null;
   let userEmail: string | undefined;
   let counts = { sources: 0, ideas: 0, drafts: 0, pending: 0, scheduled: 0 };
+  let isAdmin = false;
+  let suspended = false;
   if (supabase) {
     const {
       data: { user },
@@ -35,17 +39,28 @@ export default async function AppLayout({
     if (ctx && db) {
       try {
         const org = forOrg(db, ctx.orgId);
-        [balance, counts] = await Promise.all([org.balance(), org.counts(ctx.brandId)]);
+        [balance, counts, isAdmin, suspended] = await Promise.all([
+          org.balance(),
+          org.counts(ctx.brandId),
+          isCurrentUserAdmin(),
+          org.isSuspended(),
+        ]);
       } catch {
         /* shell chrome is display-only — never block the app */
       }
     }
   }
 
+  // Suspended accounts are soft-blocked: admins are exempt so they can still
+  // reach the panel to lift the suspension.
+  if (suspended && !isAdmin) {
+    return <SuspendedNotice locale={locale} />;
+  }
+
   return (
     <div className="app-shell">
       <NavProvider>
-        <Sidebar balance={balance} sourcesUsed={counts.sources} pendingCount={counts.pending} />
+        <Sidebar balance={balance} sourcesUsed={counts.sources} pendingCount={counts.pending} isAdmin={isAdmin} />
         <div className="app-main">
           <AppTopBar userEmail={userEmail} />
           <div className="app-content scb">{children}</div>

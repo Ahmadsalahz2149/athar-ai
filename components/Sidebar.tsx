@@ -43,13 +43,16 @@ export function Sidebar({
   sourcesUsed = 0,
   sourcesLimit = 5,
   pendingCount = 0,
+  isAdmin = false,
 }: {
   balance?: number | null;
   sourcesUsed?: number;
   sourcesLimit?: number;
   pendingCount?: number;
+  isAdmin?: boolean;
 }) {
   const t = useTranslations("Nav");
+  const admin = useTranslations("Admin");
   const brand = useTranslations("Brand");
   const locale = useLocale();
   const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
@@ -124,6 +127,17 @@ export function Sidebar({
             );
           })}
         </nav>
+
+        {isAdmin && (
+          <Link
+            href="/admin"
+            onClick={close}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 13px", borderRadius: 12, marginBlockEnd: 10, textDecoration: "none", background: "linear-gradient(135deg,var(--teal),var(--teal-deep,#0f766e))", color: "#fff", fontWeight: 700, fontSize: 13 }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7z" /><path d="M9 12l2 2 4-4" /></svg>
+            <span style={{ flex: 1 }}>{admin("adminLink")}</span>
+          </Link>
+        )}
 
         <div
           className="app-plan"

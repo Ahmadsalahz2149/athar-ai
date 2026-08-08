@@ -1,1 +1,6 @@
 @import "../styles/tokens.css";
+
+/* Admin panel: account-detail two-column layout collapses on narrow screens. */
+@media (max-width: 820px) {
+  .admin-detail-grid { grid-template-columns: 1fr !important; }
+}
