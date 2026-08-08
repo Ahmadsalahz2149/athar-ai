@@ -26,6 +26,7 @@ const NAV: { href: string; key: string; icon: ReactNode }[] = [
   { href: "/plan", key: "plan", icon: <Icon d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 9h16M8 13h4M8 16h8" /> },
   { href: "/studio", key: "studio", icon: <Icon d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /> },
   { href: "/media", key: "media", icon: <Icon d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM10 9l5 3-5 3z" /> },
+  { href: "/scenes", key: "scenes", icon: <Icon d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9 9.5a3 3 0 1 0 6 0 3 3 0 0 0-6 0zM5.5 18a6.5 6.5 0 0 1 13 0" /> },
   { href: "/distribute", key: "distribute", icon: <Icon d="M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 3.9M15.4 6.6l-6.8 3.9" /> },
   { href: "/calendar", key: "calendar", icon: <Icon d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 9h16M8 3v4M16 3v4" /> },
   { href: "/approvals", key: "approvals", icon: <Icon d="M9 12l2 2 4-4M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7z" /> },
