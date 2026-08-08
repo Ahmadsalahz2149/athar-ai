@@ -182,3 +182,9 @@
   .lp-trace path { animation:none; stroke-dashoffset:0; }
   .lp-reveal { transition:none; opacity:1; transform:none; }
 }
+
+/* Media studio: two-column form + presets (stacks on narrow screens). */
+.media-studio { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:16px; align-items:start; }
+@media (max-width:820px){ .media-studio { grid-template-columns:1fr; } }
+.media-tile img, .media-tile video { transition:transform .3s ease; }
+.media-tile:hover img, .media-tile:hover video { transform:scale(1.03); }
