@@ -4,6 +4,11 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
+  // Self-hosted (Coolify/Docker) production build: emit a minimal standalone
+  // server (.next/standalone/server.js) so the runtime image stays small and
+  // has no dev dependencies. Ignored by Vercel, which uses its own adapter.
+  output: "standalone",
+
   // Pin the workspace root (a stray lockfile in $HOME was being inferred).
   turbopack: { root: import.meta.dirname },
 
