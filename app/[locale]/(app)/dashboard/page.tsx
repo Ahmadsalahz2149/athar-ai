@@ -18,7 +18,9 @@ import {
   IconTile,
   btnTeal,
   btnNavy,
+  btnGhost,
 } from "@/components/ui/display";
+import { Logo } from "@/components/Logo";
 
 function relTime(from: Date, locale: string): string {
   const mins = Math.max(1, Math.round((Date.now() - from.getTime()) / 60000));
@@ -129,10 +131,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       {/* Greeting */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
         <div>
-          <h1 className="headline-gradient" style={{ fontSize: "clamp(21px,3.2vw,27px)", fontWeight: 700, letterSpacing: "-.4px" }}>
-            {firstName ? t("greetingName", { name: firstName }) : t("greeting")} 👋
+          <h1 style={{ fontSize: "clamp(20px,3vw,26px)", fontWeight: 600, letterSpacing: "-.3px", color: "var(--heading)" }}>
+            {firstName ? t("greetingName", { name: firstName }) : t("greeting")}
           </h1>
-          <p style={{ fontSize: 14.5, color: "var(--muted)", marginBlockStart: 6 }}>{t("subtitle")}</p>
+          <p style={{ fontSize: 14, color: "var(--muted)", marginBlockStart: 6 }}>{t("subtitle")}</p>
         </div>
         {lastAnalysis && <StatusPill tone="teal" dot>{t("lastAnalysis", { when: relTime(lastAnalysis, locale) })}</StatusPill>}
       </div>
@@ -141,16 +143,16 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
       {/* KPI row */}
       <div className="stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,168px),1fr))", gap: 14, marginBlockStart: 22 }}>
-        <div style={{ background: "linear-gradient(160deg,var(--navy-2),var(--navy))", borderRadius: 16, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
-          <ScoreRadial value={completeness} size={74} suffix="%" track="rgba(255,255,255,.14)" valueColor="#fff" label={t("kpiDna")} />
+        <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <ScoreRadial value={completeness} size={70} suffix="%" color="var(--teal)" track="var(--border-2)" valueColor="var(--heading)" label={t("kpiDna")} />
           <div>
-            <div style={{ fontSize: 12.5, color: "#9FB3C8" }}>{t("kpiDna")}</div>
+            <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("kpiDna")}</div>
             {dnaDelta !== null && dnaDelta !== 0 ? (
-              <div style={{ fontSize: 12, color: dnaDelta > 0 ? "var(--teal-light)" : "#F0A38A", fontWeight: 700, marginBlockStart: 4 }}>
+              <div style={{ fontSize: 12, color: dnaDelta > 0 ? "var(--green)" : "var(--coral)", fontWeight: 600, marginBlockStart: 4 }}>
                 {dnaDelta > 0 ? "▲" : "▼"} {t("kpiDnaDelta", { n: nf.format(Math.abs(dnaDelta)) })}
               </div>
             ) : completeness > 0 ? (
-              <div style={{ fontSize: 12, color: "var(--teal-light)", fontWeight: 700, marginBlockStart: 4 }}>{t("kpiDnaHint")}</div>
+              <div style={{ fontSize: 12, color: "var(--teal-deep)", fontWeight: 600, marginBlockStart: 4 }}>{t("kpiDnaHint")}</div>
             ) : null}
           </div>
         </div>
@@ -160,16 +162,16 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         <StatCard label={t("kpiScheduled")} value={<CountUp value={counts.scheduled} locale={locale} />} tint="var(--teal-tint)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 9h16" stroke="var(--teal-deep)" strokeWidth="1.7" /></svg>} />
       </div>
 
-      {/* Recommendation hero */}
-      <div style={{ marginBlockStart: 20, background: "linear-gradient(160deg,var(--navy-2),var(--navy))", color: "#fff", borderRadius: 18, padding: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBlockEnd: 10 }}>
-          <IconTile tint="rgba(15, 118, 110,.18)" size={30} radius={9}><span style={{ color: "var(--teal-light)", fontSize: 14 }}>✦</span></IconTile>
-          <span style={{ fontSize: 12.5, color: "var(--teal-light)", fontWeight: 700 }}>{t("recTitle")}</span>
+      {/* Recommended next action — bordered card with a burgundy left-accent */}
+      <div style={{ marginBlockStart: 20, background: "var(--card)", border: "1px solid var(--border)", borderInlineStart: "3px solid var(--teal)", borderRadius: 12, padding: 22 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBlockEnd: 12 }}>
+          <Logo size={22} />
+          <span className="mono-label" style={{ color: "var(--teal-deep)" }}>{t("recTitle")}</span>
         </div>
-        <div style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.8, marginBlockEnd: 18, maxWidth: 720 }}>{rec.body}</div>
+        <div style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.7, marginBlockEnd: 18, maxWidth: 720, color: "var(--heading)" }}>{rec.body}</div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Link href={rec.href} style={btnTeal}>{rec.cta}</Link>
-          <Link href="/dna" style={{ ...btnNavy, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.18)" }}>{t("recDetails")}</Link>
+          <Link href="/dna" style={btnGhost}>{t("recDetails")}</Link>
         </div>
       </div>
 

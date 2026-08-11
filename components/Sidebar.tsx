@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { Logo } from "./Logo";
 import { useNav } from "./nav-context";
-import { CountBadge, ProgressMeter, btnGold } from "./ui/display";
+import { CountBadge, ProgressMeter } from "./ui/display";
 
 function Icon({ d }: { d: string }) {
   return (
@@ -68,19 +68,19 @@ export function Sidebar({
       <aside
         className={`app-sidebar${open ? " open" : ""}`}
         style={{
-          background: "linear-gradient(180deg,var(--navy-2),var(--navy))",
-          color: "#fff",
-          borderInlineStart: "1px solid rgba(255,255,255,.06)",
+          background: "#0f0f11",
+          color: "#f2f2f1",
+          borderInlineEnd: "1px solid rgba(255,255,255,.07)",
         }}
       >
         <Link href="/dashboard" className="app-brand" onClick={close}>
           <Logo size={34} />
           <div className="app-brand-text">
-            <div style={{ fontWeight: 700, fontSize: 16, lineHeight: 1.2 }}>
+            <div style={{ fontWeight: 700, fontSize: 16, lineHeight: 1.2, color: "#f2f2f1" }}>
               {brand("name")}
-              <span style={{ color: "var(--teal-light)" }}> {brand("ai")}</span>
+              <span style={{ color: "#e88aa1" }}> {brand("ai")}</span>
             </div>
-            <div style={{ fontSize: 10.5, color: "#8095AC", fontFamily: "var(--font-latin)", letterSpacing: ".2px" }}>
+            <div className="mono-label" style={{ fontSize: 9.5, color: "#77777e", marginBlockStart: 2 }}>
               Growth OS
             </div>
           </div>
@@ -99,31 +99,31 @@ export function Sidebar({
                   display: "flex",
                   alignItems: "center",
                   gap: 11,
-                  padding: "11px 12px",
-                  borderRadius: 11,
-                  background: active ? "rgba(15, 118, 110,.15)" : "transparent",
-                  color: active ? "#fff" : "#9FB3C8",
-                  fontWeight: active ? 600 : 500,
-                  fontSize: 14,
+                  padding: "9px 12px",
+                  borderRadius: 8,
+                  background: active ? "rgba(158,61,87,.20)" : "transparent",
+                  color: active ? "#f2f2f1" : "#a3a3a9",
+                  fontWeight: active ? 600 : 450,
+                  fontSize: 13.5,
                 }}
               >
                 {active && (
                   <span
                     style={{
                       position: "absolute",
-                      insetInlineEnd: 0,
-                      insetBlock: 8,
+                      insetInlineStart: 0,
+                      insetBlock: 7,
                       width: 3,
                       borderRadius: 3,
-                      background: "var(--teal-light)",
+                      background: "#c76a80",
                     }}
                   />
                 )}
-                <span style={{ display: "grid", placeItems: "center", color: active ? "var(--teal-light)" : "#8095AC" }}>
+                <span style={{ display: "grid", placeItems: "center", color: active ? "#e88aa1" : "#7d7d84" }}>
                   {item.icon}
                 </span>
                 <span style={{ flex: 1 }}>{t(item.key)}</span>
-                {item.key === "approvals" && pendingCount > 0 && <CountBadge n={nf.format(pendingCount)} />}
+                {item.key === "approvals" && pendingCount > 0 && <CountBadge n={nf.format(pendingCount)} tone="teal" />}
               </Link>
             );
           })}
@@ -133,7 +133,7 @@ export function Sidebar({
           <Link
             href="/admin"
             onClick={close}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 13px", borderRadius: 12, marginBlockEnd: 10, textDecoration: "none", background: "linear-gradient(135deg,var(--teal),var(--teal-deep,#0f766e))", color: "#fff", fontWeight: 700, fontSize: 13 }}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, marginBlockEnd: 10, textDecoration: "none", background: "rgba(158,61,87,.20)", color: "#e88aa1", fontWeight: 600, fontSize: 13 }}
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7z" /><path d="M9 12l2 2 4-4" /></svg>
             <span style={{ flex: 1 }}>{admin("adminLink")}</span>
@@ -143,21 +143,21 @@ export function Sidebar({
         <div
           className="app-plan"
           style={{
-            padding: 14,
-            borderRadius: 14,
-            background: "rgba(255,255,255,.05)",
-            border: "1px solid rgba(255,255,255,.1)",
+            padding: 13,
+            borderRadius: 10,
+            background: "rgba(255,255,255,.04)",
+            border: "1px solid rgba(255,255,255,.08)",
           }}
         >
-          <div style={{ fontSize: 12.5, fontWeight: 600, marginBlockEnd: 8 }}>{t("planFree")}</div>
-          <div style={{ fontSize: 11.5, color: "#9FB3C8", marginBlockEnd: 8 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, marginBlockEnd: 8, color: "#f2f2f1" }}>{t("planFree")}</div>
+          <div style={{ fontSize: 11.5, color: "#a3a3a9", marginBlockEnd: 8 }}>
             {t("planUsageReal", { used: nf.format(sourcesUsed), limit: nf.format(sourcesLimit) })}
           </div>
           <ProgressMeter pct={usagePct} height={6} track="rgba(255,255,255,.12)" color="var(--teal)" />
           {balance != null && (
-            <div style={{ fontSize: 11, color: "#8095AC", marginBlockStart: 8 }}>{t("creditsLeft", { n: nf.format(balance) })}</div>
+            <div style={{ fontSize: 11, color: "#8b8b91", marginBlockStart: 8 }}>{t("creditsLeft", { n: nf.format(balance) })}</div>
           )}
-          <Link href="/settings" onClick={close} style={{ ...btnGold, width: "100%", height: 36, marginBlockStart: 10, fontSize: 12.5 }}>
+          <Link href="/settings" onClick={close} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 34, marginBlockStart: 10, fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: "1px solid rgba(255,255,255,.14)", background: "transparent", color: "#f2f2f1", textDecoration: "none" }}>
             {t("upgrade")}
           </Link>
         </div>

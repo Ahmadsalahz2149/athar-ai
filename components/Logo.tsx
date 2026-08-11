@@ -1,4 +1,7 @@
-export function Logo({ size = 40 }: { size?: number }) {
+/** Brand mark — a burgundy rounded square with the Arabic "أ", matching the
+ * reference's compact "CS" logo tile. Uses the accent token so it tracks the
+ * theme's burgundy. */
+export function Logo({ size = 36 }: { size?: number }) {
   return (
     <div
       style={{
@@ -6,38 +9,31 @@ export function Logo({ size = 40 }: { size?: number }) {
         height: size,
         display: "grid",
         placeItems: "center",
-        background: "linear-gradient(150deg,var(--navy-2),var(--navy))",
-        borderRadius: 12,
-        boxShadow: "0 8px 18px -8px rgba(11,31,51,.6)",
+        background: "var(--teal)",
+        borderRadius: 9,
         flex: "none",
+        color: "#fff",
+        fontWeight: 800,
+        fontSize: size * 0.5,
+        fontFamily: "var(--font-ar)",
+        lineHeight: 1,
       }}
       aria-hidden
     >
-      <svg width={size * 0.58} height={size * 0.58} viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="2.4" fill="#D6A84F" />
-        <circle cx="12" cy="12" r="6" stroke="#14B8A6" strokeWidth="1.7" />
-        <circle cx="12" cy="12" r="9.6" stroke="#14B8A6" strokeWidth="1.4" opacity=".4" />
-      </svg>
+      أ
     </div>
   );
 }
 
 export function BrandWord({ name, ai, tagline }: { name: string; ai: string; tagline?: string }) {
   return (
-    <div style={{ lineHeight: 1.15 }}>
-      <div style={{ fontWeight: 700, fontSize: 18, color: "var(--heading)" }}>
+    <div style={{ lineHeight: 1.2 }}>
+      <div style={{ fontWeight: 700, fontSize: 16, color: "var(--heading)" }}>
         {name}
         <span style={{ color: "var(--teal-deep)" }}> {ai}</span>
       </div>
       {tagline ? (
-        <div
-          style={{
-            fontSize: 10.5,
-            color: "var(--subtle)",
-            fontFamily: "var(--font-latin)",
-            letterSpacing: ".3px",
-          }}
-        >
+        <div className="mono-label" style={{ fontSize: 10, color: "var(--subtle)", marginBlockStart: 1 }}>
           {tagline}
         </div>
       ) : null}
