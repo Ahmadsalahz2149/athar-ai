@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const LINKS = [
   { href: "#features", key: "navFeatures" },
@@ -28,6 +29,7 @@ export function LandingNav() {
           ))}
         </div>
         <div className="lp-nav-cta">
+          <ThemeToggle compact />
           <Link href="/login" className="lp-nav-login" style={{ marginInlineEnd: 4 }}>{t("login")}</Link>
           <Link href="/onboarding/1" className="lp-btn lp-btn-primary">{t("cta")}</Link>
           <button className="lp-burger" aria-label="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { useNav } from "./nav-context";
+import { ThemeToggle } from "./ThemeToggle";
 import { signOut } from "@/lib/auth/actions";
 
 export function AppTopBar({ userEmail }: { userEmail?: string }) {
@@ -70,7 +71,7 @@ export function AppTopBar({ userEmail }: { userEmail?: string }) {
         <div style={{ position: "relative", zIndex: 31 }}>
           <button onClick={() => setMenu(menu === "notif" ? null : "notif")} aria-label={nav("notifications")} style={iconBtn}>
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-              <path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7M10 21a2 2 0 0 0 4 0" stroke="var(--navy)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7M10 21a2 2 0 0 0 4 0" stroke="var(--muted)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
           {menu === "notif" && (
@@ -81,6 +82,7 @@ export function AppTopBar({ userEmail }: { userEmail?: string }) {
           )}
         </div>
 
+        <ThemeToggle />
         <Link href={pathname} locale={other} style={langBtn(other)}>{nav("switchTo")}</Link>
 
         {/* Account chip: avatar + name + sub-line (design parity) */}

@@ -145,7 +145,7 @@
 .lp-final h2 { font-family:var(--font-heading); font-size:clamp(26px,4.4vw,42px); font-weight:800; letter-spacing:-.5px; }
 [dir=rtl] .lp-final h2 { letter-spacing:normal; }
 .lp-final p { color:rgba(255,255,255,.85); font-size:clamp(15px,2vw,17px); margin-block:14px 28px; }
-.lp-final .lp-btn { background:#fff; color:var(--teal-deep,#115e57); }
+.lp-final .lp-btn { background:#fff; color:#8e2c48; }
 .lp-final .lp-btn:hover { background:#fff; }
 
 /* Footer */

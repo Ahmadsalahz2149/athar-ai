@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { IBM_Plex_Sans_Arabic, Inter, Rubik } from "next/font/google";
+import { IBM_Plex_Sans_Arabic, IBM_Plex_Mono, Inter } from "next/font/google";
 import { routing } from "@/i18n/routing";
 import { PwaRegister } from "@/components/PwaRegister";
 import "../globals.css";
@@ -15,12 +15,11 @@ const plexArabic = IBM_Plex_Sans_Arabic({
   display: "swap",
 });
 
-// Display face for headings — confident geometric, real Arabic support; gives
-// the product a distinctive voice vs the Plex/Inter default.
-const rubik = Rubik({
-  subsets: ["arabic", "latin"],
-  weight: ["500", "600", "700", "800"],
-  variable: "--font-display",
+// Monospace face for the signature uppercase micro-labels (Latin/numbers).
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-plex-mono",
   display: "swap",
 });
 
@@ -46,8 +45,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f766e",
+  themeColor: "#131011",
 };
+
+// Set the theme before first paint to avoid a flash. Dark is the default; only
+// an explicit stored "light" choice overrides it.
+const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('athar-theme');if(t==='light'){document.documentElement.setAttribute('data-theme','light');}}catch(e){}})();`;
 
 export default async function LocaleLayout({
   children,
@@ -64,7 +67,10 @@ export default async function LocaleLayout({
   const fontFamily = locale === "ar" ? "var(--font-ar)" : "var(--font-latin)";
 
   return (
-    <html lang={locale} dir={dir} className={`${plexArabic.variable} ${rubik.variable} ${inter.variable}`}>
+    <html lang={locale} dir={dir} className={`${plexArabic.variable} ${plexMono.variable} ${inter.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body style={{ fontFamily, minHeight: "100vh" }} suppressHydrationWarning>
         <NextIntlClientProvider>
           {children}

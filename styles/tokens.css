@@ -2,54 +2,62 @@
    Colors verified against design-reference/. Use these variables + CSS logical
    properties (padding-inline, margin-inline, inset-inline) — never left/right. */
 
+/* ============================================================
+   "ClinicScope" identity — warm near-black + muted burgundy accent,
+   mono uppercase micro-labels, editorial spacing. Variable NAMES are
+   preserved (--teal is now the burgundy accent) so every existing inline
+   style re-skins automatically. DARK is the base :root (default); LIGHT is
+   the [data-theme="light"] override. Dark panels (--navy*) stay dark in both
+   themes — the icon rail is dark even in light mode, matching the reference.
+   ============================================================ */
 :root {
-  /* Neutral SaaS palette (client-supplied). Dark = slate #1F2937,
-     signature accent = deep teal #0F766E, neutrals = cool grey scale. */
+  /* Dark warm panels (sidebar / heroes) — dark in BOTH themes */
+  --navy: #1c1819;
+  --navy-2: #23201d;
+  --navy-3: #131011;
 
-  /* Brand — deep slate (dark surfaces / heroes / sidebar) */
-  --navy: #1f2937;
-  --navy-2: #273343;
-  --navy-3: #161d26;
+  /* Accent — muted burgundy/wine (the signature color, formerly teal) */
+  --teal: #b14563;        /* button / accent fill on dark */
+  --teal-dark: #9a3a54;
+  --teal-deep: #e08ba0;   /* accent TEXT — light on dark */
+  --teal-light: #d98ba0;
+  --teal-tint: rgba(177, 69, 99, 0.16);   /* chip / active background */
+  --teal-tint-2: rgba(177, 69, 99, 0.10);
 
-  /* Accent — deep teal #0F766E (the signature color) */
-  --teal: #0f766e;
-  --teal-dark: #0d675f;
-  --teal-deep: #115e57; /* darker for small text on light — AA */
-  --teal-light: #5eead4;
-  --teal-tint: #e6f2f0;
-  --teal-tint-2: #edf6f4;
+  /* Amber — muted (Paused / Limited / warnings) */
+  --gold: #ce9a46;
+  --gold-dark: #e0b468;   /* amber TEXT — light on dark */
+  --gold-tint: rgba(206, 154, 70, 0.15);
+  --brass: #ce9a46;
+  --brass-bright: #e0b468;
+  --brass-line: rgba(206, 154, 70, 0.25);
 
-  /* Gold — kept only as a sparing highlight/warning accent (secondary). */
-  --gold: #b7791f;
-  --gold-dark: #8a5a0b; /* AA on light (~5:1) */
-  --gold-tint: #fbf3e2;
-  --brass: #b7791f;
-  --brass-bright: #c99a3c;
-  --brass-line: #ecdcb8;
+  /* Surfaces — warm near-black */
+  --bg: #131011;
+  --surface: #1a1617;
+  --card: #1c1819;
 
-  /* Surfaces — cool near-white #F9FAFB */
-  --bg: #f9fafb;
-  --surface: #f9fafb;
-  --card: #ffffff;
+  /* Borders — hairline light-on-dark */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-2: rgba(255, 255, 255, 0.15);
+  --border-3: rgba(255, 255, 255, 0.05);
 
-  /* Borders — grey scale (#D1D5DB and lighter) */
-  --border: #e5e7eb;
-  --border-2: #d1d5db;
-  --border-3: #f3f4f6;
+  /* Text — warm neutral ramp */
+  --text: #bdb4ac;
+  --heading: #ece6e0;
+  --muted: #928980;
+  --subtle: #6f665f;
+  --slate: #bdb4ac;
+  --slate-2: #a79e9e;
 
-  /* Text — grey scale (#6B7280 muted, #1F2937 heading) */
-  --text: #374151;
-  --heading: #1f2937;
-  --muted: #6b7280;
-  --subtle: #79828f;
-  --slate: #374151;
-  --slate-2: #4b5563;
-
-  /* Category accents — cooled to match the neutral system */
-  --coral: #dc6a4e;
-  --coral-tint: #fdf0ec;
-  --blue: #3b6fd4;
-  --blue-tint: #eef4fd;
+  /* Semantic (muted) */
+  --green: #63ae86;
+  --green-tint: rgba(99, 174, 134, 0.16);
+  --coral: #cf5a6b;
+  --coral-tint: rgba(207, 90, 107, 0.16);
+  --danger: #cf5a6b;
+  --blue: #7c9cc4;
+  --blue-tint: rgba(124, 156, 196, 0.15);
 
   /* Radii */
   --r-sm: 8px;
@@ -60,7 +68,64 @@
   /* Fonts (bound to next/font CSS variables in the layout) */
   --font-ar: var(--font-plex-arabic), system-ui, sans-serif;
   --font-latin: var(--font-inter), system-ui, sans-serif;
-  --font-heading: var(--font-display), var(--font-plex-arabic), system-ui, sans-serif;
+  --font-heading: var(--font-plex-arabic), var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* LIGHT theme — warm cream + the same burgundy accent */
+:root[data-theme="light"] {
+  --teal: #8e2c48;
+  --teal-dark: #7a2540;
+  --teal-deep: #7a2540;   /* dark burgundy TEXT on light */
+  --teal-light: #c77a90;
+  --teal-tint: #f3e7ea;
+  --teal-tint-2: #f8eff2;
+
+  --gold: #b07d2a;
+  --gold-dark: #8a6420;
+  --gold-tint: #f5ecd9;
+  --brass: #b07d2a;
+  --brass-bright: #c99a3c;
+  --brass-line: #ecdcb8;
+
+  --bg: #f5f2ee;
+  --surface: #fbf9f6;
+  --card: #ffffff;
+
+  --border: #e7e1d9;
+  --border-2: #d8d1c7;
+  --border-3: #f0ebe3;
+
+  --text: #514b44;
+  --heading: #23201d;
+  --muted: #8b827a;
+  --subtle: #a79e95;
+  --slate: #514b44;
+  --slate-2: #6b635b;
+
+  --green: #3f8a63;
+  --green-tint: #e4f0ea;
+  --coral: #b23a4b;
+  --coral-tint: #f6e7e9;
+  --danger: #b23a4b;
+  --blue: #5c7ca6;
+  --blue-tint: #e9eef5;
+}
+
+/* Signature micro-label: mono + uppercase for Latin; a refined tracked style
+   for Arabic (uppercase is meaningless there). Apply via className="mono-label". */
+.mono-label {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--subtle);
+}
+[dir="rtl"] .mono-label {
+  font-family: var(--font-ar);
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 
 * {
@@ -78,7 +143,8 @@ body {
 }
 
 ::selection {
-  background: #ccfbf1;
+  background: var(--teal-tint);
+  color: var(--heading);
 }
 
 a {
@@ -100,7 +166,7 @@ select {
   height: 9px;
 }
 .scb::-webkit-scrollbar-thumb {
-  background: #dad4c7;
+  background: var(--border-2);
   border-radius: 9px;
 }
 .scb::-webkit-scrollbar-track {
