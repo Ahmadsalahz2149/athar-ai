@@ -3,67 +3,68 @@
    properties (padding-inline, margin-inline, inset-inline) — never left/right. */
 
 /* ============================================================
-   "ClinicScope" identity — warm near-black + muted burgundy accent,
-   mono uppercase micro-labels, editorial spacing. Variable NAMES are
-   preserved (--teal is now the burgundy accent) so every existing inline
-   style re-skins automatically. DARK is the base :root (default); LIGHT is
-   the [data-theme="light"] override. Dark panels (--navy*) stay dark in both
-   themes — the icon rail is dark even in light mode, matching the reference.
+   Premium AI product visual system (spec-calibrated). Deep burgundy identity
+   on refined NEUTRAL surfaces — dark is the base :root (default), light is the
+   [data-theme="light"] override. Variable NAMES are preserved (--teal is the
+   burgundy accent) so every existing inline style re-skins automatically. Values
+   are the spec's exact tokens — tuned for correct contrast in both themes.
+   Dark surfaces are neutral grey (NOT warm), fixing low-contrast text.
    ============================================================ */
 :root {
-  /* Dark warm panels (sidebar / heroes) — dark in BOTH themes */
-  --navy: #1c1819;
-  --navy-2: #23201d;
-  --navy-3: #131011;
+  /* Dark neutral panels (sidebar / heroes) — dark in BOTH themes */
+  --navy: #1d1d20;
+  --navy-2: #222225;
+  --navy-3: #111113;
 
-  /* Accent — muted burgundy/wine (the signature color, formerly teal) */
-  --teal: #b14563;        /* button / accent fill on dark */
-  --teal-dark: #9a3a54;
-  --teal-deep: #e08ba0;   /* accent TEXT — light on dark */
-  --teal-light: #d98ba0;
-  --teal-tint: rgba(177, 69, 99, 0.16);   /* chip / active background */
-  --teal-tint-2: rgba(177, 69, 99, 0.10);
+  /* Accent — burgundy/wine. On dark: a richer fill + a rose foreground. */
+  --teal: #9e3d57;        /* brand fill on dark */
+  --teal-dark: #8a3149;   /* hover */
+  --teal-deep: #e88aa1;   /* accent TEXT — light rose on dark */
+  --teal-light: #e88aa1;
+  --teal-tint: rgba(158, 61, 87, 0.22);   /* chip / active background */
+  --teal-tint-2: rgba(158, 61, 87, 0.13);
 
-  /* Amber — muted (Paused / Limited / warnings) */
-  --gold: #ce9a46;
-  --gold-dark: #e0b468;   /* amber TEXT — light on dark */
-  --gold-tint: rgba(206, 154, 70, 0.15);
-  --brass: #ce9a46;
-  --brass-bright: #e0b468;
-  --brass-line: rgba(206, 154, 70, 0.25);
+  /* Amber — caution / inference / needs attention */
+  --gold: #d8a24e;
+  --gold-dark: #e8bc74;   /* amber TEXT — light on dark */
+  --gold-tint: rgba(216, 162, 78, 0.16);
+  --brass: #d8a24e;
+  --brass-bright: #e8bc74;
+  --brass-line: rgba(216, 162, 78, 0.28);
 
-  /* Surfaces — warm near-black */
-  --bg: #131011;
-  --surface: #1a1617;
-  --card: #1c1819;
+  /* Surfaces — neutral, layered (app / surface / card+elevated) */
+  --bg: #111113;
+  --surface: #171719;
+  --card: #1d1d20;
+  --elevated: #222225;
 
-  /* Borders — hairline light-on-dark */
-  --border: rgba(255, 255, 255, 0.08);
+  /* Borders — low-contrast neutral */
+  --border: rgba(255, 255, 255, 0.09);
   --border-2: rgba(255, 255, 255, 0.15);
   --border-3: rgba(255, 255, 255, 0.05);
 
-  /* Text — warm neutral ramp */
-  --text: #bdb4ac;
-  --heading: #ece6e0;
-  --muted: #928980;
-  --subtle: #6f665f;
-  --slate: #bdb4ac;
-  --slate-2: #a79e9e;
+  /* Text — neutral ramp (soft near-white → muted) */
+  --heading: #f2f2f1;
+  --text: #c6c6cb;
+  --slate: #c6c6cb;
+  --slate-2: #a8a8ad;
+  --muted: #a8a8ad;
+  --subtle: #77777e;
 
-  /* Semantic (muted) */
-  --green: #63ae86;
-  --green-tint: rgba(99, 174, 134, 0.16);
-  --coral: #cf5a6b;
-  --coral-tint: rgba(207, 90, 107, 0.16);
-  --danger: #cf5a6b;
-  --blue: #7c9cc4;
-  --blue-tint: rgba(124, 156, 196, 0.15);
+  /* Semantic — restrained, brightened for dark */
+  --green: #5fb183;
+  --green-tint: rgba(95, 177, 131, 0.16);
+  --coral: #e06a6a;
+  --coral-tint: rgba(224, 106, 106, 0.16);
+  --danger: #e06a6a;
+  --blue: #6e9bc9;
+  --blue-tint: rgba(110, 155, 201, 0.16);
 
-  /* Radii */
-  --r-sm: 8px;
-  --r: 12px;
-  --r-lg: 16px;
-  --r-xl: 20px;
+  /* Radii — restrained, modern */
+  --r-sm: 7px;
+  --r: 10px;
+  --r-lg: 12px;
+  --r-xl: 14px;
 
   /* Fonts (bound to next/font CSS variables in the layout) */
   --font-ar: var(--font-plex-arabic), system-ui, sans-serif;
@@ -72,44 +73,49 @@
   --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
 }
 
-/* LIGHT theme — warm cream + the same burgundy accent */
+/* LIGHT theme — premium neutral surfaces, the same burgundy identity (deeper). */
 :root[data-theme="light"] {
-  --teal: #8e2c48;
-  --teal-dark: #7a2540;
-  --teal-deep: #7a2540;   /* dark burgundy TEXT on light */
-  --teal-light: #c77a90;
-  --teal-tint: #f3e7ea;
-  --teal-tint-2: #f8eff2;
+  --navy: #1d1d20;
+  --navy-2: #222225;
+  --navy-3: #111113;
 
-  --gold: #b07d2a;
-  --gold-dark: #8a6420;
+  --teal: #74283d;        /* deep burgundy fill + text on light */
+  --teal-dark: #632234;
+  --teal-deep: #74283d;
+  --teal-light: #a85870;
+  --teal-tint: #f4e9ec;
+  --teal-tint-2: #faf3f5;
+
+  --gold: #8a5a0b;
+  --gold-dark: #6e4a0a;
   --gold-tint: #f5ecd9;
-  --brass: #b07d2a;
-  --brass-bright: #c99a3c;
+  --brass: #8a5a0b;
+  --brass-bright: #b07d2a;
   --brass-line: #ecdcb8;
 
-  --bg: #f5f2ee;
-  --surface: #fbf9f6;
+  --bg: #f7f7f6;
+  --surface: #ffffff;
   --card: #ffffff;
+  --elevated: #ffffff;
 
-  --border: #e7e1d9;
-  --border-2: #d8d1c7;
-  --border-3: #f0ebe3;
+  --border: rgba(20, 20, 25, 0.10);
+  --border-2: rgba(20, 20, 25, 0.16);
+  --border-3: rgba(20, 20, 25, 0.06);
 
-  --text: #514b44;
-  --heading: #23201d;
-  --muted: #8b827a;
-  --subtle: #a79e95;
-  --slate: #514b44;
-  --slate-2: #6b635b;
+  --heading: #18181a;
+  --text: #33333a;
+  --slate: #33333a;
+  --slate-2: #55555c;
+  --muted: #6e6e74;
+  --subtle: #8b8b91;
 
-  --green: #3f8a63;
-  --green-tint: #e4f0ea;
-  --coral: #b23a4b;
-  --coral-tint: #f6e7e9;
-  --danger: #b23a4b;
-  --blue: #5c7ca6;
-  --blue-tint: #e9eef5;
+  --green: #2f7d52;
+  --green-tint: #e7f1eb;
+  --coral: #b23a3a;
+  --coral-tint: #f6e7e7;
+  --danger: #b23a3a;
+  --blue: #3e6d9e;
+  --blue-tint: #e9eff6;
 }
 
 /* Signature micro-label: mono + uppercase for Latin; a refined tracked style
