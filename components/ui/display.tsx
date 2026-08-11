@@ -419,9 +419,9 @@ export function Chip({
   };
   const style: CSSProperties = active
     ? variant === "fill"
-      ? { ...base, background: "var(--navy)", color: "#fff", border: "1.5px solid var(--navy)" }
+      ? { ...base, background: "var(--teal)", color: "#fff", border: "1.5px solid var(--teal)" }
       : { ...base, background: "var(--teal-tint-2)", color: "var(--teal-deep)", border: "1.5px solid var(--teal)" }
-    : { ...base, background: "var(--card)", color: "var(--slate)", border: "1.5px solid var(--border-2)" };
+    : { ...base, background: "var(--card)", color: "var(--slate)", border: "1px solid var(--border-2)" };
   return (
     <button type="button" onClick={onClick} aria-pressed={!!active} style={style}>
       {children}

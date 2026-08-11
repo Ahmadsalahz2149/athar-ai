@@ -273,7 +273,7 @@ export function IngestPanel() {
                 }}
               >
                 <TypeIcon k={ty.key} />
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: on ? "var(--navy)" : "var(--slate)" }}>{t(`mode_${ty.key}`)}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: on ? "var(--teal-deep)" : "var(--slate)" }}>{t(`mode_${ty.key}`)}</span>
               </button>
             );
           })}

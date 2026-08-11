@@ -94,7 +94,7 @@ export function SettingsClient(p: Props) {
     <div className="settings-grid" style={{ display: "grid", gridTemplateColumns: "190px 1fr", gap: 20, alignItems: "start" }}>
       <nav style={{ display: "flex", flexDirection: "column", gap: 4, position: "sticky", insetBlockStart: 12 }}>
         {TABS.map((tb) => (
-          <button key={tb} onClick={() => setTab(tb)} style={{ textAlign: "start", padding: "11px 14px", borderRadius: 11, border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600, background: tab === tb ? "var(--navy)" : "transparent", color: tab === tb ? "#fff" : "var(--slate)" }}>
+          <button key={tb} onClick={() => setTab(tb)} style={{ textAlign: "start", padding: "11px 14px", borderRadius: 11, border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600, background: tab === tb ? "var(--teal)" : "transparent", color: tab === tb ? "#fff" : "var(--slate)" }}>
             {t(`tab_${tb}`)}
           </button>
         ))}

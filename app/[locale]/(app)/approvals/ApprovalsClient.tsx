@@ -77,7 +77,7 @@ export function ApprovalsClient({ drafts, media = {} }: { drafts: Draft[]; media
         {TABS.map((f) => {
           const n = drafts.filter((d) => (f === "approved" ? d.status === "approved" || d.status === "scheduled" : d.status === f)).length;
           return (
-            <button key={f} onClick={() => setTab(f)} aria-pressed={tab === f} style={{ padding: "8px 16px", borderRadius: 999, fontSize: 13.5, fontWeight: 600, cursor: "pointer", border: tab === f ? "1.5px solid var(--navy)" : "1.5px solid var(--border-2)", background: tab === f ? "var(--navy)" : "var(--card)", color: tab === f ? "#fff" : "var(--slate)" }}>
+            <button key={f} onClick={() => setTab(f)} aria-pressed={tab === f} style={{ padding: "8px 16px", borderRadius: 999, fontSize: 13.5, fontWeight: 600, cursor: "pointer", border: tab === f ? "1.5px solid var(--navy)" : "1.5px solid var(--border-2)", background: tab === f ? "var(--teal)" : "var(--card)", color: tab === f ? "#fff" : "var(--slate)" }}>
               {t(`tab_${f}`)} {n > 0 && <span style={{ fontFamily: "var(--font-latin)", opacity: 0.7 }}>{nf.format(n)}</span>}
             </button>
           );

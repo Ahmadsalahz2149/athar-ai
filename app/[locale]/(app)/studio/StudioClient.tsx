@@ -512,7 +512,7 @@ function Group({ title, hint, children }: { title: string; hint?: string; childr
 }
 function Pill({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} style={{ padding: "7px 13px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer", border: on ? "1.5px solid var(--navy)" : "1.5px solid var(--border-2)", background: on ? "var(--navy)" : "var(--card)", color: on ? "#fff" : "var(--slate)" }}>
+    <button onClick={onClick} style={{ padding: "7px 13px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer", border: on ? "1.5px solid var(--navy)" : "1.5px solid var(--border-2)", background: on ? "var(--teal)" : "var(--card)", color: on ? "#fff" : "var(--slate)" }}>
       {children}
     </button>
   );

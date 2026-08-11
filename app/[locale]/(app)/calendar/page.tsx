@@ -85,7 +85,7 @@ export default async function CalendarPage({ params, searchParams }: { params: P
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ display: "flex", padding: 3, borderRadius: 999, background: "var(--card)", border: "1px solid var(--border-2)" }}>
             <Link href="/calendar" style={{ padding: "6px 16px", borderRadius: 999, fontSize: 13, fontWeight: isWeek ? 600 : 700, background: isWeek ? "transparent" : "var(--navy)", color: isWeek ? "var(--muted)" : "#fff" }}>{t("monthly")}</Link>
-            <Link href="/calendar?view=week" style={{ padding: "6px 16px", borderRadius: 999, fontSize: 13, fontWeight: isWeek ? 700 : 600, background: isWeek ? "var(--navy)" : "transparent", color: isWeek ? "#fff" : "var(--muted)" }}>{t("weekly")}</Link>
+            <Link href="/calendar?view=week" style={{ padding: "6px 16px", borderRadius: 999, fontSize: 13, fontWeight: isWeek ? 700 : 600, background: isWeek ? "var(--teal)" : "transparent", color: isWeek ? "#fff" : "var(--muted)" }}>{t("weekly")}</Link>
           </div>
           <Link href="/studio" style={btnTeal}>+ {t("schedulePost")}</Link>
         </div>
