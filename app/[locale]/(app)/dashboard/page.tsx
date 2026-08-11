@@ -105,11 +105,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
           : { body: t("recReview"), cta: t("recApprovals"), href: "/approvals" };
 
   const funnel = [
-    { label: t("fIdeas"), n: counts.ideas, tint: "var(--gold-tint)", fg: "var(--gold-dark)", href: "/ideas" },
-    { label: t("fWriting"), n: counts.writing, tint: "var(--blue-tint)", fg: "var(--blue)", href: "/studio" },
-    { label: t("fReview"), n: counts.pending, tint: "var(--coral-tint)", fg: "var(--coral)", href: "/approvals" },
-    { label: t("fScheduled"), n: counts.scheduled, tint: "var(--teal-tint-2)", fg: "var(--teal-deep)", href: "/calendar" },
-    { label: t("fPublished"), n: counts.published, tint: "var(--border-3)", fg: "var(--slate-2)", href: "/analytics" },
+    { label: t("fIdeas"), n: counts.ideas, tint: "var(--surface)", fg: "var(--heading)", href: "/ideas" },
+    { label: t("fWriting"), n: counts.writing, tint: "var(--surface)", fg: "var(--heading)", href: "/studio" },
+    { label: t("fReview"), n: counts.pending, tint: "var(--surface)", fg: "var(--heading)", href: "/approvals" },
+    { label: t("fScheduled"), n: counts.scheduled, tint: "var(--surface)", fg: "var(--heading)", href: "/calendar" },
+    { label: t("fPublished"), n: counts.published, tint: "var(--surface)", fg: "var(--heading)", href: "/analytics" },
   ];
 
   // This week strip (Sat → Fri), marking days that carry scheduled posts.
@@ -156,10 +156,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             ) : null}
           </div>
         </div>
-        <StatCard label={t("kpiSources")} value={<CountUp value={counts.sources} locale={locale} />} tint="var(--blue-tint)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7" stroke="var(--blue)" strokeWidth="1.7" /></svg>} />
-        <StatCard label={t("kpiIdeas")} value={<CountUp value={counts.ideas} locale={locale} />} tint="var(--gold-tint)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c.7.7 1 1.3 1 2h6c0-.7.3-1.3 1-2a6 6 0 0 0-4-10z" stroke="var(--gold-dark)" strokeWidth="1.7" strokeLinecap="round" /></svg>} />
-        <StatCard label={t("kpiPending")} value={<CountUp value={counts.pending} locale={locale} />} tint="var(--coral-tint)" note={counts.pending > 0 ? t("needsAction") : undefined} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7z" stroke="var(--coral)" strokeWidth="1.7" strokeLinejoin="round" /></svg>} />
-        <StatCard label={t("kpiScheduled")} value={<CountUp value={counts.scheduled} locale={locale} />} tint="var(--teal-tint)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 9h16" stroke="var(--teal-deep)" strokeWidth="1.7" /></svg>} />
+        <StatCard label={t("kpiSources")} value={<CountUp value={counts.sources} locale={locale} />} tint="var(--border-3)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7" stroke="var(--muted)" strokeWidth="1.7" /></svg>} />
+        <StatCard label={t("kpiIdeas")} value={<CountUp value={counts.ideas} locale={locale} />} tint="var(--border-3)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c.7.7 1 1.3 1 2h6c0-.7.3-1.3 1-2a6 6 0 0 0-4-10z" stroke="var(--muted)" strokeWidth="1.7" strokeLinecap="round" /></svg>} />
+        <StatCard label={t("kpiPending")} value={<CountUp value={counts.pending} locale={locale} />} tint="var(--border-3)" note={counts.pending > 0 ? t("needsAction") : undefined} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7z" stroke="var(--muted)" strokeWidth="1.7" strokeLinejoin="round" /></svg>} />
+        <StatCard label={t("kpiScheduled")} value={<CountUp value={counts.scheduled} locale={locale} />} tint="var(--border-3)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 9h16" stroke="var(--muted)" strokeWidth="1.7" /></svg>} />
       </div>
 
       {/* Recommended next action — bordered card with a burgundy left-accent */}
@@ -187,8 +187,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             <div style={{ display: "flex", alignItems: "stretch", gap: 6, flexWrap: "wrap" }}>
               {funnel.map((f, i) => (
                 <div key={f.label} style={{ display: "contents" }}>
-                  <Link href={f.href} style={{ flex: "1 1 90px", minWidth: 84, background: f.tint, borderRadius: 12, padding: "12px 10px", textAlign: "center" }}>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: f.fg, fontFamily: "var(--font-latin)" }}>{nf.format(f.n)}</div>
+                  <Link href={f.href} style={{ flex: "1 1 90px", minWidth: 84, background: f.tint, border: "1px solid var(--border)", borderRadius: 10, padding: "12px 10px", textAlign: "center" }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: f.fg, fontFamily: "var(--font-latin)" }}>{nf.format(f.n)}</div>
                     <div style={{ fontSize: 11.5, color: "var(--slate-2)", marginBlockStart: 3 }}>{f.label}</div>
                   </Link>
                   {i < funnel.length - 1 && (
@@ -215,7 +215,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
               <div style={{ display: "grid", gap: 10 }}>
                 {ideas.map((i) => (
                   <div key={i.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
-                    <IconTile tint="var(--gold-tint)" size={34}>💡</IconTile>
+                    <IconTile tint="var(--border-3)" size={34}>💡</IconTile>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: "var(--heading)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.title}</div>
                       <div style={{ fontSize: 11.5, color: "var(--muted)", marginBlockStart: 3, fontFamily: "var(--font-latin)" }}>Post Score {nf.format(i.postScore)}</div>
