@@ -40,7 +40,7 @@ export function AnalyzeButton({ sourceId, hasAnalysis }: { sourceId: string; has
           borderRadius: 12,
           border: "none",
           cursor: pending ? "default" : "pointer",
-          background: "linear-gradient(135deg,#273343,#1F2937)",
+          background: "linear-gradient(135deg,var(--navy-2),var(--navy))",
           color: "#fff",
           fontWeight: 700,
           fontSize: 14,

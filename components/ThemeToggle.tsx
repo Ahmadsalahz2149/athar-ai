@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 /** Dark/light toggle. Dark is the default; the choice persists in localStorage
- * and is applied pre-paint by the inline script in the root layout. */
+ * and is applied pre-paint by the inline script in the root layout — so we can
+ * read the current theme straight off the <html> element at mount. */
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-
-  useEffect(() => {
-    const stored = (() => {
-      try { return localStorage.getItem("athar-theme"); } catch { return null; }
-    })();
-    setTheme(stored === "light" ? "light" : "dark");
-  }, []);
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    if (typeof document !== "undefined") {
+      return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+    }
+    return "dark";
+  });
 
   const toggle = () => {
     const next = theme === "dark" ? "light" : "dark";

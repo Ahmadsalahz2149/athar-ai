@@ -26,7 +26,7 @@ export default async function IngestPage({ params }: { params: Promise<{ locale:
       <div className="col-2">
         <IngestPanel />
 
-        <aside style={{ background: "linear-gradient(160deg,#273343,#1F2937)", color: "#fff", borderRadius: 18, padding: 22, alignSelf: "start" }}>
+        <aside style={{ background: "linear-gradient(160deg,var(--navy-2),var(--navy))", color: "#fff", borderRadius: 18, padding: 22, alignSelf: "start" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 12px", borderRadius: 999, background: "rgba(15, 118, 110,.16)", border: "1px solid rgba(15, 118, 110,.3)", marginBlockEnd: 16 }}>
             <IconTile tint="transparent" size={16} radius={0}><span style={{ color: "var(--teal-light)", fontSize: 12 }}>✦</span></IconTile>
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--teal-light)" }}>{t("behindScenes")}</span>

@@ -120,7 +120,7 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
   return (
     <main style={{ maxWidth: 1040, margin: "0 auto", padding: "clamp(20px,3.4vw,32px) clamp(16px,4vw,32px) 90px", animation: "floatUp .4s ease" }}>
       {/* Navy hero */}
-      <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(160deg,#273343,#1F2937)", color: "#fff", borderRadius: 20, padding: 26 }}>
+      <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(160deg,var(--navy-2),var(--navy))", color: "#fff", borderRadius: 20, padding: 26 }}>
         <svg aria-hidden viewBox="0 0 300 300" style={{ position: "absolute", insetInlineStart: -40, insetBlockStart: -40, width: 320, height: 320, opacity: 0.4 }}>
           {[50, 90, 130].map((r) => <circle key={r} cx="150" cy="150" r={r} fill="none" stroke="rgba(94,234,212,.14)" strokeWidth="1.4" />)}
         </svg>

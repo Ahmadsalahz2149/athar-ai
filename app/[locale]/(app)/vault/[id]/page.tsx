@@ -59,7 +59,7 @@ export default async function AnalysisDetail({ params }: { params: Promise<{ loc
       <Link href="/vault" style={{ fontSize: 13.5, color: "var(--teal-deep)", fontWeight: 600 }}>{t("backToVault")} ›</Link>
 
       {/* Navy hero */}
-      <div style={{ marginBlockStart: 14, background: "linear-gradient(160deg,#273343,#1F2937)", color: "#fff", borderRadius: 18, padding: 24 }}>
+      <div style={{ marginBlockStart: 14, background: "linear-gradient(160deg,var(--navy-2),var(--navy))", color: "#fff", borderRadius: 18, padding: 24 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 13, minWidth: 0 }}>
             <span style={{ background: "#fff", borderRadius: 10, padding: 2 }}>
@@ -168,7 +168,7 @@ export default async function AnalysisDetail({ params }: { params: Promise<{ loc
               </Card>
             )}
 
-            <div style={{ background: "linear-gradient(160deg,#273343,#1F2937)", borderRadius: 16, padding: 18, display: "grid", gap: 9 }}>
+            <div style={{ background: "linear-gradient(160deg,var(--navy-2),var(--navy))", borderRadius: 16, padding: 18, display: "grid", gap: 9 }}>
               <Link href={`/studio?source=${id}`} style={{ ...btnTeal, width: "100%" }}>{t("turnIntoPosts")}</Link>
               <Link href={`/ideas?source=${id}`} style={{ ...btnGhost, width: "100%", background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.18)", color: "#fff" }}>{t("createCampaign")}</Link>
               <Link href="/dna" style={{ ...btnGhost, width: "100%", background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.18)", color: "#fff" }}>{t("addToDna")}</Link>

@@ -6,7 +6,7 @@ export function Logo({ size = 40 }: { size?: number }) {
         height: size,
         display: "grid",
         placeItems: "center",
-        background: "linear-gradient(150deg,#273343,#1F2937)",
+        background: "linear-gradient(150deg,var(--navy-2),var(--navy))",
         borderRadius: 12,
         boxShadow: "0 8px 18px -8px rgba(11,31,51,.6)",
         flex: "none",

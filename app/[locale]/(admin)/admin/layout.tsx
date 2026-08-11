@@ -17,7 +17,7 @@ export default async function AdminLayout({ children, params }: { children: Reac
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg,#f9fafb)" }}>
       {/* Dark admin chrome — visually distinct from the app so "admin mode" is obvious. */}
-      <header style={{ background: "linear-gradient(160deg,#1f2937,#111827)", color: "#fff", padding: "0 clamp(16px,4vw,28px)", position: "sticky", top: 0, zIndex: 40, boxShadow: "0 2px 12px rgba(0,0,0,.18)" }}>
+      <header style={{ background: "linear-gradient(160deg,var(--navy),var(--navy-3))", color: "#fff", padding: "0 clamp(16px,4vw,28px)", position: "sticky", top: 0, zIndex: 40, boxShadow: "0 2px 12px rgba(0,0,0,.18)" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", gap: 16, height: 60 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ width: 32, height: 32, borderRadius: 9, display: "grid", placeItems: "center", background: "linear-gradient(160deg,var(--teal),var(--teal-deep,#0f766e))", fontSize: 16 }}>✦</span>

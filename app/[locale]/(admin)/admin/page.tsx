@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 function Kpi({ label, value, tone = "teal" }: { label: string; value: string; tone?: "teal" | "gold" | "navy" | "red" }) {
   const tint: Record<string, string> = { teal: "var(--teal-tint)", gold: "var(--gold-tint)", navy: "#eef1f5", red: "var(--coral-tint,#fde8e8)" };
-  const fg: Record<string, string> = { teal: "var(--teal-deep)", gold: "var(--gold-dark)", navy: "#273343", red: "var(--coral,#dc2626)" };
+  const fg: Record<string, string> = { teal: "var(--teal-deep)", gold: "var(--gold-dark)", navy: "var(--navy-2)", red: "var(--coral,#dc2626)" };
   return (
     <div style={{ background: "var(--card,#fff)", border: "1px solid var(--border)", borderRadius: 16, padding: 18 }} className="lift">
       <div style={{ fontSize: 12.5, color: "var(--muted)", fontWeight: 600 }}>{label}</div>

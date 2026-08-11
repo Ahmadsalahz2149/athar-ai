@@ -582,7 +582,9 @@ h1, h2, h3, .headline-gradient, .display {
 }
 
 .headline-gradient {
-  background: linear-gradient(100deg, var(--navy) 15%, var(--teal) 115%);
+  /* heading → burgundy: both stops are readable in each theme (light text on
+     dark, dark text on cream) rather than fading a dark stop into a dark bg. */
+  background: linear-gradient(100deg, var(--heading) 25%, var(--teal-deep) 120%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

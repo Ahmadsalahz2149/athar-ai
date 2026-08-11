@@ -106,7 +106,7 @@ export function FloatingAssistant() {
           }}
         >
           {/* Header */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "linear-gradient(160deg,#273343,#1F2937)", color: "#fff" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "linear-gradient(160deg,var(--navy-2),var(--navy))", color: "#fff" }}>
             <span style={{ width: 30, height: 30, borderRadius: 9, display: "grid", placeItems: "center", background: "rgba(15, 118, 110,.25)", color: "var(--teal-light)" }}>✦</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{t("title")}</div>

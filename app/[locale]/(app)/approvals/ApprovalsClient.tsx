@@ -65,7 +65,7 @@ export function ApprovalsClient({ drafts, media = {} }: { drafts: Draft[]; media
       )}
 
       {pendingList.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "16px 20px", borderRadius: 16, background: "linear-gradient(160deg,#273343,#1F2937)", color: "#fff", marginBlockEnd: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "16px 20px", borderRadius: 16, background: "linear-gradient(160deg,var(--navy-2),var(--navy))", color: "#fff", marginBlockEnd: 18 }}>
           <span style={{ fontWeight: 600, fontSize: 15 }}>
             <b style={{ color: "var(--teal-light)", fontFamily: "var(--font-latin)" }}>{nf.format(pendingList.length)}</b> {t("bannerText")}
           </span>

@@ -162,7 +162,7 @@ function LogoThumb({ url, name, size }: { url: string | null; name: string; size
   if (url) return <img src={url} alt="" width={size} height={size} style={{ width: size, height: size, borderRadius: 9, objectFit: "cover", border: "1px solid var(--border)" }} />;
   const initial = (name || "؟").trim().charAt(0);
   return (
-    <span style={{ width: size, height: size, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--navy,#273343)", color: "#fff", fontWeight: 700, fontSize: size * 0.42 }}>
+    <span style={{ width: size, height: size, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--navy,var(--navy-2))", color: "#fff", fontWeight: 700, fontSize: size * 0.42 }}>
       {initial}
     </span>
   );

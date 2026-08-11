@@ -70,7 +70,7 @@ export default async function ReadinessPage({ params }: { params: Promise<{ loca
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 18, background: "linear-gradient(160deg,#273343,#1F2937)", borderRadius: 18, padding: 22, color: "#fff", marginBlockEnd: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 18, background: "linear-gradient(160deg,var(--navy-2),var(--navy))", borderRadius: 18, padding: 22, color: "#fff", marginBlockEnd: 18 }}>
         <ScoreRadial value={pct} size={92} suffix="%" track="rgba(255,255,255,.14)" valueColor="#fff" label={t("ready")} />
         <div>
           <div style={{ fontSize: 17, fontWeight: 700 }}>{t("readyN", { done: doneN, total: items.length })}</div>

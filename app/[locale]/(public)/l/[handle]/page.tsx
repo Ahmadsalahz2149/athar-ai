@@ -18,7 +18,7 @@ export default async function PublicLinkPage({ params }: { params: Promise<{ loc
   const links = brand.page.links.map((l) => ({ label: l.label, url: safeUrl(l.url) })).filter((l) => l.url);
 
   return (
-    <main style={{ minHeight: "100vh", background: "linear-gradient(180deg,#1F2937,#273343)", display: "flex", justifyContent: "center", padding: "48px 18px" }}>
+    <main style={{ minHeight: "100vh", background: "linear-gradient(180deg,var(--navy),var(--navy-2))", display: "flex", justifyContent: "center", padding: "48px 18px" }}>
       <div style={{ width: "100%", maxWidth: 460, textAlign: "center", color: "#fff" }}>
         {brand.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

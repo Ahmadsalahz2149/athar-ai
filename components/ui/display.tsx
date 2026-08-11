@@ -299,7 +299,7 @@ export function DarkCard({
   style?: CSSProperties;
 }) {
   return (
-    <div style={{ background: "linear-gradient(160deg,#273343,#1F2937)", color: "#fff", borderRadius: 18, padding: 22, ...style }}>
+    <div style={{ background: "linear-gradient(160deg,var(--navy-2),var(--navy))", color: "#fff", borderRadius: 18, padding: 22, ...style }}>
       {eyebrow && <div style={{ fontSize: 12.5, color: "var(--teal-light)", fontWeight: 700, marginBlockEnd: 8 }}>{eyebrow}</div>}
       {children}
     </div>
@@ -540,7 +540,7 @@ export const btnNavy: CSSProperties = {
   padding: "0 20px",
   borderRadius: 11,
   border: "none",
-  background: "linear-gradient(135deg,#273343,#1F2937)",
+  background: "linear-gradient(135deg,var(--navy-2),var(--navy))",
   color: "#fff",
   fontWeight: 700,
   fontSize: 13.5,
