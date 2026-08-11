@@ -48,7 +48,10 @@ export function AppTopBar({ userEmail }: { userEmail?: string }) {
             <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
         </button>
-        <Link href="/studio" style={createBtn} aria-label={nav("createPost")}>✦<span className="tb-label">&nbsp;{nav("createPost")}</span></Link>
+        <Link href="/studio" style={createBtn} aria-label={nav("createPost")}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+          <span className="tb-label">{nav("createPost")}</span>
+        </Link>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

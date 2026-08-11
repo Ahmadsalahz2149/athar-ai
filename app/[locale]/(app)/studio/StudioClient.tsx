@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { studioGenerate, studioRewrite, setDraftState, suggestHashtags, translatePost, repurposePost, type StudioResult, type StudioSource } from "./actions";
 import { SlideEditor } from "./SlideEditor";
+import { Logo } from "@/components/Logo";
 import { postScore, dnaMatch, scoreBreakdown } from "@/lib/ai/score";
 import { checkContent } from "@/lib/ai/guardrails";
 import {
@@ -244,7 +245,7 @@ export function StudioClient({
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBlockEnd: 18 }}>
         <div>
-          {ok && <StatusPill tone="teal">✦ {t("voiceBadge", { pct: nf.format(scores.dm) })}</StatusPill>}
+          {ok && <StatusPill tone="teal">{t("voiceBadge", { pct: nf.format(scores.dm) })}</StatusPill>}
           <h1 style={{ fontSize: "clamp(21px,3vw,26px)", fontWeight: 700, color: "var(--heading)", marginBlockStart: 8 }}>{t("title")}</h1>
           <p style={{ fontSize: 14, color: "var(--muted)", marginBlockStart: 4 }}>{t("subtitle")}</p>
         </div>
@@ -312,9 +313,9 @@ export function StudioClient({
 
         {/* CENTER — compose */}
         <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
-          <div style={{ background: "linear-gradient(160deg,var(--navy-2),var(--navy))", borderRadius: 14, padding: 12, display: "flex", gap: 10, alignItems: "center" }}>
-            <span style={{ display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: 9, background: "rgba(15, 118, 110,.18)", color: "var(--teal-light)", flex: "none" }}>✦</span>
-            <input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t("promptPh")} onKeyDown={(e) => e.key === "Enter" && !pending && generate()} style={{ flex: 1, height: 40, background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: 14 }} />
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border-2)", borderRadius: 10, padding: 8, display: "flex", gap: 10, alignItems: "center" }}>
+            <Logo size={30} />
+            <input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t("promptPh")} onKeyDown={(e) => e.key === "Enter" && !pending && generate()} style={{ flex: 1, height: 38, background: "transparent", border: "none", outline: "none", color: "var(--heading)", fontSize: 14 }} />
             <button onClick={generate} disabled={pending} style={{ ...btnTeal, height: 40, opacity: pending ? 0.7 : 1 }}>{pending && !busy ? t("generating") : t("generate")}</button>
           </div>
 
@@ -512,7 +513,7 @@ function Group({ title, hint, children }: { title: string; hint?: string; childr
 }
 function Pill({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} style={{ padding: "7px 13px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer", border: on ? "1.5px solid var(--navy)" : "1.5px solid var(--border-2)", background: on ? "var(--teal)" : "var(--card)", color: on ? "#fff" : "var(--slate)" }}>
+    <button onClick={onClick} style={{ padding: "7px 13px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer", border: on ? "1.5px solid var(--teal)" : "1.5px solid var(--border-2)", background: on ? "var(--teal)" : "var(--card)", color: on ? "#fff" : "var(--slate)" }}>
       {children}
     </button>
   );
