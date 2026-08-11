@@ -39,7 +39,7 @@ export function TopBar() {
           href={pathname}
           locale={other}
           style={{
-            color: "var(--navy)",
+            color: "var(--text)",
             border: "1px solid var(--border-2)",
             borderRadius: 999,
             padding: "6px 14px",

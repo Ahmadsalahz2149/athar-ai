@@ -150,7 +150,7 @@ const iconBtn: React.CSSProperties = {
   cursor: "pointer",
 };
 const langBtn = (other: string): React.CSSProperties => ({
-  color: "var(--navy)",
+  color: "var(--text)",
   border: "1px solid var(--border-2)",
   borderRadius: 999,
   padding: "6px 14px",

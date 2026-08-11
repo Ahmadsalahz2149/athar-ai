@@ -68,7 +68,7 @@ export function Scheduler({ items, labels, defaultWhen }: { items: Item[]; label
                     </div>
                   </div>
                 ) : (
-                  <button onClick={() => { setOpenId(u.id); setErr(null); }} style={{ display: "block", width: "100%", textAlign: "center", padding: "7px 0", borderRadius: 9, border: "1px solid var(--border-2)", background: "var(--card)", fontSize: 12.5, fontWeight: 600, color: "var(--navy)", cursor: "pointer" }}>{labels.scheduleBtn}</button>
+                  <button onClick={() => { setOpenId(u.id); setErr(null); }} style={{ display: "block", width: "100%", textAlign: "center", padding: "7px 0", borderRadius: 9, border: "1px solid var(--border-2)", background: "var(--card)", fontSize: 12.5, fontWeight: 600, color: "var(--text)", cursor: "pointer" }}>{labels.scheduleBtn}</button>
                 )}
               </div>
             ))}

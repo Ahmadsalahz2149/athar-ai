@@ -54,6 +54,6 @@ const oauthBtn: React.CSSProperties = {
   borderRadius: 12,
   border: "1px solid var(--border-2)",
   background: "var(--card)",
-  color: "var(--navy)",
+  color: "var(--text)",
   cursor: "pointer",
 };

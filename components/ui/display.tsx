@@ -10,12 +10,12 @@ import type { CSSProperties, ReactNode } from "react";
 export type PillTone = "teal" | "amber" | "red" | "neutral" | "blue" | "gold";
 
 const PILL: Record<PillTone, CSSProperties> = {
-  teal: { background: "var(--teal-tint-2)", color: "var(--teal-deep)", borderColor: "rgba(15, 118, 110,.3)" },
-  amber: { background: "var(--gold-tint)", color: "var(--gold-dark)", borderColor: "rgba(214,168,79,.35)" },
-  red: { background: "var(--coral-tint)", color: "var(--coral)", borderColor: "rgba(224,101,74,.3)" },
+  teal: { background: "var(--teal-tint-2)", color: "var(--teal-deep)", borderColor: "color-mix(in srgb, var(--teal) 32%, transparent)" },
+  amber: { background: "var(--gold-tint)", color: "var(--gold-dark)", borderColor: "color-mix(in srgb, var(--gold) 35%, transparent)" },
+  red: { background: "var(--coral-tint)", color: "var(--coral)", borderColor: "color-mix(in srgb, var(--coral) 32%, transparent)" },
   neutral: { background: "var(--border-3)", color: "var(--slate-2)", borderColor: "var(--border-2)" },
-  blue: { background: "var(--blue-tint)", color: "var(--blue)", borderColor: "rgba(42,111,219,.25)" },
-  gold: { background: "var(--gold-tint)", color: "var(--gold-dark)", borderColor: "rgba(214,168,79,.35)" },
+  blue: { background: "var(--blue-tint)", color: "var(--blue)", borderColor: "color-mix(in srgb, var(--blue) 30%, transparent)" },
+  gold: { background: "var(--gold-tint)", color: "var(--gold-dark)", borderColor: "color-mix(in srgb, var(--gold) 35%, transparent)" },
 };
 
 export function StatusPill({ tone = "teal", children, dot }: { tone?: PillTone; children: ReactNode; dot?: boolean }) {
@@ -272,7 +272,7 @@ export function StatCard({
   note?: string;
 }) {
   return (
-    <div className="lift" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 16 }}>
+    <div className="lift" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBlockEnd: 10 }}>
         <span style={{ fontSize: 13, color: "var(--muted)" }}>{label}</span>
         {icon && <IconTile tint={tint ?? "var(--teal-tint)"} size={32} radius={9}>{icon}</IconTile>}
@@ -299,7 +299,7 @@ export function DarkCard({
   style?: CSSProperties;
 }) {
   return (
-    <div style={{ background: "linear-gradient(160deg,var(--navy-2),var(--navy))", color: "#fff", borderRadius: 18, padding: 22, ...style }}>
+    <div style={{ background: "linear-gradient(160deg,var(--navy-2),var(--navy))", color: "#fff", borderRadius: 12, padding: 20, ...style }}>
       {eyebrow && <div style={{ fontSize: 12.5, color: "var(--teal-light)", fontWeight: 700, marginBlockEnd: 8 }}>{eyebrow}</div>}
       {children}
     </div>
@@ -345,7 +345,7 @@ export function NumberedStepper({ steps }: { steps: { title: string; desc: strin
 /* ---------------- EmptyState ---------------- */
 export function EmptyState({ title, body, cta }: { title: string; body?: string; cta?: ReactNode }) {
   return (
-    <div style={{ textAlign: "center", padding: "50px 20px", border: "1px dashed var(--border-2)", borderRadius: 18, background: "var(--surface)" }}>
+    <div style={{ textAlign: "center", padding: "34px 20px", border: "1px dashed var(--border-2)", borderRadius: 12, background: "var(--surface)" }}>
       <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 16 }}>{title}</div>
       {body && <div style={{ color: "var(--muted)", marginBlock: "8px 16px", lineHeight: 1.7 }}>{body}</div>}
       {cta}
@@ -420,7 +420,7 @@ export function Chip({
   const style: CSSProperties = active
     ? variant === "fill"
       ? { ...base, background: "var(--navy)", color: "#fff", border: "1.5px solid var(--navy)" }
-      : { ...base, background: "var(--teal-tint-2)", color: "var(--navy)", border: "1.5px solid var(--teal)" }
+      : { ...base, background: "var(--teal-tint-2)", color: "var(--teal-deep)", border: "1.5px solid var(--teal)" }
     : { ...base, background: "var(--card)", color: "var(--slate)", border: "1.5px solid var(--border-2)" };
   return (
     <button type="button" onClick={onClick} aria-pressed={!!active} style={style}>
@@ -498,7 +498,7 @@ export function SelectableCard({
         gap: 10,
         width: "100%",
         padding: "14px 16px",
-        borderRadius: 14,
+        borderRadius: 12,
         cursor: onClick ? "pointer" : "default",
         background: active ? "var(--teal-tint-2)" : "var(--card)",
         border: active ? "1.5px solid var(--teal)" : "1.5px solid var(--border-2)",
@@ -536,21 +536,21 @@ export const btnNavy: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   gap: 7,
-  height: 42,
-  padding: "0 20px",
-  borderRadius: 11,
+  height: 36,
+  padding: "0 16px",
+  borderRadius: 9,
   border: "none",
-  background: "linear-gradient(135deg,var(--navy-2),var(--navy))",
+  background: "var(--teal)",
   color: "#fff",
-  fontWeight: 700,
+  fontWeight: 600,
   fontSize: 13.5,
   cursor: "pointer",
 };
 export const btnTeal: CSSProperties = { ...btnNavy, background: "var(--teal)" };
 export const btnGhost: CSSProperties = {
   ...btnNavy,
-  background: "var(--card)",
+  background: "transparent",
   border: "1px solid var(--border-2)",
-  color: "var(--navy)",
+  color: "var(--text)",
 };
-export const btnGold: CSSProperties = { ...btnNavy, background: "var(--gold)", color: "#3a2b0c" };
+export const btnGold: CSSProperties = { ...btnNavy, background: "var(--gold)", color: "#241a06" };

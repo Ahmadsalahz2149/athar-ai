@@ -25,7 +25,7 @@ export function Logo({ size = 40 }: { size?: number }) {
 export function BrandWord({ name, ai, tagline }: { name: string; ai: string; tagline?: string }) {
   return (
     <div style={{ lineHeight: 1.15 }}>
-      <div style={{ fontWeight: 700, fontSize: 18, color: "var(--navy)" }}>
+      <div style={{ fontWeight: 700, fontSize: 18, color: "var(--heading)" }}>
         {name}
         <span style={{ color: "var(--teal-deep)" }}> {ai}</span>
       </div>
