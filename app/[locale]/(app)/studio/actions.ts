@@ -100,7 +100,7 @@ export async function studioGenerate(input: StudioInput): Promise<StudioResult> 
           if (texts.length) source = texts.map((c, i) => `[${i + 1}] ${c}`).join("\n\n");
         } else if (input.prompt.trim() && (await t.countChunks(ctx.brandId)) > 0) {
           const qv = await embedOne(input.prompt.trim(), "query");
-          const hits = await t.retrieve(ctx.brandId, qv, 5);
+          const hits = await t.retrieve(ctx.brandId, qv, 5, input.prompt.trim());
           if (hits.length) source = hits.map((h, i) => `[${i + 1}] ${h.content}`).join("\n\n");
         }
       } catch {

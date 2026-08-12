@@ -50,6 +50,7 @@ const sql = DATABASE_URL
 const db = sql ? drizzle(sql, { schema }) : null;
 
 let orgId = "";
+let concurrentOrgId = "";
 
 describe.runIf(!!db)("credit ledger (append-only)", () => {
   beforeAll(async () => {
@@ -62,6 +63,10 @@ describe.runIf(!!db)("credit ledger (append-only)", () => {
     if (orgId) {
       await db.delete(schema.creditLedger).where(eq(schema.creditLedger.orgId, orgId));
       await db.delete(schema.organizations).where(eq(schema.organizations.id, orgId));
+    }
+    if (concurrentOrgId) {
+      await db.delete(schema.creditLedger).where(eq(schema.creditLedger.orgId, concurrentOrgId));
+      await db.delete(schema.organizations).where(eq(schema.organizations.id, concurrentOrgId));
     }
     await sql!.end({ timeout: 3 });
   });
@@ -96,6 +101,22 @@ describe.runIf(!!db)("credit ledger (append-only)", () => {
     await t.debitOnce(7, "ingest_source", key);
     await t.debitOnce(7, "ingest_source", key);
     expect(await t.balance()).toBe(afterFirst);
+  });
+
+  it("serializes concurrent debits and never lets a balance go negative", async () => {
+    const [o] = await db!.insert(schema.organizations).values({ name: "test-concurrent-credits" }).returning();
+    concurrentOrgId = o.id;
+    const t = forOrg(db!, concurrentOrgId);
+    await t.grant(10, "test_grant");
+
+    const attempts = await Promise.allSettled([
+      t.debit(7, "parallel_debit_a"),
+      t.debit(7, "parallel_debit_b"),
+    ]);
+
+    expect(attempts.filter((attempt) => attempt.status === "fulfilled")).toHaveLength(1);
+    expect(attempts.filter((attempt) => attempt.status === "rejected")).toHaveLength(1);
+    expect(await t.balance()).toBe(3);
   });
 });
 

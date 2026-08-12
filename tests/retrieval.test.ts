@@ -89,7 +89,9 @@ describe.runIf(canRun)("retrieval (pgvector + Voyage)", () => {
       ["ما عادات تقديم القهوة في الضيافة الخليجية؟", "محتوى سري عن استراتيجية التسويق الرقمي"],
       "query",
     );
-  }, 120000);
+  // Voyage's free tier can queue requests for more than two minutes under load.
+  // Keep this integration test deterministic without weakening production timeouts.
+  }, 180000);
 
   afterAll(async () => {
     if (!db) return;
@@ -104,13 +106,13 @@ describe.runIf(canRun)("retrieval (pgvector + Voyage)", () => {
   });
 
   it("returns the topically relevant chunk first", async () => {
-    const res = await forOrg(db!, orgA).retrieve(brandA, qCoffee, 3);
+    const res = await forOrg(db!, orgA).retrieve(brandA, qCoffee, 3, "عادات تقديم القهوة");
     expect(res.length).toBeGreaterThan(0);
     expect(res[0].content).toContain("القهوة");
   });
 
   it("A CANNOT retrieve B's chunks (tenancy)", async () => {
-    const res = await forOrg(db!, orgA).retrieve(brandA, qSecret, 5);
+    const res = await forOrg(db!, orgA).retrieve(brandA, qSecret, 5, "محتوى سري");
     expect(res.every((r) => !r.content.includes("سري"))).toBe(true);
   });
 

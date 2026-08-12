@@ -36,7 +36,7 @@ const DNA: ContentDna = {
 };
 
 // A 2-brand-org tenancy proof: org A (2 brands) and org B (1 brand).
-let orgA = "", orgB = "", brandA1 = "", brandA2 = "", brandB = "";
+let orgA = "", orgB = "", brandA1 = "", brandB = "";
 
 describe.runIf(!!db)("tenancy façade (db.forOrg)", () => {
   beforeAll(async () => {
@@ -44,9 +44,9 @@ describe.runIf(!!db)("tenancy façade (db.forOrg)", () => {
     const [ob] = await db!.insert(schema.organizations).values({ name: "test-B" }).returning();
     orgA = oa.id; orgB = ob.id;
     const [ba1] = await db!.insert(schema.brands).values({ orgId: orgA, name: "A1" }).returning();
-    const [ba2] = await db!.insert(schema.brands).values({ orgId: orgA, name: "A2" }).returning();
+    await db!.insert(schema.brands).values({ orgId: orgA, name: "A2" });
     const [bb] = await db!.insert(schema.brands).values({ orgId: orgB, name: "B" }).returning();
-    brandA1 = ba1.id; brandA2 = ba2.id; brandB = bb.id;
+    brandA1 = ba1.id; brandB = bb.id;
     // Seed B's own data via B's façade.
     const B = forOrg(db!, orgB);
     await B.saveDna(brandB, DNA);

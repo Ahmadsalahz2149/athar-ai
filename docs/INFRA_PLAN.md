@@ -48,7 +48,7 @@ locked_at · locked_by · run_after · created_at · updated_at`
 
 **`lib/jobs/runner.ts`** — سجلّ `type → handler`؛ يشغّل، يُحدّث التقدّم، يلتقط الأخطاء.
 
-**`app/api/worker/route.ts`** — `POST` يستدعي `claimNext` ويشغّل (idempotent، محمي برمز `WORKER_SECRET` اختياري).
+**`app/api/worker/route.ts`** — `POST` يستدعي `claimNext` ويشغّل (idempotent، ومحمي إلزاميًا في الإنتاج برمز `WORKER_SECRET`).
 
 **اختبارات** — enqueue/claim/complete/fail + عدم التسابق (SKIP LOCKED) + tenancy.
 
@@ -61,7 +61,7 @@ locked_at · locked_by · run_after · created_at · updated_at`
 
 | # | البند | ما أحتاجه منك | ما جهّزته مسبقًا | بعد تدخّلك |
 |---|---|---|---|---|
-| ٧.١ | **مشغّل cron دائم للـworker** | قرار الاستضافة + ضبط `WORKER_SECRET` في بيئة الإنتاج | `/api/worker` جاهز ومحمي بالسرّ + `reapStale` + `vercel.json` (cron كل دقيقة) + مقتطف `pg_cron` أدناه | المهام العالقة (لو مات `after()`) تُلتقط تلقائيًا كل دقيقة |
+| ٧.١ | **مشغّل cron دائم للـworker** | ✅ **تمّ على cPanel** | `/api/worker` محمي بالسرّ + `reapStale` + `scripts/run-worker-cron.mjs` | المهام العالقة تُلتقط تلقائيًا كل دقيقة من cron النظام |
 | ٧.٢ | **SMTP فعلي للرسائل** | إعداد SMTP في Supabase Auth (Dashboard → Auth → SMTP) | «نسيت كلمة المرور»/التأكيد يستدعيان Supabase فعلًا بالفعل | تصل رسائل الاستعادة/التأكيد حقيقيًا |
 | ٧.٣ | **نشر فعلي على المنصّات (OAuth)** | تسجيل تطبيقات LinkedIn/X/Instagram + مفاتيح OAuth + موافقتك على النطاقات | الجدولة + المسودّات + التقويم جاهزة (تنتج المحتوى وتوقّته) | زرّ «نشر» ينشر مباشرةً بدل النسخ اليدوي |
 | ٧.٤ | **«مصدر كل سمة» في الهوية** | ✅ **تمّت** (بلا تدخّل) | `traitProvenance()` يضمّن كل سمة ويجد أقرب مقطع مصدر عبر `retrieve()`؛ قسم `TraitSources` في `/dna` | كل سمة DNA تُنسَب لأقرب مصدر (تطابق دلالي)، مع تمييز التطابق القوي |

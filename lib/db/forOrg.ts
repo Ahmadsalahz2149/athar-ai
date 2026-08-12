@@ -17,6 +17,13 @@ import { type LinkPage, normalizeLinkPage } from "@/lib/link/types";
  */
 export type Db = PostgresJsDatabase<typeof schema>;
 
+export class InsufficientCreditsError extends Error {
+  constructor() {
+    super("insufficient_credits");
+    this.name = "InsufficientCreditsError";
+  }
+}
+
 export function forOrg(db: Db, orgId: string) {
   async function assertBrand(brandId: string) {
     const rows = await db
@@ -29,21 +36,28 @@ export function forOrg(db: Db, orgId: string) {
   }
 
   async function appendLedger(delta: number, reason: string, refType?: string, refId?: string, idempotencyKey?: string): Promise<number> {
-    const rows = await db
-      .select({ d: schema.creditLedger.delta })
-      .from(schema.creditLedger)
-      .where(eq(schema.creditLedger.orgId, orgId));
-    const balanceAfter = rows.reduce((s, r) => s + r.d, 0) + delta;
-    await db.insert(schema.creditLedger).values({
-      orgId,
-      delta,
-      reason,
-      refType: refType ?? null,
-      refId: refId ?? null,
-      idempotencyKey: idempotencyKey ?? null,
-      balanceAfter,
-    });
-    return balanceAfter;
+    // One statement + a per-org transaction advisory lock makes balance
+    // calculation and insertion atomic. Without this, two simultaneous debits
+    // can both read the same balance and drive the account below zero.
+    const rows = await db.execute(sql`
+      with org_lock as materialized (
+        select pg_advisory_xact_lock(hashtextextended(${orgId}, 0))
+      ), current_balance as materialized (
+        select coalesce(sum(${schema.creditLedger.delta}), 0)::int as balance
+        from ${schema.creditLedger}, org_lock
+        where ${schema.creditLedger.orgId} = ${orgId}::uuid
+      )
+      insert into ${schema.creditLedger}
+        (org_id, delta, reason, ref_type, ref_id, idempotency_key, balance_after)
+      select ${orgId}::uuid, ${delta}, ${reason}, ${refType ?? null},
+             ${refId ?? null}::uuid, ${idempotencyKey ?? null}, balance + ${delta}
+      from current_balance
+      where ${delta} >= 0 or balance + ${delta} >= 0
+      returning balance_after as "balanceAfter"
+    `);
+    const row = (rows as unknown as { balanceAfter: number }[])[0];
+    if (!row) throw new InsufficientCreditsError();
+    return row.balanceAfter;
   }
 
   return {
@@ -374,14 +388,36 @@ export function forOrg(db: Db, orgId: string) {
       return items.length;
     },
 
-    /** Cosine-nearest chunks for a query embedding, scoped to this org + brand. */
+    /** Hybrid retrieval scoped to this org + brand. Vector distance remains the
+     * primary signal; full-text rank boosts exact words when query text exists. */
     async retrieve(
       brandId: string,
       queryEmbedding: number[],
       k = 6,
+      queryText?: string,
     ): Promise<{ content: string; sourceId: string; distance: number }[]> {
       const vec = `[${queryEmbedding.join(",")}]`;
       const distance = sql<number>`${schema.sourceChunks.embedding} <=> ${vec}::vector`;
+      const normalizedQuery = queryText?.trim();
+      if (normalizedQuery) {
+        const rows = await db.execute(sql`
+          select content, source_id as "sourceId",
+                 (embedding <=> ${vec}::vector)::float8 as distance
+          from source_chunks
+          where org_id = ${orgId}::uuid and brand_id = ${brandId}::uuid
+          order by
+            (embedding <=> ${vec}::vector)
+            - least(
+                ts_rank_cd(
+                  to_tsvector('simple', content),
+                  websearch_to_tsquery('simple', ${normalizedQuery})
+                ),
+                1.0
+              ) * 0.35 asc
+          limit ${k}
+        `);
+        return rows as unknown as { content: string; sourceId: string; distance: number }[];
+      }
       return db
         .select({
           content: schema.sourceChunks.content,

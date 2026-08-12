@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { signIn } from "@/lib/auth/actions";
 import { Logo } from "@/components/Logo";
-import { OAuthButtons } from "@/components/auth/OAuthButtons";
+import { OAuthButtons, OAUTH_AVAILABLE } from "@/components/auth/OAuthButtons";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { btnNavy } from "@/components/ui/display";
 
@@ -49,13 +49,14 @@ export function AuthForm() {
       <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--heading)", letterSpacing: "-.4px" }}>{t("loginTitle")}</h1>
       <p style={{ color: "var(--muted)", marginBlock: "8px 20px", lineHeight: 1.7, fontSize: 14.5 }}>{t("loginSub")}</p>
 
-      <OAuthButtons />
-
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBlock: 18 }}>
-        <span style={{ flex: 1, height: 1, background: "var(--border-2)" }} />
-        <span style={{ fontSize: 12, color: "var(--subtle)" }}>{t("or")}</span>
-        <span style={{ flex: 1, height: 1, background: "var(--border-2)" }} />
-      </div>
+      {OAUTH_AVAILABLE && <>
+        <OAuthButtons />
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBlock: 18 }}>
+          <span style={{ flex: 1, height: 1, background: "var(--border-2)" }} />
+          <span style={{ fontSize: 12, color: "var(--subtle)" }}>{t("or")}</span>
+          <span style={{ flex: 1, height: 1, background: "var(--border-2)" }} />
+        </div>
+      </>}
 
       <label style={label}>{t("email")}</label>
       <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={{ ...field, direction: "ltr", textAlign: "start", fontFamily: "var(--font-latin)" }} />

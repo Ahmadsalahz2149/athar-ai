@@ -31,7 +31,7 @@ export function LandingNav() {
         <div className="lp-nav-cta">
           <ThemeToggle compact />
           <Link href="/login" className="lp-nav-login" style={{ marginInlineEnd: 4 }}>{t("login")}</Link>
-          <Link href="/onboarding/1" className="lp-btn lp-btn-primary">{t("cta")}</Link>
+          <Link href="/signup" className="lp-btn lp-btn-primary">{t("cta")}</Link>
           <button className="lp-burger" aria-label="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               {open ? <><path d="M6 6l12 12" /><path d="M18 6L6 18" /></> : <><path d="M4 7h16" /><path d="M4 12h16" /><path d="M4 17h16" /></>}

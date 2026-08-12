@@ -19,16 +19,16 @@ export function PwaRegister() {
     }
     const onPrompt = (e: Event) => {
       e.preventDefault();
+      try {
+        if (sessionStorage.getItem("athar-install-dismissed")) return;
+      } catch {
+        /* ignore */
+      }
       setDeferred(e as InstallEvent);
     };
     const onInstalled = () => setDeferred(null);
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
-    try {
-      if (sessionStorage.getItem("athar-install-dismissed")) setDismissed(true);
-    } catch {
-      /* ignore */
-    }
     return () => {
       window.removeEventListener("beforeinstallprompt", onPrompt);
       window.removeEventListener("appinstalled", onInstalled);

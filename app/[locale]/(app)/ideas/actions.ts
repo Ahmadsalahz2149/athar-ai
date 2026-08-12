@@ -41,8 +41,9 @@ export async function generateIdeas(input: { topic?: string; count?: number }): 
 
     let sources: string | undefined;
     if (hasEmbeddingKey() && (await t.countChunks(ctx.brandId)) > 0) {
-      const qv = await embedOne(input.topic?.trim() || dna.summary, "query");
-      const hits = await t.retrieve(ctx.brandId, qv, 5);
+      const retrievalQuery = input.topic?.trim() || dna.summary;
+      const qv = await embedOne(retrievalQuery, "query");
+      const hits = await t.retrieve(ctx.brandId, qv, 5, retrievalQuery);
       if (hits.length) sources = hits.map((h, i) => `[${i + 1}] ${h.content}`).join("\n\n");
     }
 

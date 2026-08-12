@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { signUp } from "@/lib/auth/actions";
 import { Logo } from "@/components/Logo";
-import { OAuthButtons } from "@/components/auth/OAuthButtons";
+import { OAuthButtons, OAUTH_AVAILABLE } from "@/components/auth/OAuthButtons";
 import { PasswordInput, strength } from "@/components/auth/PasswordInput";
 import { SelectableCard, btnNavy } from "@/components/ui/display";
 
@@ -54,13 +54,14 @@ export function SignUpForm() {
       <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--heading)", letterSpacing: "-.4px" }}>{t("signupTitle")}</h1>
       <p style={{ color: "var(--muted)", marginBlock: "8px 20px", lineHeight: 1.7, fontSize: 14.5 }}>{t("signupSub")}</p>
 
-      <OAuthButtons />
-
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBlock: 18 }}>
-        <span style={{ flex: 1, height: 1, background: "var(--border-2)" }} />
-        <span style={{ fontSize: 12, color: "var(--subtle)" }}>{t("orEmail")}</span>
-        <span style={{ flex: 1, height: 1, background: "var(--border-2)" }} />
-      </div>
+      {OAUTH_AVAILABLE && <>
+        <OAuthButtons />
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBlock: 18 }}>
+          <span style={{ flex: 1, height: 1, background: "var(--border-2)" }} />
+          <span style={{ fontSize: 12, color: "var(--subtle)" }}>{t("orEmail")}</span>
+          <span style={{ flex: 1, height: 1, background: "var(--border-2)" }} />
+        </div>
+      </>}
 
       <label style={label}>{t("fullName")}</label>
       <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t("fullNamePh")} style={field} />

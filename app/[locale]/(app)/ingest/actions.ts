@@ -87,6 +87,7 @@ async function enqueueText(
  * FOR UPDATE SKIP LOCKED, so overlapping pumps never double-process. */
 export async function pumpWorker(): Promise<{ processed: number }> {
   if (!db) return { processed: 0 };
+  if (!(await currentContext())) return { processed: 0 };
   try {
     await reapStale(db); // recover jobs a prior (killed) invocation left locked
     const processed = await runBatch(db, `pump_${Date.now()}`, 5);

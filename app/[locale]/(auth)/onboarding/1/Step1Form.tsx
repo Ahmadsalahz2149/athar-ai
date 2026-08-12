@@ -20,12 +20,19 @@ export function Step1Form({ initial }: { initial: OnboardingAnswers }) {
   const [dialect, setDialect] = useState(initial.dialect ?? "");
   const [pending, start] = useTransition();
   const [showErr, setShowErr] = useState(false);
+  const [saveErr, setSaveErr] = useState(false);
 
   const valid = !!field && !!audience && !!brandType && !!dialect;
   const next = () => {
     if (!valid) { setShowErr(true); return; }
     start(async () => {
-      await saveOnboarding({ field, audience, brandType, dialect });
+      setSaveErr(false);
+      const result = await saveOnboarding({ field, audience, brandType, dialect });
+      if (!result.ok) {
+        setSaveErr(true);
+        if (result.error === "no_session") router.replace("/signup");
+        return;
+      }
       router.push("/onboarding/2");
     });
   };
@@ -74,6 +81,7 @@ export function Step1Form({ initial }: { initial: OnboardingAnswers }) {
       {showErr && !valid && (
         <p style={{ marginBlockStart: 20, padding: "10px 14px", borderRadius: 11, background: "var(--coral-tint)", color: "var(--coral)", fontSize: 13.5 }}>{t("selectAllHint")}</p>
       )}
+      {saveErr && <p role="alert" style={errorBox}>{t("saveError")}</p>}
 
       <div style={{ height: 1, background: "var(--border)", marginBlock: "30px 20px" }} />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -91,3 +99,4 @@ const sub: React.CSSProperties = { fontSize: 15, color: "var(--muted)", lineHeig
 const section: React.CSSProperties = { marginBlockStart: 26 };
 const label: React.CSSProperties = { fontSize: 14.5, fontWeight: 700, color: "var(--heading)", marginBlockEnd: 10 };
 const chipWrap: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: 9 };
+const errorBox: React.CSSProperties = { marginBlockStart: 20, padding: "10px 14px", borderRadius: 11, background: "var(--coral-tint)", color: "var(--coral)", fontSize: 13.5 };

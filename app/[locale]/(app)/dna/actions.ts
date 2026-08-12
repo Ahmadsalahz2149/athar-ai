@@ -57,7 +57,7 @@ export async function traitProvenance(): Promise<TraitProvenance> {
   const titleCache = new Map<string, string | null>();
   const items: TraitItem[] = [];
   for (let i = 0; i < traits.length; i++) {
-    const hits = await t.retrieve(ctx.brandId, vectors[i], 1);
+    const hits = await t.retrieve(ctx.brandId, vectors[i], 1, traits[i].trait);
     const hit = hits[0];
     if (!hit) { items.push({ ...traits[i], sourceId: null, sourceTitle: null, snippet: null, strong: false }); continue; }
     if (!titleCache.has(hit.sourceId)) {

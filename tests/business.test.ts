@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import * as schema from "@/lib/db/schema";
 import { forOrg } from "@/lib/db/forOrg";
 

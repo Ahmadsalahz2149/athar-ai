@@ -72,7 +72,7 @@ export async function semanticSearchSources(query: string): Promise<{ ok: boolea
     if (!ctx) return { ok: false };
     const t = forOrg(db, ctx.orgId);
     const qv = await embedOne(query.trim(), "query");
-    const hits = await t.retrieve(ctx.brandId, qv, 24);
+    const hits = await t.retrieve(ctx.brandId, qv, 24, query.trim());
     // Keep first-seen order (closest chunk wins) and dedupe to source IDs.
     const seen = new Set<string>();
     const ids: string[] = [];

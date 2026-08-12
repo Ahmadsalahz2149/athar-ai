@@ -20,6 +20,7 @@ export function Step2Form({ initial }: { initial: OnboardingAnswers }) {
   const [styles, setStyles] = useState<string[]>(initial.styles ?? []);
   const [pending, start] = useTransition();
   const [showErr, setShowErr] = useState(false);
+  const [saveErr, setSaveErr] = useState(false);
 
   const toggle = (list: string[], set: (v: string[]) => void, v: string) =>
     set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
@@ -28,7 +29,13 @@ export function Step2Form({ initial }: { initial: OnboardingAnswers }) {
   const next = () => {
     if (!valid) { setShowErr(true); return; }
     start(async () => {
-      await saveOnboarding({ goals, platforms, frequency, styles });
+      setSaveErr(false);
+      const result = await saveOnboarding({ goals, platforms, frequency, styles });
+      if (!result.ok) {
+        setSaveErr(true);
+        if (result.error === "no_session") router.replace("/signup");
+        return;
+      }
       router.push("/onboarding/3");
     });
   };
@@ -81,6 +88,7 @@ export function Step2Form({ initial }: { initial: OnboardingAnswers }) {
       {showErr && !valid && (
         <p style={{ marginBlockStart: 20, padding: "10px 14px", borderRadius: 11, background: "var(--coral-tint)", color: "var(--coral)", fontSize: 13.5 }}>{t("selectMinHint")}</p>
       )}
+      {saveErr && <p role="alert" style={errorBox}>{t("saveError")}</p>}
 
       <div style={{ height: 1, background: "var(--border)", marginBlock: "30px 20px" }} />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
@@ -100,3 +108,4 @@ const sub: React.CSSProperties = { fontSize: 15, color: "var(--muted)", lineHeig
 const section: React.CSSProperties = { marginBlockStart: 26 };
 const label: React.CSSProperties = { fontSize: 14.5, fontWeight: 700, color: "var(--heading)", marginBlockEnd: 10 };
 const chipWrap: React.CSSProperties = { display: "flex", flexWrap: "wrap", gap: 9 };
+const errorBox: React.CSSProperties = { marginBlockStart: 20, padding: "10px 14px", borderRadius: 11, background: "var(--coral-tint)", color: "var(--coral)", fontSize: 13.5 };

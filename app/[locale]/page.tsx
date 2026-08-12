@@ -29,12 +29,10 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   ];
 
   const plans = [
-    { key: "free", name: t("planFree"), price: t("planFreeP"), period: t("priceFree"), feats: t("planFreeF").split("|"), cta: t("planFreeCta"), href: "/onboarding/1", feat: false },
-    { key: "pro", name: t("planPro"), price: t("planProP"), period: t("priceMo"), feats: t("planProF").split("|"), cta: t("planProCta"), href: "/billing", feat: true },
-    { key: "agency", name: t("planAgency"), price: t("planAgencyP"), period: t("priceMo"), feats: t("planAgencyF").split("|"), cta: t("planAgencyCta"), href: "/billing", feat: false },
+    { key: "free", name: t("planFree"), price: t("planFreeP"), period: t("priceFree"), feats: t("planFreeF").split("|"), cta: t("planFreeCta"), href: "/signup", feat: false },
+    { key: "pro", name: t("planPro"), price: t("planProP"), period: t("priceMo"), feats: t("planProF").split("|"), cta: t("planProCta"), href: "/signup", feat: true },
+    { key: "agency", name: t("planAgency"), price: t("planAgencyP"), period: t("priceMo"), feats: t("planAgencyF").split("|"), cta: t("planAgencyCta"), href: "/signup", feat: false },
   ];
-
-  const quotes = [1, 2, 3].map((i) => ({ text: t(`t${i}`), name: t(`t${i}n`), role: t(`t${i}r`) }));
 
   return (
     <div className="lp">
@@ -48,7 +46,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             <h1>{t("heroTitle")}</h1>
             <p className="lp-lead">{t("heroSub")}</p>
             <div className="lp-hero-cta">
-              <Link href="/onboarding/1" className="lp-btn lp-btn-primary lp-btn-lg">{t("heroCta")}</Link>
+              <Link href="/signup" className="lp-btn lp-btn-primary lp-btn-lg">{t("heroCta")}</Link>
               <a href="#how" className="lp-btn lp-btn-ghost lp-btn-lg">{t("heroCta2")}</a>
             </div>
             <p className="lp-hero-trust">{t("heroTrust")}</p>
@@ -157,28 +155,6 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="lp-section" style={{ paddingBlockStart: 0 }}>
-        <div className="lp-wrap lp-center lp-reveal">
-          <h2 className="lp-h2">{t("loveTitle")}</h2>
-          <div className="lp-quotes" style={{ textAlign: "start" }}>
-            {quotes.map((q, i) => (
-              <div key={i} className="lp-quote">
-                <div className="lp-quote-stars">★★★★★</div>
-                <p>{q.text}</p>
-                <div className="lp-quote-by">
-                  <span className="lp-quote-av">{q.name.slice(0, 1)}</span>
-                  <div>
-                    <div className="lp-quote-n">{q.name}</div>
-                    <div className="lp-quote-r">{q.role}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* FAQ */}
       <section id="faq" className="lp-section" style={{ paddingBlockStart: 0 }}>
         <div className="lp-wrap lp-center lp-reveal">
@@ -194,7 +170,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           <div className="lp-final">
             <h2>{t("finalTitle")}</h2>
             <p>{t("finalSub")}</p>
-            <Link href="/onboarding/1" className="lp-btn lp-btn-lg">{t("finalCta")}</Link>
+            <Link href="/signup" className="lp-btn lp-btn-lg">{t("finalCta")}</Link>
           </div>
         </div>
       </section>

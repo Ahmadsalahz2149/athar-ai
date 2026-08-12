@@ -16,6 +16,20 @@ const nextConfig: NextConfig = {
   // on the LAN (Next 16 blocks this by default and prints a warning otherwise).
   allowedDevOrigins: ["10.207.10.120", "*.trycloudflare.com"],
 
+  async headers() {
+    return [{
+      source: "/:path*",
+      headers: [
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        { key: "X-Frame-Options", value: "DENY" },
+        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+        { key: "Content-Security-Policy", value: "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'" },
+        { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+      ],
+    }];
+  },
+
   // Server Actions (login/signup, generation) are CSRF-protected by comparing
   // Origin vs Host. When you open the dev server from a phone via the machine's
   // LAN IP instead of localhost, that check rejects the action and login fails.
