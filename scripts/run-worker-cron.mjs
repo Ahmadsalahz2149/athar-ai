@@ -29,7 +29,9 @@ if (!secret) throw new Error("WORKER_SECRET is missing; refusing to call the wor
 const response = await fetch(new URL("/api/worker", baseUrl), {
   method: "POST",
   headers: { authorization: `Bearer ${secret}` },
-  signal: AbortSignal.timeout(55_000),
+  // Large free-tier embedding jobs are intentionally rate-limited and can take
+  // several minutes. The cron uses flock, so this longer request cannot overlap.
+  signal: AbortSignal.timeout(10 * 60_000),
 });
 
 const payload = await response.text();

@@ -27,6 +27,7 @@ export const ingestSourceHandler: JobHandler = async ({ db, job, progress }) => 
   const brandId = job.brandId;
 
   try {
+    await org.setSourceStatus(brandId, p.sourceId, "processing");
     await progress(10, "extract");
     let text: string;
     if (p.mode === "file") {

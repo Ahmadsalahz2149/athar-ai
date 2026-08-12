@@ -50,5 +50,6 @@ This document describes the system that is actually deployed. Proposed or future
 2. Copy public assets and `.next/static` into the standalone output.
 3. Restart Passenger using `tmp/restart.txt`.
 4. Keep `.env.production` readable only by the cPanel account.
-5. Run `scripts/run-worker-cron.mjs` once per minute from cPanel cron.
+5. Run `scripts/run-worker-cron.mjs` once per minute from cPanel cron under a non-overlapping `flock`.
+6. Voyage embedding inputs are token-budgeted and throttled so long Arabic sources remain within the free-tier 10K TPM limit.
 6. Verify `/api/health`, authentication redirects, both locales, and a real ingestion job after every deployment.

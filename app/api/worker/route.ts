@@ -15,7 +15,7 @@ import "@/lib/jobs/handlers"; // registers all handlers as a side effect
  * public, resource-intensive queue drain endpoint.
  */
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 600;
 
 function authorized(req: Request): boolean {
   const secret = process.env.WORKER_SECRET;
