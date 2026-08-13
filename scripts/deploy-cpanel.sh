@@ -9,6 +9,12 @@ NODE=/opt/cpanel/ea-nodejs22/bin/node
 NPM=/opt/cpanel/ea-nodejs22/bin/npm
 APP_PORT=${ATHAR_APP_PORT:-3101}
 
+# cPanel accounts often default to an older system Node. npm's launcher uses
+# `/usr/bin/env node`, so put the selected EA runtime first for every child
+# process, including the `next` binary invoked by npm scripts.
+PATH=/opt/cpanel/ea-nodejs22/bin:$PATH
+export PATH
+
 cd "$APP_ROOT"
 
 # Refuse to build without the server-only production configuration. Next.js
