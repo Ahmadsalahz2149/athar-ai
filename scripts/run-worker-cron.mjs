@@ -1,4 +1,6 @@
 import fs from "node:fs";
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
 import path from "node:path";
 
 function parseEnv(filePath) {
@@ -26,16 +28,27 @@ const baseUrl = process.env.OAUTH_BASE_URL || fileEnv.OAUTH_BASE_URL || "https:/
 
 if (!secret) throw new Error("WORKER_SECRET is missing; refusing to call the worker without authentication.");
 
-const response = await fetch(new URL("/api/worker", baseUrl), {
-  method: "POST",
-  headers: { authorization: `Bearer ${secret}` },
-  // Large free-tier embedding jobs are intentionally rate-limited and can take
-  // several minutes. The cron uses flock, so this longer request cannot overlap.
-  signal: AbortSignal.timeout(10 * 60_000),
+const workerUrl = new URL("/api/worker", baseUrl);
+const request = workerUrl.protocol === "https:" ? httpsRequest : httpRequest;
+const { status, payload } = await new Promise((resolve, reject) => {
+  const req = request(workerUrl, {
+    method: "POST",
+    headers: { authorization: `Bearer ${secret}` },
+  }, (res) => {
+    res.setEncoding("utf8");
+    let body = "";
+    res.on("data", (chunk) => { body += chunk; });
+    res.on("end", () => resolve({ status: res.statusCode ?? 0, payload: body }));
+  });
+  // Node fetch/Undici applies a five-minute headers timeout even when its abort
+  // signal is longer. The core request API lets large throttled jobs use the
+  // full ten-minute window while flock still prevents overlapping cron calls.
+  req.setTimeout(10 * 60_000, () => req.destroy(new Error("Worker request timed out after 10 minutes")));
+  req.on("error", reject);
+  req.end();
 });
 
-const payload = await response.text();
-if (!response.ok) throw new Error(`Worker returned HTTP ${response.status}: ${payload.slice(0, 300)}`);
+if (status < 200 || status >= 300) throw new Error(`Worker returned HTTP ${status}: ${payload.slice(0, 300)}`);
 
 const result = JSON.parse(payload);
 if (result.processed || result.reaped) {
