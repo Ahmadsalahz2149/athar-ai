@@ -83,7 +83,7 @@ export async function queueDepth(db: Db): Promise<Record<string, number>> {
 
 /** Reclaim jobs stuck in 'running' past a timeout (a worker crashed mid-run).
  * Re-queues them for another attempt. Returns how many were reaped. */
-export async function reapStale(db: Db, staleSeconds = 600): Promise<number> {
+export async function reapStale(db: Db, staleSeconds = 1800): Promise<number> {
   const rows = await db.execute(sql`
     UPDATE jobs SET status = 'queued', locked_at = null, locked_by = null, updated_at = now()
     WHERE status = 'running' AND locked_at < now() - (${staleSeconds} * interval '1 second')
