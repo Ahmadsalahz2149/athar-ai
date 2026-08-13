@@ -41,9 +41,10 @@ const { status, payload } = await new Promise((resolve, reject) => {
     res.on("end", () => resolve({ status: res.statusCode ?? 0, payload: body }));
   });
   // Node fetch/Undici applies a five-minute headers timeout even when its abort
-  // signal is longer. The core request API lets large throttled jobs use the
-  // full ten-minute window while flock still prevents overlapping cron calls.
-  req.setTimeout(10 * 60_000, () => req.destroy(new Error("Worker request timed out after 10 minutes")));
+  // signal is longer. The core request API lets large throttled jobs and any
+  // provider Retry-After pauses use a full twenty-minute window, while flock
+  // still prevents overlapping cron calls.
+  req.setTimeout(20 * 60_000, () => req.destroy(new Error("Worker request timed out after 20 minutes")));
   req.on("error", reject);
   req.end();
 });
