@@ -3,11 +3,7 @@ set -eu
 
 APP_ROOT=/home/athar/apps/athar-ai
 RELEASES_ROOT="$APP_ROOT/.releases"
-PUBLIC_ROOT=/home/athar/public_html
-HTACCESS="$PUBLIC_ROOT/.htaccess"
-NODE=/opt/cpanel/ea-nodejs22/bin/node
 NPM=/opt/cpanel/ea-nodejs22/bin/npm
-APP_PORT=${ATHAR_APP_PORT:-3101}
 
 # cPanel accounts often default to an older system Node. npm's launcher uses
 # `/usr/bin/env node`, so put the selected EA runtime first for every child
@@ -41,21 +37,14 @@ rm -rf "$stage/.next/static" "$stage/public"
 cp -R "$APP_ROOT/.next/static" "$stage/.next/static"
 cp -R "$APP_ROOT/public" "$stage/public"
 cp "$APP_ROOT/.env.production" "$stage/.env.production"
+cp "$APP_ROOT/deploy/passenger-app.js" "$stage/app.js"
+mkdir -p "$stage/tmp"
 rm -rf "$release"
 mv "$stage" "$release"
 ln -sfn "$release" "$APP_ROOT/current"
 
-chmod 755 "$APP_ROOT/scripts/ensure-production-server.sh"
-ATHAR_APP_PORT="$APP_PORT" "$APP_ROOT/scripts/ensure-production-server.sh"
+# Passenger is the only production process manager. It detects app.js and
+# restarts the application after this timestamp changes.
+touch "$APP_ROOT/current/tmp/restart.txt"
 
-# Switch Apache only after the new runtime answers its health check. The
-# previous port therefore remains available if build/start fails.
-tmp="$HTACCESS.tmp.$$"
-sed "s#127\\.0\\.0\\.1:[0-9][0-9]*#127.0.0.1:${APP_PORT}#g" "$HTACCESS" >"$tmp"
-mv "$tmp" "$HTACCESS"
-
-curl --fail --silent --show-error --max-time 10 \
-  "http://127.0.0.1:${APP_PORT}/api/health" >/dev/null
-
-printf 'Athar deployed successfully on port %s (build %s).\n' \
-  "$APP_PORT" "$build_id"
+printf 'Athar release %s is ready for Passenger.\n' "$build_id"

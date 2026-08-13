@@ -1,12 +1,6 @@
-# Athar production application. Next.js listens only on the VPS loopback
-# interface; Apache remains the public TLS endpoint and forwards requests.
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
-  RewriteRule ^$ /ar [R=302,L]
-  RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
-  RewriteRule ^(.*)$ http://127.0.0.1:3100/$1 [P,L]
-</IfModule>
+# Athar is attached to this domain by cPanel Application Manager. Passenger
+# handles process lifecycle and request forwarding; no manual port proxy rules
+# belong in this file.
 
 # BEGIN cPanel-generated php ini directives, do not edit
 # Manual editing of this file may result in unexpected behavior.

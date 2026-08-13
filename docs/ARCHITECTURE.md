@@ -47,9 +47,10 @@ This document describes the system that is actually deployed. Proposed or future
 ## Deployment checklist
 
 1. Build with Node.js 22 and `npm ci`.
-2. Copy public assets and `.next/static` into the standalone output.
-3. Restart Passenger using `tmp/restart.txt`.
+2. Assemble an immutable release under `.releases`, including public assets,
+   `.next/static`, and the Passenger `app.js` adapter.
+3. Atomically switch `current`, then restart Passenger using `tmp/restart.txt`.
 4. Keep `.env.production` readable only by the cPanel account.
 5. Run `scripts/run-worker-cron.mjs` once per minute from cPanel cron under a non-overlapping `flock`.
 6. Voyage embedding inputs are token-budgeted and throttled so long Arabic sources remain within the free-tier 10K TPM limit.
-6. Verify `/api/health`, authentication redirects, both locales, and a real ingestion job after every deployment.
+7. Verify `/api/health`, authentication redirects, both locales, static assets, and a real ingestion job after every deployment.
