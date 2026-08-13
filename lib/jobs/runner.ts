@@ -57,6 +57,13 @@ export async function runBatch(db: Db, workerId: string, max = 5): Promise<numbe
   for (; n < max; n++) {
     const outcome = await runOne(db, workerId);
     if (outcome === "idle") break;
+    // A failed job has already been re-queued with backoff. End this drain so
+    // another queued job cannot consume the same constrained provider quota
+    // and so retries happen in a fresh worker invocation.
+    if (outcome === "failed" || outcome === "no_handler") {
+      n++;
+      break;
+    }
   }
   return n;
 }

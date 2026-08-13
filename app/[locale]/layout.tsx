@@ -34,6 +34,7 @@ export function generateStaticParams() {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.OAUTH_BASE_URL || "https://athargrowth.com"),
   title: "أثر AI — Athar",
   description: "Personal Brand Growth OS",
   applicationName: "أثر AI",

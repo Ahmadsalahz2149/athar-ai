@@ -7,9 +7,9 @@ export const EMBED_DIMS = 1024;
 const ENDPOINT = "https://api.voyageai.com/v1/embeddings";
 const MAX_BATCH = 128; // Voyage caps inputs per request.
 // Unfunded Voyage projects are limited to 10K input tokens/minute. Arabic can
-// tokenize close to one token per 1.5 characters, so keep each request below
-// ~4.5K conservatively and issue at most two requests per minute.
-const MAX_ESTIMATED_TOKENS_PER_BATCH = 4_500;
+// be close to one token per character. Keep each request below ~3K and issue
+// at most two requests per minute, leaving ample room under the 10K TPM cap.
+const MAX_ESTIMATED_TOKENS_PER_BATCH = 3_000;
 const FREE_TIER_BATCH_PAUSE_MS = 31_000;
 
 export function hasEmbeddingKey(): boolean {
@@ -19,7 +19,7 @@ export function hasEmbeddingKey(): boolean {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function estimatedTokens(text: string): number {
-  return Math.max(1, Math.ceil(text.length / 1.5));
+  return Math.max(1, text.length);
 }
 
 function planBatches(texts: string[]): { start: number; values: string[] }[] {
@@ -54,7 +54,10 @@ async function postVoyage(body: unknown, key: string): Promise<Response> {
     });
     if (res.ok || (res.status !== 429 && res.status < 500) || attempt >= 4) return res;
     const retryAfter = Number(res.headers.get("retry-after"));
-    await sleep(retryAfter > 0 ? retryAfter * 1000 : Math.min(16000, 2000 * 2 ** attempt));
+    const fallback = res.status === 429
+      ? FREE_TIER_BATCH_PAUSE_MS
+      : Math.min(16000, 2000 * 2 ** attempt);
+    await sleep(retryAfter > 0 ? retryAfter * 1000 : fallback);
   }
 }
 

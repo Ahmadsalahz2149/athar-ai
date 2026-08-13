@@ -6,7 +6,10 @@ RUNTIME_ROOT="$APP_ROOT/.next/standalone"
 PID_FILE="$APP_ROOT/.athar-server.pid"
 LOG_FILE=/home/athar/logs/athar-app.log
 NODE=/opt/cpanel/ea-nodejs22/bin/node
-HEALTH_URL=http://127.0.0.1:3100/api/health
+APP_PORT=${ATHAR_APP_PORT:-3101}
+HEALTH_URL="http://127.0.0.1:${APP_PORT}/api/health"
+BUILD_ID_FILE="$RUNTIME_ROOT/.next/BUILD_ID"
+RUNNING_BUILD_FILE="$APP_ROOT/.athar-running-build"
 
 mkdir -p /home/athar/logs
 
@@ -14,7 +17,12 @@ healthy() {
   curl --fail --silent --max-time 5 "$HEALTH_URL" >/dev/null 2>&1
 }
 
-if healthy; then
+current_build=$(cat "$BUILD_ID_FILE")
+running_build=$(cat "$RUNNING_BUILD_FILE" 2>/dev/null || true)
+
+# A healthy process may still be serving an older build after a deployment.
+# Only keep it when it is running the exact build currently on disk.
+if healthy && [ "$running_build" = "$current_build" ]; then
   exit 0
 fi
 
@@ -33,9 +41,10 @@ fi
 
 cd "$RUNTIME_ROOT"
 umask 077
-HOSTNAME=127.0.0.1 PORT=3100 NODE_ENV=production \
+HOSTNAME=127.0.0.1 PORT="$APP_PORT" NODE_ENV=production \
   nohup "$NODE" server.js >>"$LOG_FILE" 2>&1 </dev/null &
 echo "$!" >"$PID_FILE"
 
 sleep 2
 healthy
+printf '%s\n' "$current_build" >"$RUNNING_BUILD_FILE"
