@@ -19,6 +19,10 @@
 
 # production
 /build
+/.releases/
+/current
+/.athar-running-build
+/.athar-server.pid
 
 # misc
 .DS_Store
