@@ -2,7 +2,7 @@
 set -eu
 
 APP_ROOT=/home/athar/apps/athar-ai
-RUNTIME_ROOT="$APP_ROOT/.next/standalone"
+RUNTIME_ROOT=${ATHAR_RUNTIME_ROOT:-$APP_ROOT/current}
 PID_FILE="$APP_ROOT/.athar-server.pid"
 LOG_FILE=/home/athar/logs/athar-app.log
 NODE=/opt/cpanel/ea-nodejs22/bin/node
@@ -12,6 +12,7 @@ BUILD_ID_FILE="$RUNTIME_ROOT/.next/BUILD_ID"
 RUNNING_BUILD_FILE="$APP_ROOT/.athar-running-build"
 
 mkdir -p /home/athar/logs
+test -d "$RUNTIME_ROOT"
 
 healthy() {
   curl --fail --silent --max-time 5 "$HEALTH_URL" >/dev/null 2>&1

@@ -2,8 +2,7 @@
 set -eu
 
 APP_ROOT=/home/athar/apps/athar-ai
-RUNTIME_ROOT="$APP_ROOT/.next/standalone"
-RUNTIME_NEXT="$RUNTIME_ROOT/.next"
+RELEASES_ROOT="$APP_ROOT/.releases"
 PUBLIC_ROOT=/home/athar/public_html
 HTACCESS="$PUBLIC_ROOT/.htaccess"
 NODE=/opt/cpanel/ea-nodejs22/bin/node
@@ -22,12 +21,23 @@ rm -rf .next
 "$NPM" ci
 "$NPM" run build
 
-# Standalone does not copy these directories automatically. Replace them as
-# complete trees instead of overlaying them so stale chunks cannot survive.
-rm -rf "$RUNTIME_NEXT/static" "$RUNTIME_ROOT/public"
-cp -R "$APP_ROOT/.next/static" "$RUNTIME_NEXT/static"
-cp -R "$APP_ROOT/public" "$RUNTIME_ROOT/public"
-cp "$APP_ROOT/.env.production" "$RUNTIME_ROOT/.env.production"
+# Standalone does not copy these directories automatically. Assemble an
+# immutable release outside .next, then switch the `current` symlink only when
+# the release is complete. A failed future build cannot damage the live app.
+build_id=$(cat "$APP_ROOT/.next/standalone/.next/BUILD_ID")
+release="$RELEASES_ROOT/$build_id"
+stage="$RELEASES_ROOT/.${build_id}.tmp.$$"
+mkdir -p "$RELEASES_ROOT"
+rm -rf "$stage"
+mkdir -p "$stage"
+cp -R "$APP_ROOT/.next/standalone/." "$stage/"
+rm -rf "$stage/.next/static" "$stage/public"
+cp -R "$APP_ROOT/.next/static" "$stage/.next/static"
+cp -R "$APP_ROOT/public" "$stage/public"
+cp "$APP_ROOT/.env.production" "$stage/.env.production"
+rm -rf "$release"
+mv "$stage" "$release"
+ln -sfn "$release" "$APP_ROOT/current"
 
 chmod 755 "$APP_ROOT/scripts/ensure-production-server.sh"
 ATHAR_APP_PORT="$APP_PORT" "$APP_ROOT/scripts/ensure-production-server.sh"
@@ -42,4 +52,4 @@ curl --fail --silent --show-error --max-time 10 \
   "http://127.0.0.1:${APP_PORT}/api/health" >/dev/null
 
 printf 'Athar deployed successfully on port %s (build %s).\n' \
-  "$APP_PORT" "$(cat "$RUNTIME_NEXT/BUILD_ID")"
+  "$APP_PORT" "$build_id"
