@@ -200,6 +200,44 @@ select {
   display: flex;
   flex-direction: column;
   padding: 22px 14px;
+  transition: width 0.18s ease;
+  /* Pin to the viewport and scroll internally so the long nav never drags the
+     whole page taller than the screen — the plan card + user chip stay reachable. */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.app-brand { justify-content: space-between; }
+.nav-collapse-btn {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: #8b8b91;
+}
+.nav-collapse-btn:hover { background: rgba(255, 255, 255, 0.08); color: #f2f2f1; }
+.nav-item:hover, .nav-user:hover { background: rgba(255, 255, 255, 0.05); }
+
+/* Collapsed (desktop only) — icon rail with native tooltips. Scoped above the
+   mobile breakpoint so it never fights the slide-in drawer, which needs full width. */
+@media (min-width: 821px) {
+  .app-sidebar.collapsed { width: 72px; padding-inline: 12px; }
+  .app-sidebar.collapsed .app-brand { flex-direction: column; gap: 10px; margin-block-end: 20px; }
+  .app-sidebar.collapsed .app-brand-text,
+  .app-sidebar.collapsed .nav-label { display: none; }
+  .app-sidebar.collapsed .nav-item,
+  .app-sidebar.collapsed .nav-user { justify-content: center; gap: 0; }
+  .app-sidebar.collapsed .nav-active-bar { display: none; }
+  .app-sidebar.collapsed .nav-user { border-block-start: none; }
 }
 .app-brand {
   display: flex;

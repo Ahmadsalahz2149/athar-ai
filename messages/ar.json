@@ -5,6 +5,8 @@
     "tagline": "Personal Brand Growth OS"
   },
   "Nav": {
+    "expand": "توسيع القائمة",
+    "collapse": "طيّ القائمة",
     "studio": "الاستوديو",
     "ingest": "الاستيراد",
     "analysis": "التحليل",

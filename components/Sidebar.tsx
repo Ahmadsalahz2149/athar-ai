@@ -45,12 +45,14 @@ export function Sidebar({
   sourcesLimit = 5,
   pendingCount = 0,
   isAdmin = false,
+  userEmail,
 }: {
   balance?: number | null;
   sourcesUsed?: number;
   sourcesLimit?: number;
   pendingCount?: number;
   isAdmin?: boolean;
+  userEmail?: string;
 }) {
   const t = useTranslations("Nav");
   const admin = useTranslations("Admin");
@@ -58,33 +60,47 @@ export function Sidebar({
   const locale = useLocale();
   const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
   const pathname = usePathname();
-  const { open, setOpen } = useNav();
+  const { open, setOpen, collapsed, toggleCollapsed } = useNav();
   const close = () => setOpen(false);
   const usagePct = Math.max(0, Math.min(100, (sourcesUsed / Math.max(1, sourcesLimit)) * 100));
+  const displayName = userEmail?.split("@")[0] ?? brand("name");
+  const initial = (userEmail?.[0] ?? "A").toUpperCase();
 
   return (
     <>
       {open && <div className="nav-overlay" onClick={close} aria-hidden />}
       <aside
-        className={`app-sidebar${open ? " open" : ""}`}
+        className={`app-sidebar${open ? " open" : ""}${collapsed ? " collapsed" : ""}`}
         style={{
           background: "#0f0f11",
           color: "#f2f2f1",
           borderInlineEnd: "1px solid rgba(255,255,255,.07)",
         }}
       >
-        <Link href="/dashboard" className="app-brand" onClick={close}>
-          <Logo size={34} />
-          <div className="app-brand-text">
-            <div style={{ fontWeight: 700, fontSize: 16, lineHeight: 1.2, color: "#f2f2f1" }}>
-              {brand("name")}
-              <span style={{ color: "#e88aa1" }}> {brand("ai")}</span>
+        <div className="app-brand">
+          <Link href="/dashboard" onClick={close} style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, textDecoration: "none" }}>
+            <Logo size={32} />
+            <div className="app-brand-text">
+              <div style={{ fontWeight: 700, fontSize: 15.5, lineHeight: 1.2, color: "#f2f2f1" }}>
+                {brand("name")}
+                <span style={{ color: "#e88aa1" }}> {brand("ai")}</span>
+              </div>
+              <div className="mono-label" style={{ fontSize: 9.5, color: "#77777e", marginBlockStart: 2 }}>
+                Growth OS
+              </div>
             </div>
-            <div className="mono-label" style={{ fontSize: 9.5, color: "#77777e", marginBlockStart: 2 }}>
-              Growth OS
-            </div>
-          </div>
-        </Link>
+          </Link>
+          <button
+            className="nav-collapse-btn desktop-only"
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? t("expand") : t("collapse")}
+            title={collapsed ? t("expand") : t("collapse")}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d={collapsed ? "M9 6l6 6-6 6" : "M15 6l-6 6 6 6"} />
+            </svg>
+          </button>
+        </div>
 
         <nav className="app-nav">
           {NAV.map((item) => {
@@ -94,6 +110,8 @@ export function Sidebar({
                 key={item.href}
                 href={item.href}
                 onClick={close}
+                title={collapsed ? t(item.key) : undefined}
+                className="nav-item"
                 style={{
                   position: "relative",
                   display: "flex",
@@ -109,6 +127,7 @@ export function Sidebar({
               >
                 {active && (
                   <span
+                    className="nav-active-bar"
                     style={{
                       position: "absolute",
                       insetInlineStart: 0,
@@ -119,46 +138,54 @@ export function Sidebar({
                     }}
                   />
                 )}
-                <span style={{ display: "grid", placeItems: "center", color: active ? "#e88aa1" : "#7d7d84" }}>
+                <span style={{ display: "grid", placeItems: "center", flexShrink: 0, color: active ? "#e88aa1" : "#7d7d84" }}>
                   {item.icon}
                 </span>
-                <span style={{ flex: 1 }}>{t(item.key)}</span>
+                <span className="nav-label" style={{ flex: 1 }}>{t(item.key)}</span>
                 {item.key === "approvals" && pendingCount > 0 && <CountBadge n={nf.format(pendingCount)} tone="teal" />}
               </Link>
             );
           })}
         </nav>
 
-        {isAdmin && (
-          <Link
-            href="/admin"
-            onClick={close}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, marginBlockEnd: 10, textDecoration: "none", background: "rgba(158,61,87,.20)", color: "#e88aa1", fontWeight: 600, fontSize: 13 }}
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7z" /><path d="M9 12l2 2 4-4" /></svg>
-            <span style={{ flex: 1 }}>{admin("adminLink")}</span>
-          </Link>
-        )}
-
-        <div
-          className="app-plan"
-          style={{
-            padding: 13,
-            borderRadius: 10,
-            background: "rgba(255,255,255,.04)",
-            border: "1px solid rgba(255,255,255,.08)",
-          }}
-        >
-          <div style={{ fontSize: 12.5, fontWeight: 600, marginBlockEnd: 8, color: "#f2f2f1" }}>{t("planFree")}</div>
-          <div style={{ fontSize: 11.5, color: "#a3a3a9", marginBlockEnd: 8 }}>
-            {t("planUsageReal", { used: nf.format(sourcesUsed), limit: nf.format(sourcesLimit) })}
-          </div>
-          <ProgressMeter pct={usagePct} height={6} track="rgba(255,255,255,.12)" color="var(--teal)" />
-          {balance != null && (
-            <div style={{ fontSize: 11, color: "#8b8b91", marginBlockStart: 8 }}>{t("creditsLeft", { n: nf.format(balance) })}</div>
+        <div style={{ marginBlockStart: "auto", display: "grid", gap: 10, paddingBlockStart: 10 }}>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              onClick={close}
+              title={collapsed ? admin("adminLink") : undefined}
+              className="nav-item"
+              style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 12px", borderRadius: 8, textDecoration: "none", background: "rgba(158,61,87,.20)", color: "#e88aa1", fontWeight: 600, fontSize: 13 }}
+            >
+              <span style={{ display: "grid", placeItems: "center", flexShrink: 0 }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7z" /><path d="M9 12l2 2 4-4" /></svg></span>
+              <span className="nav-label" style={{ flex: 1 }}>{admin("adminLink")}</span>
+            </Link>
           )}
-          <Link href="/settings" onClick={close} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 34, marginBlockStart: 10, fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: "1px solid rgba(255,255,255,.14)", background: "transparent", color: "#f2f2f1", textDecoration: "none" }}>
-            {t("upgrade")}
+
+          <div
+            className="app-plan-card nav-label"
+            style={{ padding: 13, borderRadius: 10, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)" }}
+          >
+            <div style={{ fontSize: 12.5, fontWeight: 600, marginBlockEnd: 8, color: "#f2f2f1" }}>{t("planFree")}</div>
+            <div style={{ fontSize: 11.5, color: "#a3a3a9", marginBlockEnd: 8 }}>
+              {t("planUsageReal", { used: nf.format(sourcesUsed), limit: nf.format(sourcesLimit) })}
+            </div>
+            <ProgressMeter pct={usagePct} height={6} track="rgba(255,255,255,.12)" color="var(--teal)" />
+            {balance != null && (
+              <div style={{ fontSize: 11, color: "#8b8b91", marginBlockStart: 8 }}>{t("creditsLeft", { n: nf.format(balance) })}</div>
+            )}
+            <Link href="/settings" onClick={close} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: 34, marginBlockStart: 10, fontSize: 12.5, fontWeight: 600, borderRadius: 8, border: "1px solid rgba(255,255,255,.14)", background: "transparent", color: "#f2f2f1", textDecoration: "none" }}>
+              {t("upgrade")}
+            </Link>
+          </div>
+
+          {/* User chip (grounds the sidebar, like the reference) */}
+          <Link href="/settings" onClick={close} title={collapsed ? displayName : undefined} className="nav-user" style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 6px", borderRadius: 10, textDecoration: "none", borderBlockStart: "1px solid rgba(255,255,255,.07)", marginBlockStart: 2 }}>
+            <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: "50%", display: "grid", placeItems: "center", background: "rgba(255,255,255,.1)", color: "#f2f2f1", fontWeight: 700, fontSize: 12.5 }}>{initial}</span>
+            <span className="nav-label" style={{ minWidth: 0, flex: 1, lineHeight: 1.25 }}>
+              <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: "#f2f2f1", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</span>
+              <span className="mono-label" style={{ display: "block", fontSize: 9, color: "#77777e", marginBlockStart: 1 }}>Workspace</span>
+            </span>
           </Link>
         </div>
       </aside>

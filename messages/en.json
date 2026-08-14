@@ -5,6 +5,8 @@
     "tagline": "Personal Brand Growth OS"
   },
   "Nav": {
+    "expand": "Expand menu",
+    "collapse": "Collapse menu",
     "studio": "Studio",
     "ingest": "Import",
     "analysis": "Analysis",

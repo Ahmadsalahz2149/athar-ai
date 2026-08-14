@@ -60,7 +60,7 @@ export default async function AppLayout({
   return (
     <div className="app-shell">
       <NavProvider>
-        <Sidebar balance={balance} sourcesUsed={counts.sources} pendingCount={counts.pending} isAdmin={isAdmin} />
+        <Sidebar balance={balance} sourcesUsed={counts.sources} pendingCount={counts.pending} isAdmin={isAdmin} userEmail={userEmail} />
         <div className="app-main">
           <AppTopBar userEmail={userEmail} />
           <div className="app-content scb">{children}</div>
