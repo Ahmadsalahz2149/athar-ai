@@ -17,6 +17,9 @@ import { type LinkPage, normalizeLinkPage } from "@/lib/link/types";
  */
 export type Db = PostgresJsDatabase<typeof schema>;
 
+/** Dashboard KPI trend: a cumulative daily series + the real last-7-days count. */
+export type KpiTrend = { points: number[]; weekAdded: number };
+
 export class InsufficientCreditsError extends Error {
   constructor() {
     super("insufficient_credits");
@@ -804,6 +807,51 @@ export function forOrg(db: Db, orgId: string) {
         one(schema.drafts, eq(schema.drafts.status, "published")),
       ]);
       return { sources, ideas, drafts, writing, pending, scheduled, published };
+    },
+
+    /**
+     * Honest KPI trends for the dashboard cards: a `days`-long CUMULATIVE series
+     * (total rows at the end of each UTC day) so the sparkline genuinely rises as
+     * content is added and stays flat when idle — never synthetic. `weekAdded` is
+     * the real count created in the last 7 days. Empty brands return all-zero
+     * series and weekAdded 0 (a flat line), which is the truthful picture.
+     */
+    async kpiTrends(brandId: string, days = 14): Promise<{ sources: KpiTrend; ideas: KpiTrend }> {
+      const start = new Date();
+      start.setUTCHours(0, 0, 0, 0);
+      start.setUTCDate(start.getUTCDate() - (days - 1));
+      // postgres-js can't bind a JS Date inside an sql`` template — pass an ISO
+      // string, which Postgres casts to timestamptz for the comparison.
+      const startIso = start.toISOString();
+
+      const trend = async (table: typeof schema.sources | typeof schema.ideas): Promise<KpiTrend> => {
+        const conds = [eq(table.orgId, orgId), eq(table.brandId, brandId)];
+        const [baseRows, dayRows] = await Promise.all([
+          db.select({ n: sql<number>`count(*)::int` }).from(table).where(and(...conds, sql`${table.createdAt} < ${startIso}`)),
+          db
+            .select({ d: sql<string>`to_char(date_trunc('day', ${table.createdAt} at time zone 'UTC'), 'YYYY-MM-DD')`, n: sql<number>`count(*)::int` })
+            .from(table)
+            .where(and(...conds, sql`${table.createdAt} >= ${startIso}`))
+            .groupBy(sql`1`),
+        ]);
+        const base = baseRows[0]?.n ?? 0;
+        const byDay = new Map(dayRows.map((r) => [r.d, r.n]));
+        const points: number[] = [];
+        let running = base;
+        let weekAdded = 0;
+        for (let i = 0; i < days; i++) {
+          const d = new Date(start);
+          d.setUTCDate(start.getUTCDate() + i);
+          const added = byDay.get(d.toISOString().slice(0, 10)) ?? 0;
+          running += added;
+          points.push(running);
+          if (i >= days - 7) weekAdded += added;
+        }
+        return { points, weekAdded };
+      };
+
+      const [sources, ideas] = await Promise.all([trend(schema.sources), trend(schema.ideas)]);
+      return { sources, ideas };
     },
 
     /** When the brand's most recent source analysis finished (for the

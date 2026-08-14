@@ -645,6 +645,7 @@
     "kpiDna": "DNA completeness",
     "kpiSources": "Knowledge files",
     "kpiIdeas": "Ready ideas",
+    "kpiWeekAdded": "+{n} this week",
     "kpiPending": "Awaiting approval",
     "kpiScheduled": "Scheduled posts",
     "recTitle": "Athar smart recommendation",

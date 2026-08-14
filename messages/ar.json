@@ -645,6 +645,7 @@
     "kpiDna": "اكتمال البصمة",
     "kpiSources": "ملفات المعرفة",
     "kpiIdeas": "أفكار جاهزة",
+    "kpiWeekAdded": "+{n} هذا الأسبوع",
     "kpiPending": "بانتظار الموافقة",
     "kpiScheduled": "منشورات مجدولة",
     "recTitle": "توصية أثر الذكية",

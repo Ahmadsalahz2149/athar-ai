@@ -253,6 +253,46 @@ export function IconTile({
   );
 }
 
+/* ---------------- Sparkline ----------------
+ * Tiny inline-SVG trend line for KPI cards. Presentational + deterministic (no
+ * random/hook ids) so it's safe in server components and never causes hydration
+ * drift. A flat series (idle brand) renders a flat baseline — honest, not faked. */
+export function Sparkline({
+  points,
+  width = 60,
+  height = 22,
+  color = "var(--teal)",
+}: {
+  points: number[];
+  width?: number;
+  height?: number;
+  color?: string;
+}) {
+  if (!points || points.length < 2) return null;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
+  const pad = 2;
+  const stepX = (width - pad * 2) / (points.length - 1);
+  const coords = points.map((p, i) => {
+    const x = pad + i * stepX;
+    const y = height - pad - ((p - min) / range) * (height - pad * 2);
+    return [x, y] as const;
+  });
+  const line = coords.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const last = coords[coords.length - 1];
+  const first = coords[0];
+  const area = `${line} L${last[0].toFixed(1)},${height} L${first[0].toFixed(1)},${height} Z`;
+  const flat = max === min;
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none" aria-hidden style={{ display: "block", flexShrink: 0, opacity: flat ? 0.5 : 1 }}>
+      <path d={area} fill={color} opacity={0.1} />
+      <path d={line} stroke={color} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+      {!flat && <circle cx={last[0]} cy={last[1]} r={2} fill={color} />}
+    </svg>
+  );
+}
+
 /* ---------------- StatCard ---------------- */
 export function StatCard({
   label,
@@ -262,6 +302,7 @@ export function StatCard({
   icon,
   tint,
   note,
+  spark,
 }: {
   label: string;
   value: ReactNode;
@@ -270,6 +311,7 @@ export function StatCard({
   icon?: ReactNode;
   tint?: string;
   note?: string;
+  spark?: number[];
 }) {
   return (
     <div className="lift" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
@@ -277,9 +319,12 @@ export function StatCard({
         <span style={{ fontSize: 13, color: "var(--muted)" }}>{label}</span>
         {icon && <IconTile tint={tint ?? "var(--teal-tint)"} size={32} radius={9}>{icon}</IconTile>}
       </div>
-      <div style={{ fontSize: 25, fontWeight: 800, color: "var(--heading)", fontFamily: "var(--font-latin)" }}>{value}</div>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ fontSize: 25, fontWeight: 800, color: "var(--heading)", fontFamily: "var(--font-latin)", lineHeight: 1 }}>{value}</div>
+        {spark && <Sparkline points={spark} />}
+      </div>
       {delta && (
-        <div style={{ fontSize: 12.5, fontWeight: 700, marginBlockStart: 4, color: deltaNegative ? "var(--coral)" : "var(--teal-deep)", fontFamily: "var(--font-latin)" }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, marginBlockStart: 6, color: deltaNegative ? "var(--coral)" : "var(--teal-deep)", fontFamily: "var(--font-latin)" }}>
           {delta}
         </div>
       )}

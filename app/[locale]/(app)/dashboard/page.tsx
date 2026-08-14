@@ -1,7 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { db } from "@/lib/db";
-import { forOrg } from "@/lib/db/forOrg";
+import { forOrg, type KpiTrend } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { ProcessingWatcher } from "@/components/ProcessingWatcher";
@@ -38,6 +38,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   const nf = new Intl.NumberFormat(locale === "ar" ? "ar" : "en");
 
   let counts = { sources: 0, ideas: 0, drafts: 0, writing: 0, pending: 0, scheduled: 0, published: 0 };
+  let trends: { sources: KpiTrend; ideas: KpiTrend } | null = null;
   let completeness = 0;
   let ideas: Awaited<ReturnType<ReturnType<typeof forOrg>["listIdeas"]>> = [];
   let sources: Awaited<ReturnType<ReturnType<typeof forOrg>["listSources"]>> = [];
@@ -58,7 +59,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     const ctx = await currentContext();
     if (ctx) {
       const org = forOrg(db, ctx.orgId);
-      const [c, dna, ii, ss, sc, la, dd, dis] = await Promise.all([
+      const [c, dna, ii, ss, sc, la, dd, dis, tr] = await Promise.all([
         org.counts(ctx.brandId),
         org.currentDna(ctx.brandId),
         org.listIdeas(ctx.brandId, { limit: 3 }),
@@ -67,8 +68,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         org.lastAnalysisAt(ctx.brandId),
         org.dnaCompletionDelta(ctx.brandId),
         org.listDismissed(ctx.brandId),
+        // Sparklines are decorative — never let a trends failure blank the page.
+        org.kpiTrends(ctx.brandId).catch(() => null),
       ]);
       counts = c;
+      trends = tr;
       completeness = dna?.completion_pct ?? 0;
       ideas = ii;
       allSources = ss;
@@ -156,8 +160,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             ) : null}
           </div>
         </div>
-        <StatCard label={t("kpiSources")} value={<CountUp value={counts.sources} locale={locale} />} tint="var(--border-3)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7" stroke="var(--muted)" strokeWidth="1.7" /></svg>} />
-        <StatCard label={t("kpiIdeas")} value={<CountUp value={counts.ideas} locale={locale} />} tint="var(--border-3)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c.7.7 1 1.3 1 2h6c0-.7.3-1.3 1-2a6 6 0 0 0-4-10z" stroke="var(--muted)" strokeWidth="1.7" strokeLinecap="round" /></svg>} />
+        <StatCard label={t("kpiSources")} value={<CountUp value={counts.sources} locale={locale} />} tint="var(--border-3)" spark={trends?.sources.points} delta={trends && trends.sources.weekAdded > 0 ? t("kpiWeekAdded", { n: nf.format(trends.sources.weekAdded) }) : undefined} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7" stroke="var(--muted)" strokeWidth="1.7" /></svg>} />
+        <StatCard label={t("kpiIdeas")} value={<CountUp value={counts.ideas} locale={locale} />} tint="var(--border-3)" spark={trends?.ideas.points} delta={trends && trends.ideas.weekAdded > 0 ? t("kpiWeekAdded", { n: nf.format(trends.ideas.weekAdded) }) : undefined} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c.7.7 1 1.3 1 2h6c0-.7.3-1.3 1-2a6 6 0 0 0-4-10z" stroke="var(--muted)" strokeWidth="1.7" strokeLinecap="round" /></svg>} />
         <StatCard label={t("kpiPending")} value={<CountUp value={counts.pending} locale={locale} />} tint="var(--border-3)" note={counts.pending > 0 ? t("needsAction") : undefined} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7z" stroke="var(--muted)" strokeWidth="1.7" strokeLinejoin="round" /></svg>} />
         <StatCard label={t("kpiScheduled")} value={<CountUp value={counts.scheduled} locale={locale} />} tint="var(--border-3)" icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 9h16" stroke="var(--muted)" strokeWidth="1.7" /></svg>} />
       </div>
