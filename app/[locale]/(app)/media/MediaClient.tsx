@@ -15,10 +15,35 @@ type Tr = ReturnType<typeof useTranslations>;
 const input: CSSProperties = { width: "100%", padding: "11px 13px", borderRadius: 11, border: "1px solid var(--border)", background: "var(--bg,#fff)", fontSize: 14, color: "var(--heading)", fontFamily: "inherit", outline: "none" };
 const label: CSSProperties = { fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBlockEnd: 7, display: "block" };
 
+// Consistent Lucide-style line icons (no emoji, per the design system).
+const ICON: Record<string, string> = {
+  image: "M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 15l4-4 3 3 4-5 5 6",
+  video: "M4 6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM16 10l4-2v8l-4-2",
+  mic: "M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5 11a7 7 0 0 0 14 0M12 18v3",
+  user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5 21a7 7 0 0 1 14 0",
+  book: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19a2 2 0 0 0 2 2h13",
+  bolt: "M13 2 4 14h7l-1 8 9-12h-7z",
+  camera: "M4 8a2 2 0 0 1 2-2h1l1-2h6l1 2h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM12 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+  box: "M21 8 12 3 3 8v8l9 5 9-5zM3 8l9 5 9-5M12 13v9",
+  layers: "M12 2 21 7l-9 5-9-5zM3 12l9 5 9-5M3 17l9 5 9-5",
+  brush: "M9.5 14.5 4 20a2 2 0 0 0 3 3l5.5-5.5M14 4l6 6-8 8-6-6z",
+  square: "M5 5h14v14H5z",
+  film: "M4 4h16v16H4zM4 8.5h16M4 15.5h16M8 4v16M16 4v16",
+  megaphone: "M3 11v2a1 1 0 0 0 1 1h1.5L10 18V6L5.5 10H4a1 1 0 0 0-1 1zM14 8a4 4 0 0 1 0 8",
+  landscape: "M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 16l4-4 4 4 3-3 5 5",
+  zoomIn: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3M8 11h6M11 8v6",
+  bag: "M6 2 3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0",
+  phone: "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2",
+  sun: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4 4.2 19.8M19.8 4.2l-1.4 1.4",
+};
+function Ic({ name, size = 18 }: { name: string; size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={ICON[name] ?? ICON.image} /></svg>;
+}
+
 const VOICES = [
-  { id: "male-qn-jingying", ar: "رجل واثق", emoji: "🎙️" }, { id: "male-qn-qingse", ar: "شاب", emoji: "🧑" },
-  { id: "female-yujie", ar: "امرأة راقية", emoji: "💁‍♀️" }, { id: "female-shaonv", ar: "شابة", emoji: "🙋‍♀️" },
-  { id: "presenter_male", ar: "مذيع", emoji: "📺" }, { id: "audiobook_male_1", ar: "راوٍ", emoji: "📖" },
+  { id: "male-qn-jingying", ar: "رجل واثق", ic: "user" }, { id: "male-qn-qingse", ar: "شاب", ic: "user" },
+  { id: "female-yujie", ar: "امرأة راقية", ic: "user" }, { id: "female-shaonv", ar: "شابة", ic: "user" },
+  { id: "presenter_male", ar: "مذيع", ic: "mic" }, { id: "audiobook_male_1", ar: "راوٍ", ic: "book" },
 ];
 const ASPECTS: { v: "1:1" | "16:9" | "9:16" | "4:3" | "3:4"; w: number; h: number }[] = [
   { v: "1:1", w: 20, h: 20 }, { v: "16:9", w: 26, h: 15 }, { v: "9:16", w: 15, h: 26 }, { v: "4:3", w: 24, h: 18 }, { v: "3:4", w: 18, h: 24 },
@@ -26,21 +51,21 @@ const ASPECTS: { v: "1:1" | "16:9" | "9:16" | "4:3" | "3:4"; w: number; h: numbe
 // Style presets append proven English keywords to the prompt (image models are
 // trained on English); labels stay Arabic. "auto" adds nothing.
 const IMAGE_STYLES = [
-  { k: "auto", kw: "", g: "✨" }, { k: "photo", kw: "photorealistic, natural lighting, high detail, 4k", g: "📷" },
-  { k: "product", kw: "professional product photography, studio lighting, clean seamless background, commercial", g: "🧴" },
-  { k: "render3d", kw: "3D render, octane, soft studio lighting, glossy, subtle reflections", g: "🧊" },
-  { k: "illustration", kw: "flat vector illustration, bold colors, modern, clean shapes", g: "🎨" },
-  { k: "minimal", kw: "minimalist, generous negative space, muted elegant palette", g: "◻️" },
-  { k: "cinematic", kw: "cinematic, dramatic lighting, shallow depth of field, film still", g: "🎬" },
-  { k: "social", kw: "eye-catching social media graphic, vibrant, marketing poster, space for text", g: "📣" },
+  { k: "auto", kw: "", ic: "bolt" }, { k: "photo", kw: "photorealistic, natural lighting, high detail, 4k", ic: "camera" },
+  { k: "product", kw: "professional product photography, studio lighting, clean seamless background, commercial", ic: "box" },
+  { k: "render3d", kw: "3D render, octane, soft studio lighting, glossy, subtle reflections", ic: "layers" },
+  { k: "illustration", kw: "flat vector illustration, bold colors, modern, clean shapes", ic: "brush" },
+  { k: "minimal", kw: "minimalist, generous negative space, muted elegant palette", ic: "square" },
+  { k: "cinematic", kw: "cinematic, dramatic lighting, shallow depth of field, film still", ic: "film" },
+  { k: "social", kw: "eye-catching social media graphic, vibrant, marketing poster, space for text", ic: "megaphone" },
 ];
 const VIDEO_SCENES = [
-  { k: "auto", kw: "", g: "✨" }, { k: "wide", kw: "wide establishing shot, smooth slow camera move", g: "🏞️" },
-  { k: "closeup", kw: "close-up shot, shallow depth of field, crisp focus", g: "🔍" },
-  { k: "showcase", kw: "product showcase, slowly rotating on a pedestal, studio lighting", g: "🛍️" },
-  { k: "ugc", kw: "handheld UGC style, a person holding and presenting the product to camera, authentic", g: "🤳" },
-  { k: "cinematic", kw: "cinematic slow pan, dramatic lighting, subtle film grain", g: "🎬" },
-  { k: "lifestyle", kw: "lifestyle scene, natural warm setting, everyday moment", g: "☕" },
+  { k: "auto", kw: "", ic: "bolt" }, { k: "wide", kw: "wide establishing shot, smooth slow camera move", ic: "landscape" },
+  { k: "closeup", kw: "close-up shot, shallow depth of field, crisp focus", ic: "zoomIn" },
+  { k: "showcase", kw: "product showcase, slowly rotating on a pedestal, studio lighting", ic: "bag" },
+  { k: "ugc", kw: "handheld UGC style, a person holding and presenting the product to camera, authentic", ic: "phone" },
+  { k: "cinematic", kw: "cinematic slow pan, dramatic lighting, subtle film grain", ic: "film" },
+  { k: "lifestyle", kw: "lifestyle scene, natural warm setting, everyday moment", ic: "sun" },
 ];
 const MODEL_LABEL: Record<Tab, string> = { image: "MiniMax Image", video: "MiniMax Video · Hailuo", voice: "MiniMax Voice" };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -52,7 +77,7 @@ function errMsg(error: string, t: Tr): string {
 
 /* ---------- shared bits ---------- */
 function Panel({ children, style }: { children: ReactNode; style?: CSSProperties }) {
-  return <div style={{ background: "var(--surface,#fff)", border: "1px solid var(--border)", borderRadius: 18, padding: "clamp(16px,2.2vw,22px)", ...style }}>{children}</div>;
+  return <div style={{ background: "var(--surface,#fff)", border: "1px solid var(--border)", borderRadius: 12, padding: "clamp(16px,2.2vw,20px)", ...style }}>{children}</div>;
 }
 function DraftPicker({ drafts, onPick, t }: { drafts: RecentDraft[]; onPick: (d: RecentDraft) => void; t: Tr }) {
   if (!drafts.length) return null;
@@ -68,20 +93,20 @@ function DraftPicker({ drafts, onPick, t }: { drafts: RecentDraft[]; onPick: (d:
 }
 function ModelPill({ tab }: { tab: Tab }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 11, background: "var(--teal-tint,#e6f2f0)", border: "1px solid color-mix(in srgb,var(--teal) 25%, var(--border))", marginBlockEnd: 14 }}>
-      <span style={{ width: 22, height: 22, borderRadius: 7, display: "grid", placeItems: "center", background: "linear-gradient(160deg,var(--teal),var(--teal-deep))", color: "#fff", fontSize: 12 }}>✦</span>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 10, background: "var(--teal-tint)", border: "1px solid color-mix(in srgb,var(--teal) 25%, var(--border))", marginBlockEnd: 14 }}>
+      <span style={{ width: 22, height: 22, borderRadius: 6, display: "grid", placeItems: "center", background: "var(--teal)", color: "#fff" }}><Ic name="bolt" size={13} /></span>
       <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--teal-deep)", fontFamily: "var(--font-latin)" }}>{MODEL_LABEL[tab]}</span>
     </div>
   );
 }
-function PresetGrid({ items, active, onPick, t }: { items: { k: string; g: string }[]; active: string; onPick: (k: string) => void; t: Tr }) {
+function PresetGrid({ items, active, onPick, t }: { items: { k: string; ic: string }[]; active: string; onPick: (k: string) => void; t: Tr }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(96px,1fr))", gap: 8 }}>
       {items.map((it) => {
         const on = active === it.k;
         return (
-          <button key={it.k} onClick={() => onPick(it.k)} className="lift" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "14px 8px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${on ? "var(--teal)" : "var(--border)"}`, background: on ? "var(--teal-tint,#e6f2f0)" : "var(--card,#fff)", textAlign: "center" }}>
-            <span style={{ fontSize: 22 }}>{it.g}</span>
+          <button key={it.k} onClick={() => onPick(it.k)} className="lift" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "14px 8px", borderRadius: 10, cursor: "pointer", border: `1px solid ${on ? "var(--teal)" : "var(--border)"}`, background: on ? "var(--teal-tint)" : "var(--card,#fff)", textAlign: "center", color: on ? "var(--teal-deep)" : "var(--muted)" }}>
+            <Ic name={it.ic} size={20} />
             <span style={{ fontSize: 11.5, fontWeight: 600, color: on ? "var(--teal-deep)" : "var(--heading)", lineHeight: 1.3 }}>{t(`preset_${it.k}`)}</span>
           </button>
         );
@@ -114,7 +139,7 @@ export function MediaClient({ drafts, assets, keys, presetText, presetDraftId, p
   const t = useTranslations("Media");
   const [tab, setTab] = useState<Tab>(presetTab);
   const [filter, setFilter] = useState<"all" | Tab>("all");
-  const tabs: { k: Tab; g: string }[] = [{ k: "image", g: "🖼️" }, { k: "video", g: "🎬" }, { k: "voice", g: "🎙️" }];
+  const tabs: { k: Tab; ic: string }[] = [{ k: "image", ic: "image" }, { k: "video", ic: "video" }, { k: "voice", ic: "mic" }];
 
   return (
     <div>
@@ -122,7 +147,7 @@ export function MediaClient({ drafts, assets, keys, presetText, presetDraftId, p
       <div style={{ display: "inline-flex", gap: 4, padding: 5, background: "var(--surface,#fff)", border: "1px solid var(--border)", borderRadius: 14, marginBlockEnd: 18, flexWrap: "wrap" }}>
         {tabs.map((x) => (
           <button key={x.k} onClick={() => setTab(x.k)} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: "pointer", border: "none", background: tab === x.k ? "var(--teal)" : "transparent", color: tab === x.k ? "#fff" : "var(--muted)" }}>
-            <span style={{ fontSize: 15 }}>{x.g}</span> {t(`tab_${x.k}`)}
+            <Ic name={x.ic} size={16} /> {t(`tab_${x.k}`)}
           </button>
         ))}
       </div>
@@ -167,7 +192,7 @@ function ImageTab({ drafts, presetText, presetDraftId, t }: { drafts: RecentDraf
           <DraftPicker drafts={drafts} onPick={(d) => { setPostText(d.text); setDraftId(d.id); }} t={t} />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <label style={{ ...label, marginBlockEnd: 0 }}>{t("imagePrompt")}</label>
-            {postText && <button onClick={suggest} disabled={suggesting} style={{ ...btnGhost, height: 30, fontSize: 12, padding: "0 10px" }}>✦ {suggesting ? t("suggesting") : t("suggestVisual")}</button>}
+            {postText && <button onClick={suggest} disabled={suggesting} style={{ ...btnGhost, height: 30, fontSize: 12, padding: "0 10px" }}>{suggesting ? t("suggesting") : t("suggestVisual")}</button>}
           </div>
           <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t("imagePh")} rows={3} dir="ltr" style={{ ...input, resize: "vertical", textAlign: "start", marginBlockStart: 7 }} />
 
@@ -240,7 +265,7 @@ function VideoTab({ drafts, presetText, presetDraftId, t }: { drafts: RecentDraf
           <DraftPicker drafts={drafts} onPick={(d) => { setPostText(d.text); setDraftId(d.id); }} t={t} />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <label style={{ ...label, marginBlockEnd: 0 }}>{t("videoPrompt")}</label>
-            {postText && <button onClick={suggest} disabled={suggesting} style={{ ...btnGhost, height: 30, fontSize: 12, padding: "0 10px" }}>✦ {suggesting ? t("suggesting") : t("suggestVisual")}</button>}
+            {postText && <button onClick={suggest} disabled={suggesting} style={{ ...btnGhost, height: 30, fontSize: 12, padding: "0 10px" }}>{suggesting ? t("suggesting") : t("suggestVisual")}</button>}
           </div>
           <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t("videoPh")} rows={3} dir="ltr" style={{ ...input, resize: "vertical", textAlign: "start", marginBlockStart: 7 }} />
           <button onClick={go} disabled={pending || !prompt.trim()} style={{ ...btnTeal, height: 46, width: "100%", marginBlockStart: 16, fontSize: 14.5 }}>{pending ? t("generating") : t("genVideo")}</button>
@@ -278,7 +303,7 @@ function VoiceTab({ drafts, presetText, presetDraftId, t }: { drafts: RecentDraf
             const on = voice === v.id;
             return (
               <button key={v.id} onClick={() => setVoice(v.id)} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${on ? "var(--teal)" : "var(--border)"}`, background: on ? "var(--teal-tint,#e6f2f0)" : "var(--card,#fff)", textAlign: "start" }}>
-                <span style={{ fontSize: 20 }}>{v.emoji}</span>
+                <span style={{ color: on ? "var(--teal-deep)" : "var(--muted)", display: "grid", placeItems: "center", flexShrink: 0 }}><Ic name={v.ic} size={18} /></span>
                 <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: on ? "var(--teal-deep)" : "var(--heading)" }}>{v.ar}</span>
                 {on && <span style={{ color: "var(--teal)", fontSize: 15 }}>✓</span>}
               </button>

@@ -14,14 +14,30 @@ const input: CSSProperties = { width: "100%", padding: "11px 13px", borderRadius
 const label: CSSProperties = { fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBlockEnd: 7, display: "block" };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Lucide-style line icons (no emoji, per the design system).
+const ICON: Record<string, string> = {
+  user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5 21a7 7 0 0 1 14 0",
+  briefcase: "M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM9 6V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1M4 12h16",
+  bolt: "M13 2 4 14h7l-1 8 9-12h-7z",
+  landscape: "M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 16l4-4 4 4 3-3 5 5",
+  zoomIn: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3M8 11h6M11 8v6",
+  bag: "M6 2 3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0",
+  film: "M4 4h16v16H4zM4 8.5h16M4 15.5h16M8 4v16M16 4v16",
+  sun: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4 4.2 19.8M19.8 4.2l-1.4 1.4",
+  phone: "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2",
+};
+function Ic({ name, size = 18 }: { name: string; size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={ICON[name] ?? ICON.user} /></svg>;
+}
+
 // Avatar personas (culturally relevant). Each scaffolds an English scene prompt.
 const PERSONAS = [
-  { k: "auto", g: "✨", kw: "a friendly presenter" },
-  { k: "womanHijab", g: "🧕", kw: "a professional young Gulf Arab woman wearing an elegant hijab" },
-  { k: "manThobe", g: "🧔🏻", kw: "a young Gulf Arab man wearing a clean white thobe" },
-  { k: "casualF", g: "🙋‍♀️", kw: "a friendly young Arab woman in modern casual clothes" },
-  { k: "casualM", g: "🙋‍♂️", kw: "a friendly young Arab man in modern casual clothes" },
-  { k: "business", g: "💼", kw: "a confident Arab businessperson in smart formal attire" },
+  { k: "auto", ic: "bolt", kw: "a friendly presenter" },
+  { k: "womanHijab", ic: "user", kw: "a professional young Gulf Arab woman wearing an elegant hijab" },
+  { k: "manThobe", ic: "user", kw: "a young Gulf Arab man wearing a clean white thobe" },
+  { k: "casualF", ic: "user", kw: "a friendly young Arab woman in modern casual clothes" },
+  { k: "casualM", ic: "user", kw: "a friendly young Arab man in modern casual clothes" },
+  { k: "business", ic: "briefcase", kw: "a confident Arab businessperson in smart formal attire" },
 ];
 const UGC_SCENES = [
   { k: "talking", kw: "talking directly to the camera, selfie style, holding the product up" },
@@ -30,24 +46,24 @@ const UGC_SCENES = [
   { k: "lifestyle", kw: "using the product naturally in an everyday lifestyle setting" },
 ];
 const CINEMATIC = [
-  { k: "auto", g: "✨", kw: "" },
-  { k: "wide", g: "🏞️", kw: "wide establishing shot, smooth slow camera move" },
-  { k: "closeup", g: "🔍", kw: "extreme close-up, shallow depth of field, crisp focus" },
-  { k: "product", g: "🛍️", kw: "product hero shot, slowly rotating, studio lighting" },
-  { k: "dramatic", g: "🌩️", kw: "dramatic cinematic lighting, moody atmosphere, film grain" },
-  { k: "warm", g: "🌅", kw: "warm golden-hour light, soft and inviting" },
+  { k: "auto", ic: "bolt", kw: "" },
+  { k: "wide", ic: "landscape", kw: "wide establishing shot, smooth slow camera move" },
+  { k: "closeup", ic: "zoomIn", kw: "extreme close-up, shallow depth of field, crisp focus" },
+  { k: "product", ic: "bag", kw: "product hero shot, slowly rotating, studio lighting" },
+  { k: "dramatic", ic: "film", kw: "dramatic cinematic lighting, moody atmosphere, film grain" },
+  { k: "warm", ic: "sun", kw: "warm golden-hour light, soft and inviting" },
 ];
 
 function errMsg(error: string, t: Tr): string {
   return error === "no_key" ? t("errNoKey") : error === "insufficient_credits" ? t("errCredits") : error === "needs_credits" ? t("errVideoCredits") : error === "empty" ? t("errEmpty") : t("errGeneric");
 }
 function Panel({ children }: { children: ReactNode }) {
-  return <div style={{ background: "var(--surface,#fff)", border: "1px solid var(--border)", borderRadius: 18, padding: "clamp(16px,2.2vw,22px)" }}>{children}</div>;
+  return <div style={{ background: "var(--surface,#fff)", border: "1px solid var(--border)", borderRadius: 12, padding: "clamp(16px,2.2vw,20px)" }}>{children}</div>;
 }
 function ModelPill({ t }: { t: Tr }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 11, background: "var(--teal-tint,#e6f2f0)", border: "1px solid color-mix(in srgb,var(--teal) 25%, var(--border))", marginBlockEnd: 14 }}>
-      <span style={{ width: 22, height: 22, borderRadius: 7, display: "grid", placeItems: "center", background: "linear-gradient(160deg,var(--teal),var(--teal-deep))", color: "#fff", fontSize: 12 }}>✦</span>
+      <span style={{ width: 22, height: 22, borderRadius: 6, display: "grid", placeItems: "center", background: "var(--teal)", color: "#fff" }}><Ic name="bolt" size={13} /></span>
       <span style={{ flex: 1, fontSize: 12.5, fontWeight: 700, color: "var(--teal-deep)", fontFamily: "var(--font-latin)" }}>MiniMax Video · Hailuo</span>
       <span style={{ fontSize: 11, color: "var(--teal-deep)", opacity: 0.75 }}>{t("vertical")}</span>
     </div>
@@ -69,7 +85,7 @@ export function ScenesClient({ assets, keys, locale }: { assets: SceneAsset[]; k
       <div style={{ display: "inline-flex", gap: 4, padding: 5, background: "var(--surface,#fff)", border: "1px solid var(--border)", borderRadius: 14, marginBlockEnd: 18, flexWrap: "wrap" }}>
         {(["ugc", "cinematic"] as Tab[]).map((k) => (
           <button key={k} onClick={() => setTab(k)} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 18px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: "pointer", border: "none", background: tab === k ? "var(--teal)" : "transparent", color: tab === k ? "#fff" : "var(--muted)" }}>
-            <span style={{ fontSize: 15 }}>{k === "ugc" ? "🤳" : "🎬"}</span> {t(`tab_${k}`)}
+            <Ic name={k === "ugc" ? "phone" : "film"} size={16} /> {t(`tab_${k}`)}
           </button>
         ))}
       </div>
@@ -176,8 +192,8 @@ function UgcTab({ t }: { t: Tr }) {
           {PERSONAS.map((p) => {
             const on = persona === p.k;
             return (
-              <button key={p.k} onClick={() => setPersona(p.k)} className="lift" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "16px 8px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${on ? "var(--teal)" : "var(--border)"}`, background: on ? "var(--teal-tint,#e6f2f0)" : "var(--card,#fff)" }}>
-                <span style={{ fontSize: 26 }}>{p.g}</span>
+              <button key={p.k} onClick={() => setPersona(p.k)} className="lift" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 8px", borderRadius: 10, cursor: "pointer", border: `1px solid ${on ? "var(--teal)" : "var(--border)"}`, background: on ? "var(--teal-tint)" : "var(--card,#fff)", color: on ? "var(--teal-deep)" : "var(--muted)" }}>
+                <Ic name={p.ic} size={22} />
                 <span style={{ fontSize: 11.5, fontWeight: 600, color: on ? "var(--teal-deep)" : "var(--heading)", textAlign: "center", lineHeight: 1.3 }}>{t(`persona_${p.k}`)}</span>
               </button>
             );
@@ -214,8 +230,8 @@ function CinematicTab({ t }: { t: Tr }) {
           {CINEMATIC.map((m) => {
             const on = mood === m.k;
             return (
-              <button key={m.k} onClick={() => setMood(m.k)} className="lift" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "16px 8px", borderRadius: 12, cursor: "pointer", border: `1.5px solid ${on ? "var(--teal)" : "var(--border)"}`, background: on ? "var(--teal-tint,#e6f2f0)" : "var(--card,#fff)" }}>
-                <span style={{ fontSize: 24 }}>{m.g}</span>
+              <button key={m.k} onClick={() => setMood(m.k)} className="lift" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "16px 8px", borderRadius: 10, cursor: "pointer", border: `1px solid ${on ? "var(--teal)" : "var(--border)"}`, background: on ? "var(--teal-tint)" : "var(--card,#fff)", color: on ? "var(--teal-deep)" : "var(--muted)" }}>
+                <Ic name={m.ic} size={22} />
                 <span style={{ fontSize: 11.5, fontWeight: 600, color: on ? "var(--teal-deep)" : "var(--heading)", textAlign: "center", lineHeight: 1.3 }}>{t(`mood_${m.k}`)}</span>
               </button>
             );
