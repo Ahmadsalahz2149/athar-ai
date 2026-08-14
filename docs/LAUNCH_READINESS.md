@@ -22,6 +22,25 @@
 
 ---
 
+## ✅ ما تم إنجازه كودًا (2026-08-14 — منشور على prod)
+
+- **إصلاحات الصدق + تنظيف** (`44a27f6`): حذف الشهادة المزيّفة من signup، إعادة تسمية أزرار السوشيال («مرتبط — لا نشر تلقائي بعد») + توضيح `platformsSub`/toast، حذف زر «تغيير الصورة» الميت، تعليم «DNA Impact» كتقديري، حذف نصوص العيّنة الميتة (بما فيها «42% higher engagement»)، حذف ملف الـ artifact الشارد، إضافة `VOYAGE_API_KEY`+`ELEVENLABS_API_KEY` لـ `.env.example`، حذف `vercel.json`.
+- **صفحة `/reset-password`** (`1d6e0e2`): إكمال فلو استعادة كلمة المرور (كان مكسورًا). **يتطلّب:** SMTP في Supabase + إضافة الـ URL لقائمة Redirect URLs.
+- **صفحات قانونية حقيقية** (`88a750c`): Terms/Privacy/Refund مسودّات ثنائية اللغة فعلية. **تتطلّب:** مراجعة محامٍ + تأكيد `support@athargrowth.com` والكيان والاختصاص القضائي.
+
+**الباقي في Tier 0 = خطوات يدوية عندك** (لوحات Supabase/الاستضافة): SMTP، `ADMIN_EMAILS`، UptimeRobot+Sentry، backups/PITR، وإضافة URL الاستعادة لقائمة Supabase. راجع قسم «الخطوات اليدوية» أدناه.
+
+### الخطوات اليدوية (Tier 0 — تحتاجك في اللوحات)
+
+1. **SMTP في Supabase** → Dashboard → Auth → SMTP Settings: أدخل مزوّد (Resend/Postmark/SES) بدومين مُتحقَّق (SPF/DKIM). بدونه إيميلات التأكيد/الاستعادة ما توصل. *(بديل مؤقت للكوهورت الصغير: Auth → Providers → Email → أطفي «Confirm email».)*
+2. **Redirect URL للاستعادة** → Supabase → Auth → URL Configuration → Redirect URLs: أضف `https://athargrowth.com/ar/reset-password` و`/en/reset-password`، وتأكد Site URL = `https://athargrowth.com`.
+3. **`ADMIN_EMAILS`** في `.env.production` على السيرفر = بريدك (مفصول بفواصل لو أكثر) → عشان توصل لوحة الأدمن وتفعّل الكريدت للعملاء.
+4. **المراقبة**: أنشئ حساب UptimeRobot (مجاني) → monitor على `https://athargrowth.com/api/health` كل 5 دقائق، تنبيه على ≠200. + أنشئ مشروع Sentry وحط الـ DSN في env.
+5. **Backups**: في Supabase → Database → Backups: أكّد PITR/النسخ اليومية مفعّلة (حسب خطتك).
+6. **VOYAGE_API_KEY + ELEVENLABS_API_KEY**: أكّد إنهما مضبوطان في `.env.production` (مش بس `.env.example`).
+
+---
+
 ## الأولويات (Tiers)
 
 ### 🔴 Tier 0 — لازم قبل أول عميل يدفع (Hard blockers)
