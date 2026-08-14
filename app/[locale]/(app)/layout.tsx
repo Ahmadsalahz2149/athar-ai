@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { AppTopBar } from "@/components/AppTopBar";
 import { NavProvider } from "@/components/nav-context";
+import { CommandPalette } from "@/components/CommandPalette";
 import { FloatingAssistant } from "@/components/assistant/FloatingAssistant";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { ensureUserContext } from "@/lib/auth/bootstrap";
@@ -60,11 +61,18 @@ export default async function AppLayout({
   return (
     <div className="app-shell">
       <NavProvider>
-        <Sidebar balance={balance} sourcesUsed={counts.sources} pendingCount={counts.pending} isAdmin={isAdmin} userEmail={userEmail} />
+        <Sidebar
+          balance={balance}
+          sourcesUsed={counts.sources}
+          navCounts={{ ideas: counts.ideas, approvals: counts.pending, calendar: counts.scheduled }}
+          isAdmin={isAdmin}
+          userEmail={userEmail}
+        />
         <div className="app-main">
           <AppTopBar userEmail={userEmail} />
           <div className="app-content scb">{children}</div>
         </div>
+        <CommandPalette />
         <FloatingAssistant />
       </NavProvider>
     </div>

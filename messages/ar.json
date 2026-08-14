@@ -4,6 +4,13 @@
     "ai": "AI",
     "tagline": "Personal Brand Growth OS"
   },
+  "Command": {
+    "title": "لوحة الأوامر",
+    "placeholder": "اكتب أمرًا أو ابحث عن شاشة…",
+    "actions": "إجراءات سريعة",
+    "navigate": "التنقّل",
+    "empty": "لا توجد نتائج"
+  },
   "Nav": {
     "expand": "توسيع القائمة",
     "collapse": "طيّ القائمة",

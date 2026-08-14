@@ -43,14 +43,15 @@ export function Sidebar({
   balance = null,
   sourcesUsed = 0,
   sourcesLimit = 5,
-  pendingCount = 0,
+  navCounts = {},
   isAdmin = false,
   userEmail,
 }: {
   balance?: number | null;
   sourcesUsed?: number;
   sourcesLimit?: number;
-  pendingCount?: number;
+  /** Badge counts keyed by nav key (e.g. { approvals: 3, ideas: 12 }). */
+  navCounts?: Record<string, number>;
   isAdmin?: boolean;
   userEmail?: string;
 }) {
@@ -142,7 +143,7 @@ export function Sidebar({
                   {item.icon}
                 </span>
                 <span className="nav-label" style={{ flex: 1 }}>{t(item.key)}</span>
-                {item.key === "approvals" && pendingCount > 0 && <CountBadge n={nf.format(pendingCount)} tone="teal" />}
+                {(navCounts[item.key] ?? 0) > 0 && <CountBadge n={nf.format(navCounts[item.key])} tone="teal" />}
               </Link>
             );
           })}

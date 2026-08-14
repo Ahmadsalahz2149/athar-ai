@@ -4,6 +4,13 @@
     "ai": "AI",
     "tagline": "Personal Brand Growth OS"
   },
+  "Command": {
+    "title": "Command palette",
+    "placeholder": "Type a command or search a screen…",
+    "actions": "Quick actions",
+    "navigate": "Navigate",
+    "empty": "No results"
+  },
   "Nav": {
     "expand": "Expand menu",
     "collapse": "Collapse menu",

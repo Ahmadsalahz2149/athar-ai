@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { useNav } from "./nav-context";
 import { ThemeToggle } from "./ThemeToggle";
 import { signOut } from "@/lib/auth/actions";
@@ -12,12 +12,10 @@ export function AppTopBar({ userEmail }: { userEmail?: string }) {
   const tAuth = useTranslations("Auth");
   const locale = useLocale();
   const pathname = usePathname();
-  const router = useRouter();
   const other = locale === "ar" ? "en" : "ar";
-  const { setOpen } = useNav();
+  const { setOpen, setCmdOpen } = useNav();
   const [menu, setMenu] = useState<null | "notif" | "account">(null);
   const [pending, start] = useTransition();
-  const [q, setQ] = useState("");
   const initial = (userEmail?.[0] ?? "A").toUpperCase();
   const displayName = userEmail?.split("@")[0] ?? nav("account");
 
@@ -55,20 +53,17 @@ export function AppTopBar({ userEmail }: { userEmail?: string }) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <form
+        <button
+          type="button"
           className="desktop-only"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (q.trim()) router.push("/vault");
-          }}
+          onClick={() => setCmdOpen(true)}
+          aria-label={nav("search")}
+          style={{ display: "flex", alignItems: "center", gap: 8, width: 210, height: 38, padding: "0 12px", borderRadius: 999, border: "1px solid var(--border-2)", background: "var(--card)", color: "var(--muted)", cursor: "pointer", fontSize: 13.5 }}
         >
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={nav("search")}
-            style={{ width: 190, height: 38, padding: "0 14px", borderRadius: 999, border: "1px solid var(--border-2)", background: "var(--card)", fontSize: 13.5, outline: "none" }}
-          />
-        </form>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+          <span style={{ flex: 1, textAlign: "start" }}>{nav("search")}</span>
+          <kbd style={{ fontSize: 10.5, fontFamily: "var(--font-mono, monospace)", color: "var(--subtle)", border: "1px solid var(--border-2)", borderRadius: 5, padding: "1px 5px" }}>⌘K</kbd>
+        </button>
 
         {/* Notifications */}
         <div style={{ position: "relative", zIndex: 31 }}>
