@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { requestPasswordReset } from "@/lib/auth/actions";
 
@@ -9,6 +9,7 @@ const RESEND_SECONDS = 30;
 
 export function ForgotForm() {
   const t = useTranslations("Auth");
+  const locale = useLocale();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [pending, start] = useTransition();
@@ -22,7 +23,7 @@ export function ForgotForm() {
   }, [cooldown]);
 
   const send = () => start(async () => {
-    await requestPasswordReset(email);
+    await requestPasswordReset(email, locale);
     setSent(true);
     setCooldown(RESEND_SECONDS);
   });

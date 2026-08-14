@@ -62,11 +62,16 @@ export async function signUp(input: {
 
 /** Always report success (don't leak whether the email exists). Real delivery
  * depends on Supabase SMTP being configured (needs intervention otherwise). */
-export async function requestPasswordReset(email: string): Promise<{ ok: true }> {
+export async function requestPasswordReset(email: string, locale = "ar"): Promise<{ ok: true }> {
   const supabase = await getSupabaseServer();
   if (supabase && email.trim()) {
+    // The recovery link must land on our /reset-password page so the user can
+    // actually set a new password. Base URL comes from OAUTH_BASE_URL (same as
+    // the social callbacks); this URL must be in Supabase's allowed redirects.
+    const base = (process.env.OAUTH_BASE_URL || "https://athargrowth.com").replace(/\/$/, "");
+    const loc = locale === "en" ? "en" : "ar";
     try {
-      await supabase.auth.resetPasswordForEmail(email.trim());
+      await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${base}/${loc}/reset-password` });
     } catch {
       /* swallow — never leak existence */
     }
