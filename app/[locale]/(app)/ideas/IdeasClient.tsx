@@ -144,50 +144,67 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
           <EmptyState title={t("emptyTitle")} body={t("emptyBody")} />
         </div>
       ) : (
-        <div style={{ marginBlockStart: 16, display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
-          {shown.map((i) => (
-            <div key={i.id} className="lift" style={{ background: "var(--card)", border: `1px solid ${selected.has(i.id) ? "var(--teal)" : "var(--border)"}`, borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 11 }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                <IconTile tint={CAT_TINT[i.category ?? "educational"] ?? "var(--teal-tint)"} size={38}><GlyphIcon name={CAT_GLYPH[i.category ?? "educational"] ?? "bulb"} size={19} color="var(--teal-deep)" /></IconTile>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {statusPill(i)}
-                  <button
-                    onClick={() => toggleSelect(i.id)}
-                    aria-label={t("selectForBatch")}
-                    aria-pressed={selected.has(i.id)}
-                    style={{ width: 24, height: 24, borderRadius: 7, cursor: "pointer", flexShrink: 0, display: "grid", placeItems: "center", border: `1.5px solid ${selected.has(i.id) ? "var(--teal)" : "var(--border-2)"}`, background: selected.has(i.id) ? "var(--teal)" : "transparent", color: "#fff", fontSize: 13, lineHeight: 1 }}
-                  >
-                    {selected.has(i.id) ? "✓" : ""}
-                  </button>
-                </div>
-              </div>
-              <div style={{ fontWeight: 700, color: "var(--heading)", lineHeight: 1.6, fontSize: 15 }}>{i.title}</div>
-              {i.angle && <div style={{ fontSize: 13, color: "var(--slate-2)", lineHeight: 1.7, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{i.angle}</div>}
-              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 12 }}>
-                {i.category && <span style={{ padding: "3px 9px", borderRadius: 999, background: "var(--gold-tint)", color: "var(--gold-dark)", fontWeight: 600 }}>{t(`cat_${i.category}`)}</span>}
-                <span style={{ color: "var(--muted)" }}>{sourceLine(i)}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBlockStart: "auto", paddingBlockStart: 4 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--teal-deep)", fontFamily: "var(--font-latin)" }}>Post Score {nf.format(i.postScore)}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <button
-                    onClick={() => {
-                      const next = !saved[i.id];
-                      setSaved((s) => ({ ...s, [i.id]: next }));
-                      toggleSaveIdea(i.id, next);
-                    }}
-                    aria-label={saved[i.id] ? t("unsave") : t("save")}
-                    aria-pressed={!!saved[i.id]}
-                    style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border-2)", background: "var(--card)", cursor: "pointer", fontSize: 15, color: saved[i.id] ? "var(--gold)" : "var(--subtle)" }}
-                  >
-                    {saved[i.id] ? "★" : "☆"}
-                  </button>
-                  <button onClick={() => schedule(i)} disabled={pending} title={t("scheduleHint")} style={{ height: 34, padding: "0 12px", fontSize: 12.5, fontWeight: 600, borderRadius: 10, border: "1px solid var(--teal)", background: "var(--teal-tint)", color: "var(--teal-deep)", cursor: "pointer", opacity: schedId === i.id ? 0.6 : 1, whiteSpace: "nowrap" }}>📅 {schedId === i.id ? t("scheduling") : t("schedule")}</button>
-                  <button onClick={() => write(i)} style={{ ...btnNavy, height: 34, padding: "0 16px", fontSize: 12.5 }}>{t("write")}</button>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="dtable-wrap" style={{ marginBlockStart: 16 }}>
+          <div className="dtable-scroll">
+            <table className="dtable">
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}><span className="sr-only">{t("selectForBatch")}</span></th>
+                  <th>{t("colIdea")}</th>
+                  <th style={{ width: 120 }}>{t("colCategory")}</th>
+                  <th style={{ width: 130 }}>{t("colSource")}</th>
+                  <th style={{ width: 96 }} className="dt-num">Post Score</th>
+                  <th style={{ width: 92 }}>{t("colStatus")}</th>
+                  <th style={{ width: 150 }}>{t("colActions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((i) => {
+                  const selCap = !selected.has(i.id) && selected.size >= 4;
+                  return (
+                    <tr key={i.id} className={selected.has(i.id) ? "is-selected" : undefined}>
+                      <td>
+                        <input type="checkbox" checked={selected.has(i.id)} disabled={selCap} onChange={() => toggleSelect(i.id)} aria-label={t("selectForBatch")} title={selCap ? t("batchMax") : undefined} style={{ width: 16, height: 16, accentColor: "var(--teal)", display: "block", opacity: selCap ? 0.4 : 1 }} />
+                      </td>
+                      <td style={{ maxWidth: 380 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <IconTile tint={CAT_TINT[i.category ?? "educational"] ?? "var(--teal-tint)"} size={32}><GlyphIcon name={CAT_GLYPH[i.category ?? "educational"] ?? "bulb"} size={16} color="var(--teal-deep)" /></IconTile>
+                          <div style={{ minWidth: 0 }}>
+                            <div className="dt-title" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.title}</div>
+                            {i.angle && <div style={{ fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBlockStart: 2 }}>{i.angle}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        {i.category && <span style={{ padding: "3px 9px", borderRadius: 999, background: "var(--gold-tint)", color: "var(--gold-dark)", fontWeight: 600, fontSize: 12, whiteSpace: "nowrap" }}>{t(`cat_${i.category}`)}</span>}
+                      </td>
+                      <td style={{ color: "var(--muted)", fontSize: 12.5, whiteSpace: "nowrap" }}>{sourceLine(i)}</td>
+                      <td className="dt-num" style={{ fontWeight: 700, color: "var(--teal-deep)" }}>{nf.format(i.postScore)}</td>
+                      <td>{statusPill(i)}</td>
+                      <td>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button
+                            onClick={() => { const next = !saved[i.id]; setSaved((s) => ({ ...s, [i.id]: next })); toggleSaveIdea(i.id, next); }}
+                            aria-label={saved[i.id] ? t("unsave") : t("save")}
+                            aria-pressed={!!saved[i.id]}
+                            title={saved[i.id] ? t("unsave") : t("save")}
+                            className="dt-iconbtn"
+                            style={{ color: saved[i.id] ? "var(--gold)" : "var(--subtle)" }}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill={saved[i.id] ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6-5.3-3-5.3 3 1.2-6L3.4 9.3l6-.7z" /></svg>
+                          </button>
+                          <button onClick={() => schedule(i)} disabled={pending} title={t("scheduleHint")} aria-label={t("schedule")} className="dt-iconbtn" style={{ opacity: schedId === i.id ? 0.6 : 1 }}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 9h16M8 3v4M16 3v4" /></svg>
+                          </button>
+                          <button onClick={() => write(i)} style={{ ...btnNavy, height: 30, padding: "0 14px", fontSize: 12.5 }}>{t("write")}</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
