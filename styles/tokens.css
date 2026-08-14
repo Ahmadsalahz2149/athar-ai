@@ -36,6 +36,7 @@
   --bg: #111113;
   --surface: #171719;
   --card: #1d1d20;
+  --glass-bar-bg: rgba(20, 20, 22, 0.72);
   --elevated: #222225;
 
   /* Borders — low-contrast neutral */
@@ -96,6 +97,7 @@
   --bg: #f7f7f6;
   --surface: #ffffff;
   --card: #ffffff;
+  --glass-bar-bg: rgba(251, 250, 247, 0.72);
   --elevated: #ffffff;
 
   --border: rgba(20, 20, 25, 0.10);
@@ -656,7 +658,7 @@ h1, h2, h3, .headline-gradient, .display {
 
 /* Trick #6 — frosted glass on the app top bar (a "2026" signal). */
 .glass-bar {
-  background: rgba(251, 250, 247, 0.72);
+  background: var(--glass-bar-bg);
   backdrop-filter: saturate(1.4) blur(12px);
   -webkit-backdrop-filter: saturate(1.4) blur(12px);
 }
