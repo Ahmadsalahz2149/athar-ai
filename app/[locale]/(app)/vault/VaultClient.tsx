@@ -137,14 +137,14 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
           </svg>
         </div>
         <button onClick={runSemantic} disabled={semPending || q.trim().length < 2} title={t("semanticHint")} style={{ ...btnGhost, height: 48, flex: "none", paddingInline: 16, fontSize: 13, opacity: semPending || q.trim().length < 2 ? 0.55 : 1 }}>
-          ✦ {semPending ? t("searching") : t("semanticBtn")}
+          {semPending ? t("searching") : t("semanticBtn")}
         </button>
       </div>
       {(semanticIds || semUnavailable) && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBlockStart: 10, fontSize: 12.5 }}>
           {semanticIds ? (
             <>
-              <span style={{ color: "var(--teal-deep)", fontWeight: 600 }}>✦ {t("semanticActive", { n: nf.format(semanticIds.length) })}</span>
+              <span style={{ color: "var(--teal-deep)", fontWeight: 600 }}>{t("semanticActive", { n: nf.format(semanticIds.length) })}</span>
               <button onClick={clearSemantic} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", textDecoration: "underline", fontSize: 12.5 }}>{t("clearSemantic")}</button>
             </>
           ) : (

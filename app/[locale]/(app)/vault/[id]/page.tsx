@@ -71,7 +71,7 @@ export default async function AnalysisDetail({ params }: { params: Promise<{ loc
                 <span>{t("metaType", { type: kindToLabel(source.kind, source.title) })}</span>
                 <span>{t("metaUploaded", { date: df.format(new Date(source.createdAt)) })}</span>
                 {a ? (
-                  <span style={{ color: "var(--teal-light)", fontWeight: 700 }}>✦ {t("metaComplete")}</span>
+                  <span style={{ color: "var(--teal-light)", fontWeight: 700 }}>{t("metaComplete")}</span>
                 ) : (
                   <span style={{ color: "var(--gold-dark)", fontWeight: 700 }}>{t("metaPending")}</span>
                 )}

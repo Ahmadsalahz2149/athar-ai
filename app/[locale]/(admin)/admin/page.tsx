@@ -5,10 +5,10 @@ import { platformStats, listOrgs } from "@/lib/db/admin";
 export const dynamic = "force-dynamic";
 
 function Kpi({ label, value, tone = "teal" }: { label: string; value: string; tone?: "teal" | "gold" | "navy" | "red" }) {
-  const tint: Record<string, string> = { teal: "var(--teal-tint)", gold: "var(--gold-tint)", navy: "#eef1f5", red: "var(--coral-tint,#fde8e8)" };
-  const fg: Record<string, string> = { teal: "var(--teal-deep)", gold: "var(--gold-dark)", navy: "var(--navy-2)", red: "var(--coral,#dc2626)" };
+  const tint: Record<string, string> = { teal: "var(--teal-tint)", gold: "var(--gold-tint)", navy: "var(--border-2)", red: "var(--coral-tint)" };
+  const fg: Record<string, string> = { teal: "var(--teal-deep)", gold: "var(--gold-dark)", navy: "var(--heading)", red: "var(--coral)" };
   return (
-    <div style={{ background: "var(--card,#fff)", border: "1px solid var(--border)", borderRadius: 16, padding: 18 }} className="lift">
+    <div style={{ background: "var(--card,#fff)", border: "1px solid var(--border)", borderRadius: 12, padding: 18 }} className="lift">
       <div style={{ fontSize: 12.5, color: "var(--muted)", fontWeight: 600 }}>{label}</div>
       <div style={{ fontSize: 30, fontWeight: 800, color: fg[tone], marginBlockStart: 6, fontFamily: "var(--font-latin)", letterSpacing: "-1px" }}>{value}</div>
       <div style={{ height: 4, borderRadius: 999, background: tint[tone], marginBlockStart: 12 }} />

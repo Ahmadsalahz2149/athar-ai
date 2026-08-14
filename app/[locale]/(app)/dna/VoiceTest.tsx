@@ -45,7 +45,7 @@ export function VoiceTest({ dna }: { dna: ContentDna }) {
         </div>
       </div>
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBlockStart: 12, flexWrap: "wrap" }}>
-        <button onClick={getFeedback} disabled={pending || text.trim().length < 10} style={{ ...btnTeal, height: 40 }}>✦ {pending ? t("vtAnalyzing") : t("vtFeedback")}</button>
+        <button onClick={getFeedback} disabled={pending || text.trim().length < 10} style={{ ...btnTeal, height: 40 }}>{pending ? t("vtAnalyzing") : t("vtFeedback")}</button>
         {score > 0 && <span style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("vtInstant")}</span>}
       </div>
 
@@ -66,7 +66,7 @@ export function VoiceTest({ dna }: { dna: ContentDna }) {
           )}
           {fb.tip && (
             <div style={{ padding: "11px 13px", borderRadius: 11, background: "var(--gold-tint)", border: "1px solid var(--brass-line,var(--gold))" }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--gold-dark)", marginBlockEnd: 4 }}>✦ {t("vtTip")}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--gold-dark)", marginBlockEnd: 4 }}>{t("vtTip")}</div>
               <div style={{ fontSize: 13, color: "var(--slate)", lineHeight: 1.75 }}>{fb.tip}</div>
             </div>
           )}

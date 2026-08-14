@@ -90,7 +90,7 @@ export function FloatingAssistant() {
         }}
         className="lift"
       >
-        {open ? "×" : "✦"}
+        {open ? "×" : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z" /></svg>}
       </button>
 
       {open && (
@@ -107,7 +107,7 @@ export function FloatingAssistant() {
         >
           {/* Header */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "linear-gradient(160deg,var(--navy-2),var(--navy))", color: "#fff" }}>
-            <span style={{ width: 30, height: 30, borderRadius: 9, display: "grid", placeItems: "center", background: "rgba(15, 118, 110,.25)", color: "var(--teal-light)" }}>✦</span>
+            <span style={{ width: 30, height: 30, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(255,255,255,.14)", color: "#fff" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z" /></svg></span>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{t("title")}</div>
               <div style={{ fontSize: 11, color: "#9FB3C8" }}>{t("subtitle")}</div>
@@ -120,7 +120,7 @@ export function FloatingAssistant() {
           <div ref={scrollRef} className="scb" style={{ flex: 1, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 10, background: "var(--bg,#f8fafc)" }}>
             {msgs.length === 0 && !pending && (
               <div style={{ margin: "auto", textAlign: "center", color: "var(--muted)", fontSize: 13, lineHeight: 1.8, padding: 12 }}>
-                <div style={{ fontSize: 26, marginBlockEnd: 8 }}>✦</div>
+                <div style={{ display: "grid", placeItems: "center", marginBlockEnd: 8, color: "var(--teal-deep)" }}><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z" /></svg></div>
                 {t("empty")}
               </div>
             )}
@@ -136,7 +136,7 @@ export function FloatingAssistant() {
                 className="lift"
                 style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 14px", borderRadius: 13, border: "1px solid var(--teal)", background: "var(--teal-tint)", color: "var(--teal-deep)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
               >
-                <span>✦</span>{t(action.labelKey)}<span style={{ opacity: 0.6 }}>←</span>
+                {t(action.labelKey)}<span style={{ opacity: 0.6 }}>←</span>
               </button>
             )}
           </div>

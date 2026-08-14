@@ -128,7 +128,7 @@ export default async function CalendarPage({ params, searchParams }: { params: P
                   <Link href={`/calendar?view=week&wk=${nextWk}`} aria-label={t("nextWeek")} style={navBtn}>›</Link>
                   <Link href="/calendar?view=week" style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", marginInlineStart: 4 }}>{t("thisWeekBtn")}</Link>
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", padding: "5px 11px", borderRadius: 999, background: "var(--teal-tint-2)" }}>✦ {t("bestTimes")}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", padding: "5px 11px", borderRadius: 999, background: "var(--teal-tint-2)" }}>{t("bestTimes")}</span>
               </div>
               {/* Agenda: one row per day (stacks naturally on mobile) */}
               <div style={{ display: "grid", gap: 8 }}>
@@ -167,7 +167,7 @@ export default async function CalendarPage({ params, searchParams }: { params: P
                   <Link href={`/calendar?ym=${nextYm}`} aria-label={t("nextMonth")} style={navBtn}>›</Link>
                   {!isCurrentMonth && <Link href="/calendar" style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", marginInlineStart: 4 }}>{t("todayBtn")}</Link>}
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", padding: "5px 11px", borderRadius: 999, background: "var(--teal-tint-2)" }}>✦ {t("bestTimes")}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--teal-deep)", padding: "5px 11px", borderRadius: 999, background: "var(--teal-tint-2)" }}>{t("bestTimes")}</span>
               </div>
 
               {/* Phones: a day agenda instead of the 7-column grid (unreadable at 375px) */}

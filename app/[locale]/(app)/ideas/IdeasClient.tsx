@@ -125,7 +125,7 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
         <select value={count} onChange={(e) => setCount(Number(e.target.value))} aria-label={t("countLabel")} style={{ height: 42, borderRadius: 11, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.06)", color: "#fff", fontSize: 13, padding: "0 10px", outline: "none" }}>
           {[3, 6, 8, 10].map((n) => <option key={n} value={n} style={{ color: "#000" }}>{nf.format(n)}</option>)}
         </select>
-        <button onClick={gen} disabled={pending} style={{ ...btnTeal, height: 42, opacity: pending ? 0.7 : 1 }}>✦ {pending ? t("generating") : t("generate")}</button>
+        <button onClick={gen} disabled={pending} style={{ ...btnTeal, height: 42, opacity: pending ? 0.7 : 1 }}>{pending ? t("generating") : t("generate")}</button>
       </div>
       {err && <p style={{ marginBlockStart: 10, color: "var(--coral)", fontSize: 13.5 }}>{err}</p>}
 
@@ -200,7 +200,7 @@ export function IdeasClient({ ideas }: { ideas: Idea[] }) {
           {selected.size > 0 && (
             <>
               <button onClick={() => { setSelected(new Set()); setBatchMsg(null); }} style={{ ...btnNavy, background: "transparent", color: "var(--slate)", border: "1px solid var(--border-2)", height: 40 }}>{t("batchClear")}</button>
-              <button onClick={runBatch} disabled={batchPending} style={{ ...btnTeal, height: 40, opacity: batchPending ? 0.7 : 1 }}>✦ {batchPending ? t("batchRunning") : t("batchGenerate", { n: nf.format(selected.size) })}</button>
+              <button onClick={runBatch} disabled={batchPending} style={{ ...btnTeal, height: 40, opacity: batchPending ? 0.7 : 1 }}>{batchPending ? t("batchRunning") : t("batchGenerate", { n: nf.format(selected.size) })}</button>
             </>
           )}
         </div>

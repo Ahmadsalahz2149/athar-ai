@@ -318,7 +318,7 @@ export function IngestPanel() {
         disabled={pending || !ready}
         style={{ ...btnNavy, width: "100%", height: 52, marginBlockStart: 22, fontSize: 15, opacity: pending || !ready ? 0.55 : 1 }}
       >
-        ✦ {phase === "ingesting" ? t("running") : phase === "analyzing" ? t("analyzingNow") : t("startAnalysis")}
+        {phase === "ingesting" ? t("running") : phase === "analyzing" ? t("analyzingNow") : t("startAnalysis")}
       </button>
 
       {/* Progress / result */}

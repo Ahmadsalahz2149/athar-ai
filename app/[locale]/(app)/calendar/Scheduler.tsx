@@ -51,7 +51,7 @@ export function Scheduler({ items, labels, defaultWhen }: { items: Item[]; label
       ) : (
         <>
           <button onClick={doAuto} disabled={pending} style={{ ...btnGhost, width: "100%", height: 38, marginBlockEnd: 12, fontSize: 12.5, background: "var(--teal-tint-2)", border: "1px solid rgba(15, 118, 110,.3)", color: "var(--teal-deep)", opacity: pending ? 0.6 : 1 }}>
-            ✦ {pending ? labels.scheduling : labels.autoAll}
+            {pending ? labels.scheduling : labels.autoAll}
           </button>
           {msg && <p style={{ fontSize: 12.5, color: "var(--teal-deep)", fontWeight: 600, marginBlockEnd: 10 }}>{msg}</p>}
           <div style={{ display: "grid", gap: 10 }}>

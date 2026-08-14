@@ -42,7 +42,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       <header className="lp-hero">
         <div className="lp-wrap lp-hero-grid">
           <div>
-            <span className="lp-eyebrow">✦ {t("heroEyebrow")}</span>
+            <span className="lp-eyebrow">{t("heroEyebrow")}</span>
             <h1>{t("heroTitle")}</h1>
             <p className="lp-lead">{t("heroSub")}</p>
             <div className="lp-hero-cta">

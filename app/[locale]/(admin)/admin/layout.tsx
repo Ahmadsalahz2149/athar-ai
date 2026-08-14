@@ -20,7 +20,7 @@ export default async function AdminLayout({ children, params }: { children: Reac
       <header style={{ background: "linear-gradient(160deg,var(--navy),var(--navy-3))", color: "#fff", padding: "0 clamp(16px,4vw,28px)", position: "sticky", top: 0, zIndex: 40, boxShadow: "0 2px 12px rgba(0,0,0,.18)" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", gap: 16, height: 60 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ width: 32, height: 32, borderRadius: 9, display: "grid", placeItems: "center", background: "linear-gradient(160deg,var(--teal),var(--teal-deep,#0f766e))", fontSize: 16 }}>✦</span>
+            <span style={{ width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", background: "var(--teal)", color: "#fff" }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 4v5c0 5-3 7-7 9-4-2-7-4-7-9V7z" /><path d="M9 12l2 2 4-4" /></svg></span>
             <div>
               <div style={{ fontWeight: 800, fontSize: 15, lineHeight: 1 }}>{t("title")}</div>
               <div style={{ fontSize: 10.5, color: "#9CA3AF", marginBlockStart: 3 }}>{t("subtitle")}</div>

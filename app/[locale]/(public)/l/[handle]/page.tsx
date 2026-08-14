@@ -32,7 +32,7 @@ export default async function PublicLinkPage({ params }: { params: Promise<{ loc
         <LinkList orgId={brand.orgId} brandId={brand.brandId} links={links} />
 
         <div style={{ marginBlockStart: 34, fontSize: 12 }}>
-          <a href={`/${locale}`} style={{ color: "#8095AC", textDecoration: "none" }}>✦ Athar AI</a>
+          <a href={`/${locale}`} style={{ color: "#8095AC", textDecoration: "none" }}>Athar AI</a>
         </div>
       </div>
     </main>

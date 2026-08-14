@@ -127,7 +127,7 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
         <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
           <div style={{ maxWidth: 560 }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 13px", borderRadius: 999, background: "rgba(214,168,79,.16)", border: "1px solid rgba(214,168,79,.35)", color: "var(--gold)", fontSize: 12.5, fontWeight: 700 }}>
-              ✦ {t("heroBadge")}
+              {t("heroBadge")}
             </span>
             <h1 style={{ fontSize: "clamp(24px,3.2vw,30px)", fontWeight: 700, marginBlock: "14px 10px" }}>{t("title")}</h1>
             <p style={{ color: "#9FB3C8", lineHeight: 1.9, fontSize: 14.5 }}>{t("heroBody")}</p>

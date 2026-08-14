@@ -37,7 +37,7 @@ export function TraitSources({ labels }: { labels: Labels }) {
         </div>
         {!loaded && (
           <button onClick={load} disabled={pending} style={{ height: 40, padding: "0 18px", borderRadius: 11, border: "1px solid var(--border-2)", background: "var(--surface)", color: "var(--teal-deep)", fontWeight: 600, fontSize: 13, cursor: pending ? "default" : "pointer" }}>
-            {pending ? labels.loading : `✦ ${labels.load}`}
+            {pending ? labels.loading : `${labels.load}`}
           </button>
         )}
       </div>
