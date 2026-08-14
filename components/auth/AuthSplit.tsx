@@ -19,7 +19,7 @@ export function AuthSplit({ children, panel }: { children: ReactNode; panel: Rea
           style={{ position: "absolute", insetBlockStart: -60, insetInlineStart: -80, width: 460, height: 460, opacity: 0.5 }}
         >
           {[70, 120, 170, 220].map((r) => (
-            <circle key={r} cx="200" cy="200" r={r} fill="none" stroke="rgba(94,234,212,.13)" strokeWidth="1.5" />
+            <circle key={r} cx="200" cy="200" r={r} fill="none" stroke="rgba(232,138,161,.15)" strokeWidth="1.5" />
           ))}
         </svg>
         <div style={{ position: "relative", width: "100%", maxWidth: 460 }}>{panel}</div>

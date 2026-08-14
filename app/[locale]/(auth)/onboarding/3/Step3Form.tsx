@@ -105,7 +105,7 @@ export function Step3Form() {
         }}
         style={{
           marginBlockStart: 22,
-          border: `2px dashed ${drag ? "var(--teal)" : "rgba(15, 118, 110,.45)"}`,
+          border: `2px dashed ${drag ? "var(--teal)" : "rgba(232, 138, 161,.45)"}`,
           borderRadius: 18,
           padding: "38px 20px",
           textAlign: "center",

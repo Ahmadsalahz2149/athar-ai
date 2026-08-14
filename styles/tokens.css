@@ -342,7 +342,11 @@ select {
   display: grid;
   place-items: center;
   padding: clamp(24px, 5vw, 56px);
-  background: linear-gradient(160deg, #102a43, #0b1f33 60%, #081826);
+  /* Warm near-black with two burgundy glows — on-identity, always dark. */
+  background:
+    radial-gradient(115% 85% at 22% 16%, rgba(158, 61, 87, 0.34), transparent 56%),
+    radial-gradient(90% 70% at 88% 94%, rgba(120, 40, 61, 0.26), transparent 60%),
+    linear-gradient(158deg, #211f23, #17161a 55%, #100f12);
   color: #fff;
 }
 @media (max-width: 900px) {
