@@ -248,6 +248,62 @@ select {
   padding: 0 8px;
   margin-block-end: 26px;
 }
+
+/* ---------------- Dense data table ----------------
+ * Shared, RTL-aware table for list-heavy screens (Vault / Ideas / Approvals).
+ * Logical properties throughout so columns read correctly in both directions.
+ * The wrapper scrolls horizontally on narrow screens so the page body never does. */
+.dtable-wrap {
+  margin-block-start: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--card);
+}
+.dtable-scroll { overflow-x: auto; }
+.dtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.dtable thead th {
+  text-align: start;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: var(--font-mono, monospace);
+  background: var(--surface);
+  padding: 11px 14px;
+  border-block-end: 1px solid var(--border);
+  white-space: nowrap;
+}
+.dtable tbody td {
+  padding: 12px 14px;
+  border-block-end: 1px solid var(--border);
+  color: var(--slate, var(--heading));
+  vertical-align: middle;
+}
+.dtable tbody tr:last-child td { border-block-end: none; }
+.dtable tbody tr { transition: background 0.12s ease; }
+.dtable tbody tr:hover { background: var(--surface); }
+.dtable tbody tr.is-selected { background: var(--teal-tint-2, var(--surface)); }
+.dtable .dt-title { font-weight: 600; color: var(--heading); }
+.dtable .dt-num { font-family: var(--font-latin); font-variant-numeric: tabular-nums; }
+.dt-iconbtn {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--border-2);
+  background: var(--card);
+  cursor: pointer;
+  color: var(--subtle);
+}
+.dt-iconbtn:hover { color: var(--heading); border-color: var(--border); }
 .app-nav {
   display: flex;
   flex-direction: column;

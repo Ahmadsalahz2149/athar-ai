@@ -120,6 +120,8 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sources, q, filter, semanticIds]);
 
+  const allShownSelected = shown.length > 0 && shown.every((s) => selected[s.id]);
+
   return (
     <>
       {/* Search */}
@@ -185,78 +187,98 @@ export function VaultClient({ sources }: { sources: VaultSource[] }) {
           />
         </div>
       ) : (
-        <div style={{ marginBlockStart: 20, display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,280px),1fr))", gap: 16 }}>
-          {shown.map((s) => (
-            <div key={s.id} className="lift" style={{ background: "var(--card)", border: selected[s.id] ? "1.5px solid var(--teal)" : "1px solid var(--border)", borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
-                <input type="checkbox" checked={!!selected[s.id]} onChange={(e) => setSelected((v) => ({ ...v, [s.id]: e.target.checked }))} aria-label={t("select")} style={{ width: 16, height: 16, marginBlockStart: 4, accentColor: "var(--teal)", flex: "none" }} />
-                <FileTypeBadge label={s.label} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {renamingId === s.id ? (
+        <div className="dtable-wrap">
+          <div className="dtable-scroll">
+            <table className="dtable">
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}>
                     <input
-                      autoFocus
-                      value={renameVal}
-                      onChange={(e) => setRenameVal(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") saveRename(s.id); if (e.key === "Escape") setRenamingId(null); }}
-                      onBlur={() => saveRename(s.id)}
-                      aria-label={t("renameLabel")}
-                      style={{ width: "100%", height: 30, padding: "0 8px", borderRadius: 8, border: "1px solid var(--teal)", background: "var(--card)", fontSize: 14, fontWeight: 700, color: "var(--heading)", outline: "none" }}
+                      type="checkbox"
+                      checked={allShownSelected}
+                      onChange={(e) => {
+                        const on = e.target.checked;
+                        setSelected(() => (on ? Object.fromEntries(shown.map((s) => [s.id, true])) : {}));
+                      }}
+                      aria-label={t("selectAll")}
+                      style={{ width: 16, height: 16, accentColor: "var(--teal)", display: "block" }}
                     />
-                  ) : (
-                    <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 14.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {s.title || t("untitled")}
-                    </div>
-                  )}
-                  <div style={{ fontSize: 11.5, color: "var(--muted)", marginBlockStart: 3 }}>{df.format(new Date(s.createdAt))}</div>
-                </div>
-                <button onClick={() => { setRenamingId(s.id); setRenameVal(s.title || ""); }} aria-label={t("renameLabel")} style={{ width: 30, height: 30, flex: "none", borderRadius: 8, border: "1px solid var(--border-2)", background: "var(--card)", cursor: "pointer", color: "var(--subtle)" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ margin: "0 auto" }}><path d="M4 20h4L18 10l-4-4L4 16zM14 6l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                </button>
-                <button onClick={() => setConfirmDel([s.id])} aria-label={t("delete")} style={{ width: 30, height: 30, flex: "none", borderRadius: 8, border: "1px solid var(--border-2)", background: "var(--card)", cursor: "pointer", color: "var(--subtle)" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ margin: "0 auto" }}><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                </button>
-              </div>
-
-              {s.summary && (
-                <p style={{ fontSize: 13, color: "var(--slate-2)", lineHeight: 1.75, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                  {s.summary}
-                </p>
-              )}
-
-              {(s.category || s.language) && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {s.category && <Tag>{t(`cat_${s.category}`)}</Tag>}
-                  {s.language && <Tag>{t(`lang_${s.language}`)}</Tag>}
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 18, padding: "10px 0", borderBlock: "1px solid var(--border)" }}>
-                <Stat n={nf.format(s.chunks)} label={t("statChunks")} />
-                <Stat n={nf.format(s.drafts)} label={t("statPosts")} />
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                {s.status === "processing" ? (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: "var(--gold-dark)" }}>
-                    <span className="skeleton" style={{ width: 11, height: 11, borderRadius: "50%" }} />
-                    {t("processing")}
-                  </span>
-                ) : s.status === "failed" ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <StatusPill tone="red">{t("failed")}</StatusPill>
-                    <button onClick={() => retry(s.id)} disabled={pending} style={{ ...btnGhost, height: 30, fontSize: 12, color: "var(--teal-deep)" }}>↻ {t("retry")}</button>
-                  </div>
-                ) : (
-                  <StatusPill tone={s.analyzed ? "teal" : "amber"}>{s.analyzed ? t("analyzed") : t("needsAnalysis")}</StatusPill>
-                )}
-              </div>
-
-              <div style={{ display: "flex", gap: 8, marginBlockStart: "auto" }}>
-                <Link href={`/vault/${s.id}`} style={{ ...btnNavy, flex: 1, height: 38, fontSize: 12.5 }}>{t("viewAnalysis")}</Link>
-                <Link href="/studio" style={{ ...btnGhost, flex: 1, height: 38, fontSize: 12.5 }}>{t("generate")}</Link>
-              </div>
-            </div>
-          ))}
+                  </th>
+                  <th style={{ width: 88 }}>{t("colType")}</th>
+                  <th>{t("colTitle")}</th>
+                  <th style={{ width: 150 }}>{t("colStatus")}</th>
+                  <th style={{ width: 78 }} className="dt-num">{t("statChunks")}</th>
+                  <th style={{ width: 78 }} className="dt-num">{t("statPosts")}</th>
+                  <th style={{ width: 120 }}>{t("colDate")}</th>
+                  <th style={{ width: 108 }}>{t("colActions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((s) => (
+                  <tr key={s.id} className={selected[s.id] ? "is-selected" : undefined}>
+                    <td>
+                      <input type="checkbox" checked={!!selected[s.id]} onChange={(e) => setSelected((v) => ({ ...v, [s.id]: e.target.checked }))} aria-label={t("select")} style={{ width: 16, height: 16, accentColor: "var(--teal)", display: "block" }} />
+                    </td>
+                    <td><FileTypeBadge label={s.label} size={30} /></td>
+                    <td style={{ maxWidth: 340 }}>
+                      {renamingId === s.id ? (
+                        <input
+                          autoFocus
+                          value={renameVal}
+                          onChange={(e) => setRenameVal(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") saveRename(s.id); if (e.key === "Escape") setRenamingId(null); }}
+                          onBlur={() => saveRename(s.id)}
+                          aria-label={t("renameLabel")}
+                          style={{ width: "100%", height: 30, padding: "0 8px", borderRadius: 8, border: "1px solid var(--teal)", background: "var(--card)", fontSize: 13.5, fontWeight: 600, color: "var(--heading)", outline: "none" }}
+                        />
+                      ) : (
+                        <Link href={`/vault/${s.id}`} className="dt-title" style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}>
+                          {s.title || t("untitled")}
+                        </Link>
+                      )}
+                      {(s.category || s.language) && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBlockStart: 5 }}>
+                          {s.category && <Tag>{t(`cat_${s.category}`)}</Tag>}
+                          {s.language && <Tag>{t(`lang_${s.language}`)}</Tag>}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      {s.status === "processing" ? (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: "var(--gold-dark)" }}>
+                          <span className="skeleton" style={{ width: 10, height: 10, borderRadius: "50%" }} />
+                          {t("processing")}
+                        </span>
+                      ) : s.status === "failed" ? (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                          <StatusPill tone="red">{t("failed")}</StatusPill>
+                          <button onClick={() => retry(s.id)} disabled={pending} title={t("retry")} className="dt-iconbtn" aria-label={t("retry")}>↻</button>
+                        </span>
+                      ) : (
+                        <StatusPill tone={s.analyzed ? "teal" : "amber"}>{s.analyzed ? t("analyzed") : t("needsAnalysis")}</StatusPill>
+                      )}
+                    </td>
+                    <td className="dt-num" style={{ color: "var(--muted)" }}>{nf.format(s.chunks)}</td>
+                    <td className="dt-num" style={{ color: "var(--muted)" }}>{nf.format(s.drafts)}</td>
+                    <td style={{ color: "var(--muted)", fontSize: 12.5, whiteSpace: "nowrap" }}>{df.format(new Date(s.createdAt))}</td>
+                    <td>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <Link href={`/vault/${s.id}`} title={t("viewAnalysis")} aria-label={t("viewAnalysis")} className="dt-iconbtn">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" strokeWidth="1.6" /><circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.6" /></svg>
+                        </Link>
+                        <button onClick={() => { setRenamingId(s.id); setRenameVal(s.title || ""); }} title={t("renameLabel")} aria-label={t("renameLabel")} className="dt-iconbtn">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18 10l-4-4L4 16zM14 6l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </button>
+                        <button onClick={() => setConfirmDel([s.id])} title={t("delete")} aria-label={t("delete")} className="dt-iconbtn">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -281,13 +303,5 @@ function Tag({ children }: { children: React.ReactNode }) {
     <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 999, background: "var(--border-3)", color: "var(--slate-2)" }}>
       {children}
     </span>
-  );
-}
-function Stat({ n, label }: { n: string; label: string }) {
-  return (
-    <div>
-      <div style={{ fontSize: 16, fontWeight: 800, color: "var(--heading)", fontFamily: "var(--font-latin)" }}>{n}</div>
-      <div style={{ fontSize: 11, color: "var(--muted)" }}>{label}</div>
-    </div>
   );
 }
