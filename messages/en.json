@@ -176,7 +176,8 @@
     "termsTitle": "Terms of Service",
     "privacyTitle": "Privacy Policy",
     "refundTitle": "Refund Policy",
-    "draftNotice": "This is an early draft for review — finalized before the first paying customer.",
+    "draftNotice": "These policies are provided in good faith and may be updated. For any question, contact support@athargrowth.com.",
+    "updatedLabel": "Last updated {date}",
     "noTrain": "We do not use your content to train our models.",
     "backHome": "Back to home"
   },
