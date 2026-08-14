@@ -43,16 +43,8 @@ export default async function SignUpPage({ params }: { params: Promise<{ locale:
           </div>
 
           <div style={{ marginBlockStart: 30, padding: 18, borderRadius: 14, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)" }}>
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,.88)", lineHeight: 1.9 }}>{t("testimonialQuote")}</p>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBlockStart: 14 }}>
-              <span style={{ width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center", background: "var(--teal)", color: "#04211d", fontWeight: 800 }}>
-                {t("testimonialInitial")}
-              </span>
-              <span>
-                <span style={{ display: "block", fontSize: 13.5, fontWeight: 700 }}>{t("testimonialName")}</span>
-                <span style={{ display: "block", fontSize: 11.5, color: "rgba(255,255,255,.52)" }}>{t("testimonialRole")}</span>
-              </span>
-            </div>
+            <span className="mono-label" style={{ color: "var(--teal-light)" }}>{t("panelPrincipleEyebrow")}</span>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,.88)", lineHeight: 1.9, marginBlockStart: 8 }}>{t("panelPrincipleBody")}</p>
           </div>
         </>
       }

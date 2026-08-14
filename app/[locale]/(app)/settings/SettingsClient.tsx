@@ -105,9 +105,9 @@ export function SettingsClient(p: Props) {
           <Panel title={t("tab_profile")}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBlockEnd: 18 }}>
               <span style={{ width: 60, height: 60, borderRadius: "50%", display: "grid", placeItems: "center", background: "linear-gradient(135deg,var(--navy-2),var(--navy))", color: "#fff", fontWeight: 800, fontSize: 22 }}>{(name || p.email || "A")[0].toUpperCase()}</span>
-              <div>
-                <Soon label={soon}><button disabled style={{ ...btnNavy, height: 38 }}>{t("changePhoto")}</button></Soon>
-                <div style={{ fontSize: 11.5, color: "var(--muted)", marginBlockStart: 7 }}>{t("photoHint")}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: "var(--heading)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || p.email?.split("@")[0]}</div>
+                <div style={{ fontSize: 12.5, color: "var(--muted)", marginBlockStart: 3, direction: "ltr", textAlign: "start" }}>{p.email}</div>
               </div>
             </div>
             <div style={{ height: 1, background: "var(--border)", marginBlockEnd: 18 }} />
@@ -160,7 +160,7 @@ export function SettingsClient(p: Props) {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 14 }}>{t(`pf_${pl.key}`)}</div>
                       <div style={{ fontSize: 12, color: isConnected ? "var(--teal-deep)" : "var(--muted)", marginBlockStart: 2, fontWeight: isConnected ? 600 : 400 }}>
-                        {isConnected ? `✓ ${t("connected")}` : isConfigured ? t("notConnected") : t("needsKeys")}
+                        {isConnected ? `✓ ${t("connectedAssistOnly")}` : isConfigured ? t("notConnected") : t("needsKeys")}
                       </div>
                     </div>
                     {isConnected ? (
