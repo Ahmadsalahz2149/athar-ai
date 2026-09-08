@@ -19,6 +19,7 @@ export default async function StudioPage({
 
   let sources: StudioSource[] = [];
   let tones: string[] = [];
+  let hasDna = true; // assume set up unless we can confirm otherwise (don't nag on a DB blip)
   if (db) {
     const ctx = await currentContext();
     if (ctx) {
@@ -26,8 +27,9 @@ export default async function StudioPage({
       const [rows, dna] = await Promise.all([org.listSources(ctx.brandId), org.currentDna(ctx.brandId)]);
       sources = rows.map((s) => ({ id: s.id, title: s.title || kindToLabel(s.kind, s.title), label: kindToLabel(s.kind, s.title) }));
       tones = dna?.tone_traits ?? [];
+      hasDna = !!dna;
     }
   }
 
-  return <StudioClient sources={sources} tones={tones} initialPrompt={sp.prompt ?? ""} initialSourceId={sp.source ?? ""} />;
+  return <StudioClient sources={sources} tones={tones} hasDna={hasDna} initialPrompt={sp.prompt ?? ""} initialSourceId={sp.source ?? ""} />;
 }

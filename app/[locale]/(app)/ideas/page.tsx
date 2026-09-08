@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
+import { StartHint } from "@/components/StartHint";
 import { IdeasClient } from "./IdeasClient";
 
 // Give the batch-generation server action room on Vercel.
@@ -13,11 +14,14 @@ export default async function IdeasPage({ params }: { params: Promise<{ locale: 
   const t = await getTranslations("Ideas");
 
   let ideas: { id: string; title: string; angle: string | null; category: string | null; bucket: string; postScore: number; status: string }[] = [];
+  let hasDna = true; // assume set up unless confirmed otherwise (don't nag on a DB blip)
   if (db) {
     const ctx = await currentContext();
     if (ctx) {
-      const rows = await forOrg(db, ctx.orgId).listIdeas(ctx.brandId, { limit: 60 });
+      const org = forOrg(db, ctx.orgId);
+      const [rows, dna] = await Promise.all([org.listIdeas(ctx.brandId, { limit: 60 }), org.currentDna(ctx.brandId)]);
       ideas = rows.map((r) => ({ id: r.id, title: r.title, angle: r.angle, category: r.category, bucket: r.bucket, postScore: r.postScore, status: r.status }));
+      hasDna = !!dna;
     }
   }
 
@@ -29,6 +33,7 @@ export default async function IdeasPage({ params }: { params: Promise<{ locale: 
           <p style={{ fontSize: 14.5, color: "var(--muted)", lineHeight: 1.7, marginBlockStart: 6 }}>{t("subtitle")}</p>
         </div>
       </div>
+      {!hasDna && <StartHint eyebrow={t("hintDnaEyebrow")} title={t("hintDnaTitle")} body={t("hintDnaBody")} cta={t("hintDnaCta")} href="/ingest" />}
       <IdeasClient ideas={ideas} />
     </main>
   );

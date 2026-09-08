@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { Logo } from "./Logo";
 import { useNav } from "./nav-context";
 import { CountBadge, ProgressMeter } from "./ui/display";
-import { WORLDS, DASHBOARD, ACCOUNT, ALL_LEAVES, findWorld, isActive, type NavLeaf } from "@/lib/nav-worlds";
+import { WORLDS, DASHBOARD, ACCOUNT, ALL_LEAVES, isActive, type NavLeaf } from "@/lib/nav-worlds";
 
 function Icon({ d }: { d: string }) {
   return (
@@ -42,12 +41,6 @@ export function Sidebar({
   const usagePct = Math.max(0, Math.min(100, (sourcesUsed / Math.max(1, sourcesLimit)) * 100));
   const displayName = userEmail?.split("@")[0] ?? brand("name");
   const initial = (userEmail?.[0] ?? "A").toUpperCase();
-
-  // Accordion: the world owning the current route is open by default; navigating
-  // opens the destination world; the header toggles manually.
-  const activeWorld = useMemo(() => findWorld(pathname)?.key ?? null, [pathname]);
-  const [openWorld, setOpenWorld] = useState<string | null>(activeWorld);
-  useEffect(() => { setOpenWorld(activeWorld); }, [activeWorld]);
 
   const Leaf = ({ item, indent = false }: { item: NavLeaf; indent?: boolean }) => {
     const active = isActive(pathname, item.href);
@@ -118,27 +111,28 @@ export function Sidebar({
             <>
               <Leaf item={DASHBOARD} />
               {WORLDS.map((w) => {
-                const isOpen = openWorld === w.key;
                 const hasActive = w.items.some((i) => isActive(pathname, i.href));
                 return (
                   <div key={w.key} style={{ display: "grid", gap: 2 }}>
-                    <button
+                    {/* One click enters the world (its first screen) and expands it. */}
+                    <Link
+                      href={w.items[0].href}
+                      onClick={close}
+                      aria-expanded={hasActive}
                       className="nav-item"
-                      onClick={() => setOpenWorld((prev) => (prev === w.key ? null : w.key))}
-                      aria-expanded={isOpen}
                       style={{
                         display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "8px 12px", borderRadius: 8,
-                        border: "none", background: "transparent", cursor: "pointer", textAlign: "start",
+                        textDecoration: "none", textAlign: "start",
                         color: hasActive ? "#f2f2f1" : "#c9c9cf", fontWeight: 600, fontSize: 13.5,
                       }}
                     >
                       <span style={{ display: "grid", placeItems: "center", flexShrink: 0, color: hasActive ? "#e88aa1" : "#9a9aa1" }}><Icon d={w.icon} /></span>
                       <span style={{ flex: 1 }}>{t(w.labelKey)}</span>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#77777e", flexShrink: 0, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#77777e", flexShrink: 0, transform: hasActive ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
                         <path d="M6 9l6 6 6-6" />
                       </svg>
-                    </button>
-                    {isOpen && <div style={{ display: "grid", gap: 2 }}>{w.items.map((i) => <Leaf key={i.href} item={i} indent />)}</div>}
+                    </Link>
+                    {hasActive && <div style={{ display: "grid", gap: 2 }}>{w.items.map((i) => <Leaf key={i.href} item={i} indent />)}</div>}
                   </div>
                 );
               })}

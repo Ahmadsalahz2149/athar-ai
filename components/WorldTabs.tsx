@@ -22,6 +22,7 @@ export function WorldTabs({ navCounts = {} }: { navCounts?: Record<string, numbe
   const activeIdx = world.items.findIndex((i) => isActive(pathname, i.href));
 
   if (world.pipeline) {
+    const next = activeIdx > -1 && activeIdx < world.items.length - 1 ? world.items[activeIdx + 1] : null;
     return (
       <div className="world-stepper scb" role="tablist" aria-label={t(world.labelKey)}>
         {world.items.map((item, i) => {
@@ -43,6 +44,12 @@ export function WorldTabs({ navCounts = {} }: { navCounts?: Record<string, numbe
             </Fragment>
           );
         })}
+        {next && (
+          <Link href={next.href} className="step-next">
+            <span>{t("nextStage")}: {t(next.key)}</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="step-next-arrow"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </Link>
+        )}
       </div>
     );
   }

@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { studioGenerate, studioRewrite, setDraftState, suggestHashtags, translatePost, repurposePost, type StudioResult, type StudioSource } from "./actions";
 import { SlideEditor } from "./SlideEditor";
 import { Logo } from "@/components/Logo";
+import { StartHint } from "@/components/StartHint";
 import { postScore, dnaMatch, scoreBreakdown } from "@/lib/ai/score";
 import { checkContent } from "@/lib/ai/guardrails";
 import {
@@ -31,11 +32,13 @@ const TOOLS = ["regenerate", "longer", "shorter", "emoji", "tone"] as const;
 export function StudioClient({
   sources,
   tones,
+  hasDna = true,
   initialPrompt = "",
   initialSourceId = "",
 }: {
   sources: StudioSource[];
   tones: string[];
+  hasDna?: boolean;
   initialPrompt?: string;
   initialSourceId?: string;
 }) {
@@ -242,6 +245,7 @@ export function StudioClient({
 
   return (
     <main style={{ maxWidth: 1240, margin: "0 auto", padding: "clamp(18px,3vw,28px) clamp(14px,3vw,28px) 90px", animation: "floatUp .4s ease" }}>
+      {!hasDna && <StartHint eyebrow={t("hintDnaEyebrow")} title={t("hintDnaTitle")} body={t("hintDnaBody")} cta={t("hintDnaCta")} href="/ingest" />}
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, flexWrap: "wrap", marginBlockEnd: 18 }}>
         <div>
