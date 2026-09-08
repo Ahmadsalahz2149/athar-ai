@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { AppTopBar } from "@/components/AppTopBar";
 import { NavProvider } from "@/components/nav-context";
 import { CommandPalette } from "@/components/CommandPalette";
+import { WorldTabs } from "@/components/WorldTabs";
 import { FloatingAssistant } from "@/components/assistant/FloatingAssistant";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { ensureUserContext } from "@/lib/auth/bootstrap";
@@ -58,18 +59,22 @@ export default async function AppLayout({
     return <SuspendedNotice locale={locale} />;
   }
 
+  // Badge counts keyed by nav key — shared by the sidebar and the world tabs.
+  const navCounts: Record<string, number> = { ideas: counts.ideas, approvals: counts.pending, calendar: counts.scheduled };
+
   return (
     <div className="app-shell">
       <NavProvider>
         <Sidebar
           balance={balance}
           sourcesUsed={counts.sources}
-          navCounts={{ ideas: counts.ideas, approvals: counts.pending, calendar: counts.scheduled }}
+          navCounts={navCounts}
           isAdmin={isAdmin}
           userEmail={userEmail}
         />
         <div className="app-main">
           <AppTopBar userEmail={userEmail} />
+          <WorldTabs navCounts={navCounts} />
           <div className="app-content scb">{children}</div>
         </div>
         <CommandPalette />

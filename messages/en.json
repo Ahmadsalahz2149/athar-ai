@@ -14,6 +14,11 @@
   "Nav": {
     "expand": "Expand menu",
     "collapse": "Collapse menu",
+    "world_brain": "Brand & Knowledge",
+    "world_create": "Create",
+    "world_publish": "Publish & Schedule",
+    "world_grow": "Grow",
+    "accountGroup": "Account",
     "studio": "Studio",
     "ingest": "Import",
     "analysis": "Analysis",

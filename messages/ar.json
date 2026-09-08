@@ -14,6 +14,11 @@
   "Nav": {
     "expand": "توسيع القائمة",
     "collapse": "طيّ القائمة",
+    "world_brain": "الهوية والمعرفة",
+    "world_create": "الإنشاء",
+    "world_publish": "النشر والجدولة",
+    "world_grow": "النمو",
+    "accountGroup": "الحساب",
     "studio": "الاستوديو",
     "ingest": "الاستيراد",
     "analysis": "التحليل",
