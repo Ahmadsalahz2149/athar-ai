@@ -8,7 +8,9 @@
  * `icon` is an SVG path `d` (stroke, 24x24) reused by both the sidebar and tabs.
  */
 export type NavLeaf = { href: string; key: string; icon: string };
-export type NavWorld = { key: string; labelKey: string; icon: string; items: NavLeaf[] };
+/** `pipeline` worlds render their in-world nav as a numbered stepper (stages of
+ * one flow) instead of plain tabs. */
+export type NavWorld = { key: string; labelKey: string; icon: string; items: NavLeaf[]; pipeline?: boolean };
 
 const I = {
   home: "M3 11l9-8 9 8M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9",
@@ -56,6 +58,7 @@ export const WORLDS: NavWorld[] = [
     key: "create",
     labelKey: "world_create",
     icon: I.wCreate,
+    pipeline: true,
     items: [
       { href: "/ideas", key: "ideas", icon: I.ideas },
       { href: "/studio", key: "studio", icon: I.studio },

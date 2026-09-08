@@ -1,13 +1,14 @@
 "use client";
 
+import { Fragment } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { findWorld, isActive } from "@/lib/nav-worlds";
 
 /**
- * Secondary navigation: when the current route belongs to a world, show that
- * world's screens as a horizontal tab strip under the top bar. Gives one-click
- * switching within a world (idea → write → media, etc.). Renders nothing on the
+ * Secondary navigation under the top bar. For a normal world it's a tab strip;
+ * for a `pipeline` world (Create) it's a numbered stepper that frames the
+ * screens as stages of one flow (idea → write → media → …). Renders nothing on
  * dashboard/account screens (which belong to no world).
  */
 export function WorldTabs({ navCounts = {} }: { navCounts?: Record<string, number> }) {
@@ -17,6 +18,34 @@ export function WorldTabs({ navCounts = {} }: { navCounts?: Record<string, numbe
   const pathname = usePathname();
   const world = findWorld(pathname);
   if (!world) return null;
+
+  const activeIdx = world.items.findIndex((i) => isActive(pathname, i.href));
+
+  if (world.pipeline) {
+    return (
+      <div className="world-stepper scb" role="tablist" aria-label={t(world.labelKey)}>
+        {world.items.map((item, i) => {
+          const active = i === activeIdx;
+          const done = activeIdx > -1 && i < activeIdx;
+          return (
+            <Fragment key={item.href}>
+              {i > 0 && <span className="step-connector" data-filled={activeIdx > -1 && i <= activeIdx ? "" : undefined} />}
+              <Link href={item.href} role="tab" aria-selected={active} className="world-step" data-active={active ? "" : undefined} data-done={done ? "" : undefined}>
+                <span className="step-num">
+                  {done ? (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  ) : (
+                    nf.format(i + 1)
+                  )}
+                </span>
+                <span className="step-label">{t(item.key)}</span>
+              </Link>
+            </Fragment>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="world-tabs scb" role="tablist" aria-label={t(world.labelKey)}>
