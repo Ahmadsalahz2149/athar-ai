@@ -15,6 +15,59 @@ function Icon({ d }: { d: string }) {
   );
 }
 
+function Leaf({
+  item,
+  indent = false,
+  pathname,
+  count,
+  collapsed,
+  close,
+  label,
+  formattedCount,
+}: {
+  item: NavLeaf;
+  indent?: boolean;
+  pathname: string;
+  count: number;
+  collapsed: boolean;
+  close: () => void;
+  label: string;
+  formattedCount: string;
+}) {
+  const active = isActive(pathname, item.href);
+  return (
+    <Link
+      href={item.href}
+      onClick={close}
+      title={collapsed ? label : undefined}
+      className="nav-item"
+      style={{
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        gap: 11,
+        padding: "8px 12px",
+        paddingInlineStart: indent && !collapsed ? 30 : 12,
+        borderRadius: 8,
+        background: active ? "rgba(158,61,87,.20)" : "transparent",
+        color: active ? "#f2f2f1" : "#a3a3a9",
+        fontWeight: active ? 600 : 450,
+        fontSize: 13.5,
+        textDecoration: "none",
+      }}
+    >
+      {active && (
+        <span className="nav-active-bar" style={{ position: "absolute", insetInlineStart: 0, insetBlock: 7, width: 3, borderRadius: 3, background: "#c76a80" }} />
+      )}
+      <span style={{ display: "grid", placeItems: "center", flexShrink: 0, color: active ? "#e88aa1" : "#7d7d84" }}>
+        <Icon d={item.icon} />
+      </span>
+      <span className="nav-label" style={{ flex: 1 }}>{label}</span>
+      {count > 0 && <CountBadge n={formattedCount} tone="teal" />}
+    </Link>
+  );
+}
+
 export function Sidebar({
   balance = null,
   sourcesUsed = 0,
@@ -42,39 +95,20 @@ export function Sidebar({
   const displayName = userEmail?.split("@")[0] ?? brand("name");
   const initial = (userEmail?.[0] ?? "A").toUpperCase();
 
-  const Leaf = ({ item, indent = false }: { item: NavLeaf; indent?: boolean }) => {
-    const active = isActive(pathname, item.href);
+  const leaf = (item: NavLeaf, indent = false) => {
     const count = navCounts[item.key] ?? 0;
     return (
-      <Link
-        href={item.href}
-        onClick={close}
-        title={collapsed ? t(item.key) : undefined}
-        className="nav-item"
-        style={{
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          gap: 11,
-          padding: "8px 12px",
-          paddingInlineStart: indent && !collapsed ? 30 : 12,
-          borderRadius: 8,
-          background: active ? "rgba(158,61,87,.20)" : "transparent",
-          color: active ? "#f2f2f1" : "#a3a3a9",
-          fontWeight: active ? 600 : 450,
-          fontSize: 13.5,
-          textDecoration: "none",
-        }}
-      >
-        {active && (
-          <span className="nav-active-bar" style={{ position: "absolute", insetInlineStart: 0, insetBlock: 7, width: 3, borderRadius: 3, background: "#c76a80" }} />
-        )}
-        <span style={{ display: "grid", placeItems: "center", flexShrink: 0, color: active ? "#e88aa1" : "#7d7d84" }}>
-          <Icon d={item.icon} />
-        </span>
-        <span className="nav-label" style={{ flex: 1 }}>{t(item.key)}</span>
-        {count > 0 && <CountBadge n={nf.format(count)} tone="teal" />}
-      </Link>
+      <Leaf
+        key={item.href}
+        item={item}
+        indent={indent}
+        pathname={pathname}
+        count={count}
+        collapsed={collapsed}
+        close={close}
+        label={t(item.key)}
+        formattedCount={nf.format(count)}
+      />
     );
   };
 
@@ -106,10 +140,10 @@ export function Sidebar({
         <nav className="app-nav">
           {collapsed ? (
             /* Collapsed rail: every screen as an icon (worlds flattened). */
-            ALL_LEAVES.map((item) => <Leaf key={item.href} item={item} />)
+            ALL_LEAVES.map((item) => leaf(item))
           ) : (
             <>
-              <Leaf item={DASHBOARD} />
+              {leaf(DASHBOARD)}
               {WORLDS.map((w) => {
                 const hasActive = w.items.some((i) => isActive(pathname, i.href));
                 return (
@@ -132,13 +166,13 @@ export function Sidebar({
                         <path d="M6 9l6 6 6-6" />
                       </svg>
                     </Link>
-                    {hasActive && <div style={{ display: "grid", gap: 2 }}>{w.items.map((i) => <Leaf key={i.href} item={i} indent />)}</div>}
+                    {hasActive && <div style={{ display: "grid", gap: 2 }}>{w.items.map((i) => leaf(i, true))}</div>}
                   </div>
                 );
               })}
 
               <div className="mono-label" style={{ color: "#66666c", padding: "12px 12px 2px" }}>{t("accountGroup")}</div>
-              {ACCOUNT.map((i) => <Leaf key={i.href} item={i} />)}
+              {ACCOUNT.map((i) => leaf(i))}
             </>
           )}
         </nav>

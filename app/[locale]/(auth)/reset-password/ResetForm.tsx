@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 
@@ -16,9 +16,11 @@ type Phase = "checking" | "ready" | "invalid" | "done";
  */
 export function ResetForm() {
   const t = useTranslations("Auth");
-  const locale = useLocale();
   const router = useRouter();
-  const [phase, setPhase] = useState<Phase>("checking");
+  // Availability of the browser client is knowable at render (env is static),
+  // so derive it here rather than calling setState synchronously in the effect.
+  const supabase = useMemo(() => getSupabaseBrowser(), []);
+  const [phase, setPhase] = useState<Phase>(supabase ? "checking" : "invalid");
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
@@ -27,8 +29,7 @@ export function ResetForm() {
 
   // Establish the recovery session from the URL on mount.
   useEffect(() => {
-    const supabase = getSupabaseBrowser();
-    if (!supabase) { setPhase("invalid"); return; }
+    if (!supabase) return;
     let done = false;
     const markReady = () => { if (!done) { done = true; setPhase("ready"); } };
 
@@ -53,7 +54,7 @@ export function ResetForm() {
     })();
 
     return () => sub.subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   const submit = async () => {
     setErr(null);
