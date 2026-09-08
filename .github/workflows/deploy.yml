@@ -1,0 +1,41 @@
+name: Deploy to production
+
+# Fully automatic deploy to the Hostinger server (Passenger).
+# Runs ONLY after the "CI" workflow finishes successfully on main — so a build
+# that fails lint/build/test never reaches production. No human step required:
+#   push to main  ->  CI (build+lint+test)  ->  (if green) this deploy over SSH.
+#
+# The SSH key is a dedicated, forced-command deploy key: connecting runs
+# /home/athar/deploy.sh on the server (git pull + build + release) and nothing
+# else. The private key lives only in encrypted GitHub Secrets, never in code.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+# Never let two deploys overlap.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only deploy when the CI run that triggered this actually passed.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger server deploy over SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # The key is restricted to deploy.sh on the server, so a bare SSH
+          # connection is enough to run the deploy; its output streams here.
+          ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30 \
+              -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST"
