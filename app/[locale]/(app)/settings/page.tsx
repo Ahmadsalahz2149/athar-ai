@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
@@ -53,23 +54,25 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
     <main style={{ maxWidth: 940, margin: "0 auto", padding: "clamp(20px,3.4vw,32px) clamp(16px,4vw,32px) 90px", animation: "floatUp .4s ease" }}>
       <h1 style={{ fontSize: "clamp(21px,3.2vw,27px)", fontWeight: 700, color: "var(--heading)", letterSpacing: "-.4px" }}>{t("title")}</h1>
       <p style={{ fontSize: 14.5, color: "var(--muted)", marginBlock: "6px 20px" }}>{t("subtitle")}</p>
-      <SettingsClient
-        email={email}
-        fullName={fullName}
-        title={title}
-        bio={bio}
-        balance={balance}
-        completeness={completeness}
-        sourcesUsed={sourcesUsed}
-        sourcesLimit={5}
-        brandType={safe(to, "bt_", onboarding.brandType)}
-        field={safe(to, "field_", onboarding.field)}
-        audience={safe(to, "aud_", onboarding.audience)}
-        dialect={safe(to, "dia_", onboarding.dialect)}
-        initialNotif={notif}
-        configuredPlatforms={configuredPlatforms()}
-        connectedPlatforms={connectedPlatforms}
-      />
+      <Suspense fallback={null}>
+        <SettingsClient
+          email={email}
+          fullName={fullName}
+          title={title}
+          bio={bio}
+          balance={balance}
+          completeness={completeness}
+          sourcesUsed={sourcesUsed}
+          sourcesLimit={5}
+          brandType={safe(to, "bt_", onboarding.brandType)}
+          field={safe(to, "field_", onboarding.field)}
+          audience={safe(to, "aud_", onboarding.audience)}
+          dialect={safe(to, "dia_", onboarding.dialect)}
+          initialNotif={notif}
+          configuredPlatforms={configuredPlatforms()}
+          connectedPlatforms={connectedPlatforms}
+        />
+      </Suspense>
     </main>
   );
 }

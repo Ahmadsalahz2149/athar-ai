@@ -46,16 +46,24 @@ export function CommandPalette() {
     return () => window.removeEventListener("keydown", onKey);
   }, [cmdOpen, setCmdOpen]);
 
-  // Reset + focus whenever it opens; close on route change.
-  useEffect(() => {
+  // Reset query + selection the moment the palette opens (adjust-state-on-change
+  // during render — the React-recommended alternative to a reset effect).
+  const [prevOpen, setPrevOpen] = useState(cmdOpen);
+  if (cmdOpen !== prevOpen) {
+    setPrevOpen(cmdOpen);
     if (cmdOpen) {
       setQ("");
       setActive(0);
-      const id = setTimeout(() => inputRef.current?.focus(), 20);
-      return () => clearTimeout(id);
     }
+  }
+  // Focus the input shortly after it mounts into the open palette.
+  useEffect(() => {
+    if (!cmdOpen) return;
+    const id = setTimeout(() => inputRef.current?.focus(), 20);
+    return () => clearTimeout(id);
   }, [cmdOpen]);
-  useEffect(() => { setCmdOpen(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [pathname]);
+  // Close on route change.
+  useEffect(() => { setCmdOpen(false); }, [pathname, setCmdOpen]);
 
   const commands: Cmd[] = useMemo(
     () => [
