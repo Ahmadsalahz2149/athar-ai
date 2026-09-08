@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
+import { isUniqueViolation } from "./pg-errors";
 import type { ContentDna } from "@/lib/ai/prompts";
 import { normalizeDna } from "@/lib/ai/normalize";
 import { type BrandProfile, normalizeProfile } from "@/lib/brand/profile";
@@ -306,7 +307,8 @@ export function forOrg(db: Db, orgId: string) {
         return await appendLedger(Math.abs(amount), reason);
       } catch (e) {
         // 23505 = unique_violation: a concurrent login already granted it.
-        if ((e as { code?: string })?.code === "23505") return currentBalance();
+        // Drizzle wraps the pg error, so match through the cause chain.
+        if (isUniqueViolation(e)) return currentBalance();
         throw e;
       }
     },

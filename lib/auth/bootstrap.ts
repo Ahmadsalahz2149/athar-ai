@@ -2,6 +2,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
+import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { START_GRANT } from "@/lib/credits/costs";
 
 /**
@@ -33,7 +34,9 @@ export async function ensureUserContext(
       await db.insert(schema.memberships).values({ userId, orgId: org.id, role: "owner" });
       orgId = org.id;
     } catch (e) {
-      if ((e as { code?: string })?.code !== "23505") throw e;
+      // Drizzle wraps the pg error, so match 23505 through the cause chain — a
+      // plain `e.code` check misses it and crashes the user's first page load.
+      if (!isUniqueViolation(e)) throw e;
       await db.delete(schema.organizations).where(eq(schema.organizations.id, org.id));
       const winner = await db
         .select()
