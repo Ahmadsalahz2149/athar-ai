@@ -1,8 +1,10 @@
 /* Athar PWA service worker. Strategy:
- *  - Static assets (icons, /_next/static): cache-first.
+ *  - Static assets (icons, /_next/static): cache-first (filenames are hashed).
  *  - Navigations: network-first with an offline fallback to the cached shell.
- * Kept deliberately small; app data is always fetched fresh (network-first). */
-const CACHE = "athar-v1";
+ * Kept deliberately small; app data is always fetched fresh (network-first).
+ * BUMP CACHE on any deploy that could leave returning users on stale chunks —
+ * the activate handler deletes every cache != CACHE, giving a clean slate. */
+const CACHE = "athar-v2";
 const SHELL = ["/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {
