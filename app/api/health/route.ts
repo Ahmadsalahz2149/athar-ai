@@ -10,6 +10,11 @@ import { queueDepth } from "@/lib/jobs/queue";
  */
 export const dynamic = "force-dynamic";
 
+/** The commit this build came from, inlined by next.config.ts at build time.
+ * Lets a deploy be verified with `curl .../api/health` instead of an SSH
+ * session — compare it against the SHA you pushed. */
+const COMMIT = process.env.ATHAR_COMMIT || "unknown";
+
 /**
  * Diagnostic: `/api/health?probe=auth` verifies that THIS server can reach the
  * Supabase auth endpoint over HTTPS (the network path used by sign-in). It
@@ -48,15 +53,15 @@ async function probeAuth() {
 export async function GET(req: Request) {
   const ts = new Date().toISOString();
   if (new URL(req.url).searchParams.get("probe") === "auth") {
-    return NextResponse.json({ probe: "auth", ...(await probeAuth()), ts });
+    return NextResponse.json({ probe: "auth", ...(await probeAuth()), commit: COMMIT, ts });
   }
-  if (!db) return NextResponse.json({ ok: false, db: "unconfigured", ts }, { status: 503 });
+  if (!db) return NextResponse.json({ ok: false, db: "unconfigured", commit: COMMIT, ts }, { status: 503 });
   try {
     await db.execute(sql`select 1`);
     const queue = await queueDepth(db);
     const backlog = (queue.queued ?? 0) + (queue.running ?? 0);
-    return NextResponse.json({ ok: true, db: "up", queue, backlog, dead: queue.dead ?? 0, ts });
+    return NextResponse.json({ ok: true, db: "up", commit: COMMIT, queue, backlog, dead: queue.dead ?? 0, ts });
   } catch (e) {
-    return NextResponse.json({ ok: false, db: "down", error: e instanceof Error ? e.message : "error", ts }, { status: 503 });
+    return NextResponse.json({ ok: false, db: "down", commit: COMMIT, error: e instanceof Error ? e.message : "error", ts }, { status: 503 });
   }
 }

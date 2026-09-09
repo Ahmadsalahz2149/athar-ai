@@ -54,3 +54,6 @@ This document describes the system that is actually deployed. Proposed or future
 5. Run `scripts/run-worker-cron.mjs` once per minute from cPanel cron under a non-overlapping `flock`.
 6. Voyage embedding inputs are token-budgeted and throttled so long Arabic sources remain within the free-tier 10K TPM limit.
 7. Verify `/api/health`, authentication redirects, both locales, static assets, and a real ingestion job after every deployment.
+   `/api/health` reports `commit` (the short SHA the running build was compiled from, inlined by `next.config.ts`),
+   so a deployment can be confirmed with `curl -s https://athargrowth.com/api/health` instead of an SSH session —
+   compare it against the SHA you pushed.

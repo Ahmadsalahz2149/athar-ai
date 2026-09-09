@@ -1,9 +1,41 @@
+import { execSync } from "node:child_process";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin();
 
+/**
+ * The commit this build was produced from, resolved at build time and exposed
+ * to the app via `env` below so `/api/health` can report exactly which revision
+ * is live — a deploy is then verifiable with one curl instead of an SSH session.
+ *
+ * Resolved here rather than through `generateBuildId` on purpose: that would
+ * name the release directory after the commit, and deploy-cpanel.sh does
+ * `rm -rf "$release"` before installing, so re-deploying the SAME commit would
+ * briefly delete the files of the running release. The random build id keeps
+ * that collision impossible.
+ */
+function buildCommit(): string {
+  const fromEnv = process.env.ATHAR_COMMIT ?? process.env.GIT_COMMIT;
+  if (fromEnv) return fromEnv.trim().slice(0, 12);
+  try {
+    // The production build runs inside the git checkout, so this resolves there
+    // too; the assembled standalone release carries the value already inlined.
+    return execSync("git rev-parse --short HEAD", {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return "unknown"; // building from a tarball / no git — never fail the build
+  }
+}
+
 const nextConfig: NextConfig = {
+  // Inlined at build time (see buildCommit). Only the short commit hash, which
+  // is not sensitive; `env` values are always included in the JS bundle.
+  env: { ATHAR_COMMIT: buildCommit() },
+
   // Self-hosted (Coolify/Docker) production build: emit a minimal standalone
   // server (.next/standalone/server.js) so the runtime image stays small and
   // has no dev dependencies. Ignored by Vercel, which uses its own adapter.
