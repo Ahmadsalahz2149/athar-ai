@@ -98,7 +98,7 @@ export function ApprovalsClient({ drafts, media = {} }: { drafts: Draft[]; media
                   {tab === "pending" && <th style={{ width: 40 }}><span className="sr-only">{t("select")}</span></th>}
                   <th>{t("colPost")}</th>
                   <th style={{ width: 84 }} className="dt-num">{t("dnaMatch")}</th>
-                  <th style={{ width: 84 }} className="dt-num">Post Score</th>
+                  <th style={{ width: 84 }} className="dt-num">{t("postScore")}</th>
                   <th style={{ width: 116 }}>{t("colStatus")}</th>
                   <th style={{ width: tab === "pending" ? 150 : 96 }}>{t("colActions")}</th>
                 </tr>

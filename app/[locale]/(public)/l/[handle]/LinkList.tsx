@@ -4,7 +4,7 @@ import { recordClick } from "./actions";
 
 /** Renders the link buttons and fires a best-effort click beacon before opening
  * each link (so the owner gets click stats). */
-export function LinkList({ orgId, brandId, links }: { orgId: string; brandId: string; links: { label: string; url: string }[] }) {
+export function LinkList({ handle, links }: { handle: string; links: { label: string; url: string }[] }) {
   if (!links.length) return null;
   return (
     <div style={{ display: "grid", gap: 12, marginBlockStart: 26 }}>
@@ -14,7 +14,7 @@ export function LinkList({ orgId, brandId, links }: { orgId: string; brandId: st
           href={l.url}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => { recordClick(orgId, brandId, i).catch(() => {}); }}
+          onClick={() => { recordClick(handle, i).catch(() => {}); }}
           style={{
             display: "block", padding: "15px 18px", borderRadius: 14, textAlign: "center",
             background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.14)",
