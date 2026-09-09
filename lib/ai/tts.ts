@@ -3,6 +3,8 @@
  * generation), which synthesizes Arabic. Returns MP3 bytes decoded from the
  * hex payload MiniMax sends back. */
 
+import { providerFetch } from "./http";
+
 export function hasTtsKey(): boolean {
   return !!process.env.MINIMAX_API_KEY;
 }
@@ -25,7 +27,7 @@ export async function textToSpeech(text: string, opts?: { voiceId?: string; spee
   const key = process.env.MINIMAX_API_KEY;
   if (!key) throw new Error("MINIMAX_API_KEY is not set");
   const voiceId = opts?.voiceId && VOICES.some((v) => v.id === opts.voiceId) ? opts.voiceId : "male-qn-jingying";
-  const res = await fetch(`${base}/t2a_v2`, {
+  const res = await providerFetch(`${base}/t2a_v2`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -35,7 +37,7 @@ export async function textToSpeech(text: string, opts?: { voiceId?: string; spee
       voice_setting: { voice_id: voiceId, speed: opts?.speed ?? 1, vol: 1, pitch: 0 },
       audio_setting: { sample_rate: 32000, bitrate: 128000, format: "mp3", channel: 1 },
     }),
-  });
+  }, 120000);
   const json = (await res.json().catch(() => ({}))) as { data?: { audio?: string }; base_resp?: { status_code?: number; status_msg?: string } };
   const code = json?.base_resp?.status_code;
   if (!res.ok || (typeof code === "number" && code !== 0)) {

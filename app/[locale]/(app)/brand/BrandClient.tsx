@@ -192,7 +192,7 @@ function LogoSection({ data, t, router }: { data: BrandData; t: ReturnType<typeo
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <LogoThumb url={data.logoUrl} name={data.name} size={72} />
         <div style={{ display: "flex", gap: 8 }}>
-          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" hidden onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
+          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
           <button onClick={() => fileRef.current?.click()} disabled={pending} style={{ ...btnNavy, height: 38 }}>{pending ? t("uploading") : t("chooseLogo")}</button>
           {data.logoUrl && <button onClick={clear} disabled={pending} style={{ ...btnGhost, height: 38 }}>{t("removeLogo")}</button>}
         </div>

@@ -2,6 +2,8 @@
  * (Scribe extracts the audio track). Synchronous for now; long files move to a
  * background job in a later pass. */
 
+import { providerFetch } from "./http";
+
 export const TRANSCRIBE_MODEL = process.env.ELEVENLABS_STT_MODEL || "scribe_v1";
 const ENDPOINT = "https://api.elevenlabs.io/v1/speech-to-text";
 
@@ -15,11 +17,11 @@ export async function transcribeAudio(file: Blob, filename = "audio"): Promise<s
   const form = new FormData();
   form.append("model_id", TRANSCRIBE_MODEL);
   form.append("file", file, filename);
-  const res = await fetch(ENDPOINT, {
+  const res = await providerFetch(ENDPOINT, {
     method: "POST",
     headers: { "xi-api-key": key },
     body: form,
-  });
+  }, 180000);
   if (!res.ok) {
     throw new Error(`ElevenLabs ${res.status}: ${(await res.text()).slice(0, 200)}`);
   }

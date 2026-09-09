@@ -5,6 +5,7 @@ import { extractJson } from "@/lib/ai/json";
 import { normalizeAnalysis } from "@/lib/ai/normalize";
 import { estimateAnalyze } from "@/lib/credits/costs";
 import { ANALYSIS_SYSTEM, ANALYSIS_SCHEMA, buildAnalysisUserMessage } from "@/lib/ai/prompts";
+import { canAfford, chargeForDeliveredWork } from "../billing";
 import type { JobHandler } from "../runner";
 
 export type AnalyzeJobPayload = { sourceId: string };
@@ -14,6 +15,9 @@ export type AnalyzeJobPayload = { sourceId: string };
  * ideas/DNA. Skips silently if no provider key or no chunks (nothing to retry). */
 export const analyzeSourceHandler: JobHandler = async ({ db, job, progress }) => {
   const { sourceId } = job.payload as unknown as AnalyzeJobPayload;
+  // A malformed payload used to fall through to an empty chunk read and report
+  // the job "done" with no error recorded — fail loudly instead.
+  if (!sourceId) throw new Error("analyze_source payload is missing sourceId");
   const provider = currentProvider();
   if (!hasKeyFor(provider)) return { skipped: "no_key" };
 
@@ -21,6 +25,10 @@ export const analyzeSourceHandler: JobHandler = async ({ db, job, progress }) =>
   await progress(20, "load");
   const chunks = await org.sourceChunkTexts(job.brandId, sourceId, 40);
   if (!chunks.length) return { skipped: "no_chunks" };
+
+  // Pay-gate BEFORE the paid call, not after the result is stored.
+  const cost = estimateAnalyze();
+  if (!(await canAfford(db, job.orgId, cost))) return { skipped: "insufficient_credits" };
 
   await progress(50, "analyze");
   const res = await generateText({
@@ -42,6 +50,6 @@ export const analyzeSourceHandler: JobHandler = async ({ db, job, progress }) =>
     audience: analysis.audience_problems,
     opportunities: analysis.content_opportunities,
   });
-  await org.debitOnce(estimateAnalyze(), "analyze_source", `analyze:${sourceId}`, "source", sourceId);
+  await chargeForDeliveredWork(db, job.orgId, cost, "analyze_source", `analyze:${sourceId}`, "source", sourceId);
   return { sourceId };
 };

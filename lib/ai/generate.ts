@@ -1,6 +1,7 @@
 import "server-only";
 import { getAnthropic, hasAnthropicKey } from "./anthropic";
 import type { ProviderId } from "./catalog";
+import { providerFetch } from "./http";
 
 /**
  * Provider abstraction. Provider + model can be chosen per-request (from the UI)
@@ -88,7 +89,7 @@ async function minimaxGenerate(args: GenArgs): Promise<GenResult> {
     "Do NOT output any Chinese characters. No reasoning, no <think> tags, no markdown fences, " +
     "and no text before or after the JSON.";
 
-  const res = await fetch(`${base}/chat/completions`, {
+  const res = await providerFetch(`${base}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
@@ -99,7 +100,7 @@ async function minimaxGenerate(args: GenArgs): Promise<GenResult> {
         { role: "user", content: args.user },
       ],
     }),
-  });
+  }, 120000);
 
   const data: unknown = await res.json().catch(() => ({}));
   if (!res.ok) {

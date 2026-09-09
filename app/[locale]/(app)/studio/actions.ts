@@ -6,6 +6,7 @@ import { isValidSelection, type ProviderId } from "@/lib/ai/catalog";
 import { extractJson } from "@/lib/ai/json";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
+import { guardDraft } from "@/lib/ai/guardDraft";
 import { estimateCompose, estimateRewrite } from "@/lib/credits/costs";
 import { embedOne, hasEmbeddingKey } from "@/lib/ai/embed";
 import { postScore, dnaMatch } from "@/lib/ai/score";
@@ -217,11 +218,18 @@ export async function studioRewrite(input: { body: string; tool: string; provide
 export async function setDraftState(
   draftId: string,
   state: "draft" | "pending" | "scheduled",
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; error?: string; violations?: string[] }> {
   try {
     if (!db) return { ok: false };
     const ctx = await currentContext();
     if (!ctx) return { ok: false };
+    // Enforce the content guardrail server-side on any move toward publication.
+    // The browser runs the same scan, but it is advisory — this action can be
+    // called directly. Saving a plain draft stays unguarded so work isn't lost.
+    if (state !== "draft") {
+      const guard = await guardDraft(db, ctx.orgId, ctx.brandId, draftId);
+      if (!guard.ok) return { ok: false, error: "guardrail", violations: guard.violations };
+    }
     await forOrg(db, ctx.orgId).setDraftStatus(ctx.brandId, draftId, state, state === "scheduled" ? new Date() : undefined);
     return { ok: true };
   } catch {

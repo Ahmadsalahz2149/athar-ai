@@ -6,7 +6,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { eq, inArray } from "drizzle-orm";
 import * as schema from "@/lib/db/schema";
 import { forOrg } from "@/lib/db/forOrg";
-import { claimNext, complete, fail, setProgress } from "@/lib/jobs/queue";
+import { claimNext, complete, fail, setProgress, reapStale } from "@/lib/jobs/queue";
 import { registerHandler, runOne } from "@/lib/jobs/runner";
 import { backoffSeconds, type JobRow } from "@/lib/jobs/types";
 
@@ -139,5 +139,77 @@ describe.runIf(!!db)("job queue (lib/jobs)", () => {
     expect(otherActive.length).toBe(0);
     await db!.delete(schema.organizations).where(eq(schema.organizations.id, other.id));
     await complete(db!, id);
+  });
+  // --- Lease discipline (regression) ---
+
+  it("fences terminal writes on the lease: a foreign worker cannot complete", async () => {
+    const id = await forOrg(db!, orgId).enqueueJob(brandId, "test_noop");
+    jobIds.push(id);
+    const claimed = await claimNext(db!, "owner");
+    expect(claimed!.id).toBe(id);
+
+    // A worker that does NOT hold the lease must not be able to finish the job.
+    expect(await complete(db!, id, { stolen: true }, "impostor")).toBe(false);
+    let job = await forOrg(db!, orgId).getJob(brandId, id);
+    expect(job!.status).toBe("running");
+
+    // The real owner still can.
+    expect(await complete(db!, id, { ok: true }, "owner")).toBe(true);
+    job = await forOrg(db!, orgId).getJob(brandId, id);
+    expect(job!.status).toBe("done");
+  });
+
+  it("setProgress heartbeats the lease and is fenced too", async () => {
+    const id = await forOrg(db!, orgId).enqueueJob(brandId, "test_noop");
+    jobIds.push(id);
+    await claimNext(db!, "owner");
+    // Backdate the lease, then heartbeat as the owner: locked_at must move up.
+    const stale = new Date(Date.now() - 60 * 60 * 1000);
+    await db!.update(schema.jobs).set({ lockedAt: stale }).where(eq(schema.jobs.id, id));
+    await setProgress(db!, id, 30, "working", "owner");
+    const rows = await sql!`select locked_at, progress from jobs where id = ${id}::uuid`;
+    expect(new Date(rows[0].locked_at as string).getTime()).toBeGreaterThan(stale.getTime());
+    expect(rows[0].progress).toBe(30);
+
+    // A foreign worker's progress write is ignored.
+    await setProgress(db!, id, 99, "hijack", "impostor");
+    const after = await sql!`select progress from jobs where id = ${id}::uuid`;
+    expect(after[0].progress).toBe(30);
+    await complete(db!, id, {}, "owner");
+  });
+
+  it("reapStale respects the retry cap: an exhausted job dies instead of looping", async () => {
+    const id = await forOrg(db!, orgId).enqueueJob(brandId, "test_noop", {}, { maxAttempts: 1 });
+    jobIds.push(id);
+    await claimNext(db!, "crashed"); // attempts = 1 = maxAttempts
+    await db!.update(schema.jobs).set({ lockedAt: new Date(Date.now() - 60 * 60 * 1000) }).where(eq(schema.jobs.id, id));
+
+    expect(await reapStale(db!, 60, orgId)).toBeGreaterThanOrEqual(1);
+    const job = await forOrg(db!, orgId).getJob(brandId, id);
+    expect(job!.status).toBe("dead"); // previously re-queued forever
+  });
+
+  it("reapStale re-queues a job that still has attempts left", async () => {
+    const id = await forOrg(db!, orgId).enqueueJob(brandId, "test_noop", {}, { maxAttempts: 3 });
+    jobIds.push(id);
+    await claimNext(db!, "crashed"); // attempts = 1 of 3
+    await db!.update(schema.jobs).set({ lockedAt: new Date(Date.now() - 60 * 60 * 1000) }).where(eq(schema.jobs.id, id));
+
+    await reapStale(db!, 60, orgId);
+    const job = await forOrg(db!, orgId).getJob(brandId, id);
+    expect(job!.status).toBe("queued");
+  });
+
+  it("claimNext can be scoped to one org (the client-side pump)", async () => {
+    const id = await forOrg(db!, orgId).enqueueJob(brandId, "test_noop");
+    jobIds.push(id);
+    const [other] = await db!.insert(schema.organizations).values({ name: "test-jobs-scope" }).returning();
+    // Another tenant's pump must not be able to claim our job.
+    expect(await claimNext(db!, "their-pump", other.id)).toBeNull();
+    // Ours can.
+    const mine = await claimNext(db!, "our-pump", orgId);
+    expect(mine!.id).toBe(id);
+    await complete(db!, id, {}, "our-pump");
+    await db!.delete(schema.organizations).where(eq(schema.organizations.id, other.id));
   });
 });

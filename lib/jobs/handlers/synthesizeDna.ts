@@ -5,6 +5,7 @@ import { extractJson } from "@/lib/ai/json";
 import { normalizeDna } from "@/lib/ai/normalize";
 import { estimateDna } from "@/lib/credits/costs";
 import { DNA_SYSTEM, DNA_SCHEMA, buildDnaUserMessage } from "@/lib/ai/prompts";
+import { canAfford, chargeForDeliveredWork } from "../billing";
 import type { JobHandler } from "../runner";
 
 export type SynthesizeDnaPayload = { trigger?: string };
@@ -25,6 +26,10 @@ export const synthesizeDnaHandler: JobHandler = async ({ db, job, progress }) =>
   const samples = await org.brandSampleText(job.brandId, 40);
   if (samples.trim().length < 120) return { skipped: "no_samples" };
 
+  // Pay-gate BEFORE the Opus call, not after the DNA is saved.
+  const cost = estimateDna();
+  if (!(await canAfford(db, job.orgId, cost))) return { skipped: "insufficient_credits" };
+
   await progress(50, "synthesize");
   const res = await generateText({
     system: DNA_SYSTEM,
@@ -41,7 +46,7 @@ export const synthesizeDnaHandler: JobHandler = async ({ db, job, progress }) =>
   const versionId = await org.saveDna(job.brandId, dna);
   // Charge once per synthesis trigger so a retried job never double-bills.
   const trigger = (job.payload as unknown as SynthesizeDnaPayload)?.trigger ?? job.id;
-  await org.debitOnce(estimateDna(), "synthesize_dna", `dna:${trigger}`, "brand", job.brandId);
+  await chargeForDeliveredWork(db, job.orgId, cost, "synthesize_dna", `dna:${trigger}`, "brand", job.brandId);
   await progress(100, "done");
   return { versionId, completion: dna.completion_pct };
 };

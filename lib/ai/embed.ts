@@ -2,6 +2,8 @@
  * the model later means re-embedding every chunk (the vector column is fixed at
  * EMBED_DIMS). voyage-3 is multilingual and strong on Arabic. */
 
+import { providerFetch } from "./http";
+
 export const EMBED_MODEL = process.env.VOYAGE_MODEL || "voyage-3";
 export const EMBED_DIMS = 1024;
 const ENDPOINT = "https://api.voyageai.com/v1/embeddings";
@@ -47,11 +49,11 @@ function planBatches(texts: string[]): { start: number; values: string[] }[] {
  * is added) and 5xx. Up to 4 retries: ~2s, 4s, 8s, 16s (or Retry-After). */
 async function postVoyage(body: unknown, key: string): Promise<Response> {
   for (let attempt = 0; ; attempt++) {
-    const res = await fetch(ENDPOINT, {
+    const res = await providerFetch(ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify(body),
-    });
+    }, 60000);
     if (res.ok || (res.status !== 429 && res.status < 500) || attempt >= 4) return res;
     const retryAfter = Number(res.headers.get("retry-after"));
     const fallback = res.status === 429

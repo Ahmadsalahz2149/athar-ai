@@ -3,6 +3,8 @@
  * (status_code 2056), so callers surface a clear "needs credits" state; the flow
  * is complete and works the moment the plan has credits. */
 
+import { providerFetch } from "./http";
+
 export function hasVideoKey(): boolean {
   return !!process.env.MINIMAX_API_KEY;
 }
@@ -27,11 +29,11 @@ export class VideoCreditsError extends Error {
  * when the plan is out of video credits (2056). */
 export async function submitVideo(prompt: string): Promise<string> {
   const { base, key } = conf();
-  const res = await fetch(`${base}/video_generation`, {
+  const res = await providerFetch(`${base}/video_generation`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: MODEL, prompt: prompt.slice(0, 1500) }),
-  });
+  }, 60000);
   const json = (await res.json().catch(() => ({}))) as { task_id?: string; base_resp?: { status_code?: number; status_msg?: string } };
   const code = json?.base_resp?.status_code;
   if (code === 2056) throw new VideoCreditsError();
@@ -46,9 +48,9 @@ export type VideoStatus = { status: "queueing" | "processing" | "success" | "fai
 /** Poll a video task's status. */
 export async function queryVideo(taskId: string): Promise<VideoStatus> {
   const { base, key } = conf();
-  const res = await fetch(`${base}/query/video_generation?task_id=${encodeURIComponent(taskId)}`, {
+  const res = await providerFetch(`${base}/query/video_generation?task_id=${encodeURIComponent(taskId)}`, {
     headers: { Authorization: `Bearer ${key}` },
-  });
+  }, 30000);
   const json = (await res.json().catch(() => ({}))) as { status?: string; file_id?: string };
   const s = (json.status ?? "").toLowerCase();
   const status = s === "success" ? "success" : s === "fail" ? "fail" : s === "processing" ? "processing" : "queueing";
@@ -58,9 +60,9 @@ export async function queryVideo(taskId: string): Promise<VideoStatus> {
 /** Resolve a finished task's file id to a downloadable URL. */
 export async function retrieveVideoUrl(fileId: string): Promise<string | null> {
   const { base, key } = conf();
-  const res = await fetch(`${base}/files/retrieve?file_id=${encodeURIComponent(fileId)}`, {
+  const res = await providerFetch(`${base}/files/retrieve?file_id=${encodeURIComponent(fileId)}`, {
     headers: { Authorization: `Bearer ${key}` },
-  });
+  }, 60000);
   const json = (await res.json().catch(() => ({}))) as { file?: { download_url?: string } };
   return json?.file?.download_url ?? null;
 }

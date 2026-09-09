@@ -60,8 +60,24 @@ export async function deleteProduct(productId: string): Promise<Res> {
   }
 }
 
-const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml", "image/gif"];
+// Raster only. SVG is deliberately excluded: it is an executable document, and
+// the logo is served from a PUBLIC bucket with the stored content-type, so an
+// SVG carrying <script> would be stored XSS on the storage origin.
+const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const LOGO_MAX = 512 * 1024; // 512KB — stored inline as a data URI, no bucket needed.
+
+/** Identify an image from its magic bytes. `file.type` is supplied by the
+ * caller and never verified, so a file declared image/png can hold anything;
+ * the stored content-type must be derived from the bytes themselves. */
+function sniffImageType(b: Uint8Array): string | null {
+  const has = (sig: number[], at = 0) => sig.every((v, i) => b[at + i] === v);
+  if (has([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return "image/png";
+  if (has([0xff, 0xd8, 0xff])) return "image/jpeg";
+  if (has([0x47, 0x49, 0x46, 0x38])) return "image/gif"; // GIF8[7|9]a
+  // RIFF....WEBP
+  if (has([0x52, 0x49, 0x46, 0x46]) && has([0x57, 0x45, 0x42, 0x50], 8)) return "image/webp";
+  return null;
+}
 
 /** Upload (or clear) the brand logo. Stored as a data URI in the brand row so
  * it renders everywhere with no public bucket / signed-URL plumbing. */
@@ -77,14 +93,17 @@ export async function uploadLogo(form: FormData): Promise<Res<{ logoUrl: string 
     if (!LOGO_TYPES.includes(file.type)) return { ok: false, error: "bad_type" };
     if (file.size > LOGO_MAX) return { ok: false, error: "too_large" };
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const ext = (file.type.split("/")[1] || "png").replace("+xml", "");
+    // Trust the bytes, not the declared type, and store the sniffed type.
+    const sniffed = sniffImageType(bytes);
+    if (!sniffed || !LOGO_TYPES.includes(sniffed)) return { ok: false, error: "bad_type" };
+    const ext = sniffed.split("/")[1];
     // Prefer a public storage URL (keeps the DB row light); fall back to an
     // inline data URI when storage isn't available so the feature never breaks.
     let logoUrl: string;
     try {
-      logoUrl = await uploadPublic(`logos/${ctx.brandId}.${ext}`, bytes, file.type);
+      logoUrl = await uploadPublic(`logos/${ctx.brandId}.${ext}`, bytes, sniffed);
     } catch {
-      logoUrl = `data:${file.type};base64,${Buffer.from(bytes).toString("base64")}`;
+      logoUrl = `data:${sniffed};base64,${Buffer.from(bytes).toString("base64")}`;
     }
     await forOrg(db, ctx.orgId).setBrandLogo(ctx.brandId, logoUrl);
     revalidatePath("/brand");

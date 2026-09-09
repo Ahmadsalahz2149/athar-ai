@@ -4,6 +4,7 @@ import { transcribeAudio } from "@/lib/ai/transcribe";
 import { chunkArabic } from "@/lib/ai/chunk";
 import { extractPdfText } from "@/lib/ingest/extractPdf";
 import { downloadBytes, removeObject } from "@/lib/storage/uploads";
+import { canAfford, chargeForDeliveredWork } from "../billing";
 import type { JobHandler } from "../runner";
 
 /** Discriminated payload for an `ingest_source` job. Text-derived inputs (paste,
@@ -23,11 +24,20 @@ export type IngestJobPayload =
  */
 export const ingestSourceHandler: JobHandler = async ({ db, job, progress }) => {
   const p = job.payload as unknown as IngestJobPayload;
+  // Validate the payload before charging anything: `cost` was trusted verbatim,
+  // so a missing value reached the ledger as NaN after all the work was done.
+  if (!p?.sourceId) throw new Error("ingest_source payload is missing sourceId");
+  if (!Number.isFinite(p.cost)) throw new Error("ingest_source payload has an invalid cost");
   const org = forOrg(db, job.orgId);
   const brandId = job.brandId;
 
   try {
     await org.setSourceStatus(brandId, p.sourceId, "processing");
+    // Pay-gate before the paid work (transcription + embeddings), not after.
+    if (!(await canAfford(db, job.orgId, p.cost))) {
+      await org.setSourceStatus(brandId, p.sourceId, "failed").catch(() => {});
+      return { sourceId: p.sourceId, skipped: "insufficient_credits" };
+    }
     await progress(10, "extract");
     let text: string;
     if (p.mode === "file") {
@@ -54,11 +64,8 @@ export const ingestSourceHandler: JobHandler = async ({ db, job, progress }) => 
     await org.clearChunks(brandId, p.sourceId); // idempotent re-run
     await org.saveChunks(brandId, p.sourceId, chunks.map((c, i) => ({ idx: c.idx, content: c.content, embedding: vectors[i] })));
     await org.setSourceStatus(brandId, p.sourceId, "ready");
-    await org.debitOnce(p.cost, p.reason, `ingest:${p.sourceId}`, "source", p.sourceId); // idempotent: never double-charges
+    await chargeForDeliveredWork(db, job.orgId, p.cost, p.reason, `ingest:${p.sourceId}`, "source", p.sourceId);
 
-    if (p.mode === "file") {
-      try { await removeObject(p.storagePath); } catch { /* best-effort cleanup */ }
-    }
     // Chain analysis + DNA synthesis when the user asked for ideas/DNA on upload.
     // Synthesis reads ALL the brand's chunks (including these), so uploading
     // posts actually builds the Content DNA — the core "learn my voice" step.
@@ -66,10 +73,20 @@ export const ingestSourceHandler: JobHandler = async ({ db, job, progress }) => 
       await org.enqueueJob(brandId, "analyze_source", { sourceId: p.sourceId });
       await org.enqueueJob(brandId, "synthesize_dna", { trigger: `ingest:${p.sourceId}` });
     }
+    // Drop the uploaded file LAST. Deleting it before the steps above meant any
+    // throw after the delete left every retry failing at downloadBytes, burning
+    // the attempt budget until the job died with the source stuck failed.
+    if (p.mode === "file") {
+      try { await removeObject(p.storagePath); } catch { /* best-effort cleanup */ }
+    }
     await progress(100, "done");
     return { sourceId: p.sourceId, chunks: chunks.length };
   } catch (e) {
-    await org.setSourceStatus(brandId, p.sourceId, "failed").catch(() => {});
+    // Only show a terminal 'failed' state once no retry remains — a transient
+    // attempt failure leaves the source 'processing' while the queue retries.
+    if (job.attempts >= job.maxAttempts) {
+      await org.setSourceStatus(brandId, p.sourceId, "failed").catch(() => {});
+    }
     throw e;
   }
 };

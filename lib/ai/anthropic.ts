@@ -14,7 +14,11 @@ export function getAnthropic(): Anthropic {
       "ANTHROPIC_API_KEY is not set. Add it to .env.local (see .env.example).",
     );
   }
-  client ??= new Anthropic({ apiKey });
+  // Bound each attempt: the SDK default is 10 minutes (scaling higher for large
+  // max_tokens on non-streaming calls), far past the routes' own limits — a
+  // stalled provider would hold the request open well beyond them. Units are
+  // milliseconds in the TypeScript SDK. maxRetries is left at the SDK default.
+  client ??= new Anthropic({ apiKey, timeout: 180_000 });
   return client;
 }
 

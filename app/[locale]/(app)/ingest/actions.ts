@@ -87,10 +87,15 @@ async function enqueueText(
  * FOR UPDATE SKIP LOCKED, so overlapping pumps never double-process. */
 export async function pumpWorker(): Promise<{ processed: number }> {
   if (!db) return { processed: 0 };
-  if (!(await currentContext())) return { processed: 0 };
+  const ctx = await currentContext();
+  if (!ctx) return { processed: 0 };
   try {
-    await reapStale(db); // recover jobs a prior (killed) invocation left locked
-    const processed = await runBatch(db, `pump_${Date.now()}`, 5);
+    // Scoped to the caller's own org: this is a user-triggered pump, so it must
+    // only ever drive that tenant's jobs. Unscoped it let any signed-in user
+    // spend their request driving (and reaping) other orgs' work. The durable
+    // cron worker — authenticated with WORKER_SECRET — is what drains globally.
+    await reapStale(db, 1800, ctx.orgId); // recover this org's stuck jobs
+    const processed = await runBatch(db, `pump_${Date.now()}`, 2, 30_000, ctx.orgId);
     return { processed };
   } catch {
     return { processed: 0 };
