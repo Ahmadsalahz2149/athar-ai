@@ -48,8 +48,7 @@ export async function fetchUrlText(rawUrl: string): Promise<{ text: string; titl
     }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    const buf = new Uint8Array(await res.arrayBuffer());
-    if (buf.byteLength > MAX_BYTES) throw new Error("content too large");
+    const buf = await readCapped(res, MAX_BYTES);
     const ct = (res.headers.get("content-type") || "").toLowerCase();
 
     if (ct.includes("application/pdf") || url.pathname.toLowerCase().endsWith(".pdf")) {
@@ -63,6 +62,40 @@ export async function fetchUrlText(rawUrl: string): Promise<{ text: string; titl
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Read a response body while enforcing the byte cap *as it streams*. Buffering
+ * the whole body first (arrayBuffer) made the cap decorative: a hostile URL
+ * serving a multi-GB body could exhaust memory before the size was ever tested. */
+async function readCapped(res: Response, max: number): Promise<Uint8Array> {
+  const declared = Number(res.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > max) throw new Error("content too large");
+  if (!res.body) {
+    const b = new Uint8Array(await res.arrayBuffer());
+    if (b.byteLength > max) throw new Error("content too large");
+    return b;
+  }
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > max) throw new Error("content too large");
+      chunks.push(value);
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+  }
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) {
+    out.set(c, off);
+    off += c.byteLength;
+  }
+  return out;
 }
 
 function fileNameOf(u: URL): string {

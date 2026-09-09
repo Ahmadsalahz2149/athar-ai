@@ -40,28 +40,38 @@ export function forOrg(db: Db, orgId: string) {
   }
 
   async function appendLedger(delta: number, reason: string, refType?: string, refId?: string, idempotencyKey?: string): Promise<number> {
-    // One statement + a per-org transaction advisory lock makes balance
-    // calculation and insertion atomic. Without this, two simultaneous debits
-    // can both read the same balance and drive the account below zero.
-    const rows = await db.execute(sql`
-      with org_lock as materialized (
-        select pg_advisory_xact_lock(hashtextextended(${orgId}, 0))
-      ), current_balance as materialized (
-        select coalesce(sum(${schema.creditLedger.delta}), 0)::int as balance
-        from ${schema.creditLedger}, org_lock
-        where ${schema.creditLedger.orgId} = ${orgId}::uuid
-      )
-      insert into ${schema.creditLedger}
-        (org_id, delta, reason, ref_type, ref_id, idempotency_key, balance_after)
-      select ${orgId}::uuid, ${delta}, ${reason}, ${refType ?? null},
-             ${refId ?? null}::uuid, ${idempotencyKey ?? null}, balance + ${delta}
-      from current_balance
-      where ${delta} >= 0 or balance + ${delta} >= 0
-      returning balance_after as "balanceAfter"
-    `);
-    const row = (rows as unknown as { balanceAfter: number }[])[0];
-    if (!row) throw new InsufficientCreditsError();
-    return row.balanceAfter;
+    // A per-org advisory lock serializes balance calculation and insertion so
+    // two simultaneous debits cannot both read the same balance and drive the
+    // account below zero.
+    //
+    // The lock MUST be acquired in its own statement, before the INSERT. Under
+    // READ COMMITTED a statement's snapshot is taken when the statement starts
+    // — so holding the lock inside the same INSERT (an `org_lock` CTE) still
+    // let a blocked debit resume against its pre-lock snapshot and re-read the
+    // stale balance. That was reproducible: 40 concurrent debits of 10 against
+    // a balance of 100 all succeeded, leaving the org at -300. Taking the lock
+    // in a separate statement means the INSERT below opens a fresh snapshot
+    // that sees every debit committed while we were waiting.
+    return await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${orgId}, 0))`);
+      const rows = await tx.execute(sql`
+        with current_balance as materialized (
+          select coalesce(sum(${schema.creditLedger.delta}), 0)::int as balance
+          from ${schema.creditLedger}
+          where ${schema.creditLedger.orgId} = ${orgId}::uuid
+        )
+        insert into ${schema.creditLedger}
+          (org_id, delta, reason, ref_type, ref_id, idempotency_key, balance_after)
+        select ${orgId}::uuid, ${delta}, ${reason}, ${refType ?? null},
+               ${refId ?? null}::uuid, ${idempotencyKey ?? null}, balance + ${delta}
+        from current_balance
+        where ${delta} >= 0 or balance + ${delta} >= 0
+        returning balance_after as "balanceAfter"
+      `);
+      const row = (rows as unknown as { balanceAfter: number }[])[0];
+      if (!row) throw new InsufficientCreditsError();
+      return row.balanceAfter;
+    });
   }
 
   return {

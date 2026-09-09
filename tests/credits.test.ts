@@ -51,6 +51,7 @@ const db = sql ? drizzle(sql, { schema }) : null;
 
 let orgId = "";
 let concurrentOrgId = "";
+let raceOrgId = "";
 
 describe.runIf(!!db)("credit ledger (append-only)", () => {
   beforeAll(async () => {
@@ -67,6 +68,10 @@ describe.runIf(!!db)("credit ledger (append-only)", () => {
     if (concurrentOrgId) {
       await db.delete(schema.creditLedger).where(eq(schema.creditLedger.orgId, concurrentOrgId));
       await db.delete(schema.organizations).where(eq(schema.organizations.id, concurrentOrgId));
+    }
+    if (raceOrgId) {
+      await db.delete(schema.creditLedger).where(eq(schema.creditLedger.orgId, raceOrgId));
+      await db.delete(schema.organizations).where(eq(schema.organizations.id, raceOrgId));
     }
     await sql!.end({ timeout: 3 });
   });
@@ -117,6 +122,34 @@ describe.runIf(!!db)("credit ledger (append-only)", () => {
     expect(attempts.filter((attempt) => attempt.status === "fulfilled")).toHaveLength(1);
     expect(attempts.filter((attempt) => attempt.status === "rejected")).toHaveLength(1);
     expect(await t.balance()).toBe(3);
+  });
+
+  // Regression: the two-debit test above still passed while the ledger was
+  // broken — this file's pool is capped at 2 connections, so the debits never
+  // truly raced. The stale-snapshot bug (advisory lock taken inside the same
+  // INSERT statement) only appears with enough real connections: 20 concurrent
+  // debits of 10 against a balance of 100 all committed, ending at -100.
+  it("holds the balance under real concurrency (wider pool)", async () => {
+    const pool = postgres(DATABASE_URL!, { ssl: { rejectUnauthorized: false }, prepare: false, max: 20 });
+    try {
+      const wide = drizzle(pool, { schema });
+      const [o] = await wide.insert(schema.organizations).values({ name: "test-credits-race" }).returning();
+      raceOrgId = o.id;
+      const t = forOrg(wide, raceOrgId);
+      await t.grant(100, "test_grant");
+
+      const results = await Promise.allSettled(
+        Array.from({ length: 20 }, (_, i) => t.debit(10, `race_debit_${i}`)),
+      );
+      // Exactly ten debits of 10 fit in a balance of 100; the rest must fail.
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(10);
+      expect(await t.balance()).toBe(0);
+
+      const rows = await pool`select coalesce(sum(delta), 0)::int as s from credit_ledger where org_id = ${raceOrgId}::uuid`;
+      expect(rows[0].s).toBe(0); // true ledger sum never went negative
+    } finally {
+      await pool.end({ timeout: 5 });
+    }
   });
 });
 
