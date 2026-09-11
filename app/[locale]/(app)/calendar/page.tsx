@@ -5,6 +5,7 @@ import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { platformColor, btnTeal } from "@/components/ui/display";
 import { toPlatformId } from "@/lib/social/registry";
+import { log } from "@/lib/log";
 import { Scheduler } from "./Scheduler";
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -50,7 +51,11 @@ export default async function CalendarPage({ params, searchParams }: { params: P
       const org = forOrg(db, ctx.orgId);
       // The calendar now shows the whole life of a post, not just its plan:
       // waiting → going out → live (with a link) → failed (with the reason).
-      const [sched, approved, published, publishing, failed, conns] = await Promise.all([
+      // Fault-tolerant per read, like Settings and Billing. These queries touch
+      // columns added by a migration, and a release that lands before its
+      // migration has already cost us a 500 on a live page once — one failing
+      // read must degrade a section, not take the whole calendar down.
+      const [sched, approved, published, publishing, failed, conns] = await Promise.allSettled([
         org.scheduledDrafts(ctx.brandId),
         org.listDraftsByStatus(ctx.brandId, "approved"),
         org.publishedDrafts(ctx.brandId),
@@ -58,7 +63,12 @@ export default async function CalendarPage({ params, searchParams }: { params: P
         org.listDraftsByStatus(ctx.brandId, "publish_failed"),
         org.listConnections(ctx.brandId),
       ]);
-      connected = conns.filter((c) => c.status === "connected").map((c) => c.platform);
+      for (const r of [sched, approved, published, publishing, failed, conns]) {
+        if (r.status === "rejected") log.error("calendar.read_failed", {}, r.reason);
+      }
+      if (conns.status === "fulfilled") {
+        connected = conns.value.filter((c) => c.status === "connected").map((c) => c.platform);
+      }
 
       const place = (r: { hook: string; platform: string; scheduledAt: Date | null; publishedAt?: Date | null; externalUrl?: string | null; publishError?: string | null }, state: PostState) => {
         // A published post is pinned to when it actually went out; everything
@@ -82,16 +92,18 @@ export default async function CalendarPage({ params, searchParams }: { params: P
         byDate.set(key, darr);
       };
 
-      for (const r of sched) place(r, "scheduled");
-      for (const r of publishing) place(r, "publishing");
-      for (const r of published) place(r, "published");
-      for (const r of failed) place(r, "failed");
+      if (sched.status === "fulfilled") for (const r of sched.value) place(r, "scheduled");
+      if (publishing.status === "fulfilled") for (const r of publishing.value) place(r, "publishing");
+      if (published.status === "fulfilled") for (const r of published.value) place(r, "published");
+      if (failed.status === "fulfilled") for (const r of failed.value) place(r, "failed");
 
-      unscheduled = approved.map((r) => ({
-        id: r.id, hook: r.hook, platform: r.platform,
-        // "Publish now" is only offered when there is an account to publish to.
-        canPublish: Boolean(toPlatformId(r.platform) && connected.includes(toPlatformId(r.platform)!)),
-      }));
+      if (approved.status === "fulfilled") {
+        unscheduled = approved.value.map((r) => ({
+          id: r.id, hook: r.hook, platform: r.platform,
+          // "Publish now" is only offered when there is an account to publish to.
+          canPublish: Boolean(toPlatformId(r.platform) && connected.includes(toPlatformId(r.platform)!)),
+        }));
+      }
     }
   }
   for (const arr of byDate.values()) arr.sort((a, b) => a.sort - b.sort);
