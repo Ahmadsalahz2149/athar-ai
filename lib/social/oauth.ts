@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { providerFetch } from "@/lib/ai/http";
 import { PLATFORMS, type PlatformId } from "./registry";
 
 /**
@@ -63,11 +64,15 @@ export async function exchangeCode(platform: PlatformId, origin: string, code: s
   });
   if (c.usesPkce && codeVerifier) params.set("code_verifier", codeVerifier);
 
-  const res = await fetch(c.tokenUrl, {
+  // Timed out, like every other provider call: this runs inside the OAuth
+  // callback, so a platform that accepts the connection and then stalls would
+  // otherwise hold the user's browser on a blank redirect until the platform
+  // killed the request.
+  const res = await providerFetch(c.tokenUrl, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
     body: params.toString(),
-  });
+  }, 20_000);
   const data = (await res.json().catch(() => ({}))) as { access_token?: string; refresh_token?: string; expires_in?: number; scope?: string; error_description?: string; error?: string };
   if (!res.ok || !data.access_token) {
     throw new Error(`token exchange failed: ${data.error_description || data.error || res.status}`);

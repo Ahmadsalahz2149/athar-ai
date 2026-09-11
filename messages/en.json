@@ -614,7 +614,8 @@
     "vtMatches": "What matches your voice",
     "vtBreaks": "What breaks your voice",
     "vtTip": "Tip",
-    "vtShort": "Text is too short."
+    "vtShort": "Text is too short.",
+    "needKey": "Generation key not configured."
   },
   "Vault": {
     "title": "Knowledge Vault",
@@ -1280,7 +1281,8 @@
     "preset_closeup": "Close-up",
     "preset_showcase": "Showcase",
     "preset_ugc": "UGC",
-    "preset_lifestyle": "Lifestyle"
+    "preset_lifestyle": "Lifestyle",
+    "needKey": "Generation key not configured for this feature."
   },
   "Assistant": {
     "title": "Athar Assistant",

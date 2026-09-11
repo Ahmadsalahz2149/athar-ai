@@ -68,4 +68,16 @@ export const LIMITS = {
   resetEmail: { limit: 3, windowMs: 60 * 60_000 },
   /** AI streams, per org — a burst guard in front of the provider. */
   aiStream: { limit: 20, windowMs: 60_000 },
+  /**
+   * Public link page, per IP. These are the only writes in the product that an
+   * unauthenticated stranger can trigger: every page view and every click
+   * records a row. Unthrottled, a loop inflates the owner's analytics into
+   * fiction and grows the table without bound, for free.
+   *
+   * The numbers are set so a real visitor never notices — nobody opens the same
+   * link page 30 times a minute, or clicks 60 times — while a script is capped
+   * within seconds.
+   */
+  linkView: { limit: 30, windowMs: 60_000 },
+  linkClick: { limit: 60, windowMs: 60_000 },
 } as const;

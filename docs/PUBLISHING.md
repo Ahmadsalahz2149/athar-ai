@@ -86,8 +86,9 @@ re-consent — the publisher does not pretend otherwise.
    `.env.example`). `OAUTH_BASE_URL` must be the public https origin.
 2. Register `"$OAUTH_BASE_URL"/api/social/<platform>/callback` as an allowed
    redirect URI on the platform.
-3. Apply migrations (`drizzle/0023_draft_publishing.sql` adds the columns the
-   publisher writes). The deploy script does **not** run migrations.
+3. Deploy. `scripts/deploy-cpanel.sh` applies migrations itself, before the new
+   release goes live (`drizzle/0023_draft_publishing.sql` adds the columns the
+   publisher writes).
 4. Restart, then connect an account from **Settings → Platforms**. A connect
    that fails because the account has no Page or no linked Instagram account
    fails *there*, with the cause in the logs (`social.connect_failed`), instead

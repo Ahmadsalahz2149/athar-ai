@@ -21,6 +21,29 @@ test -s .env.production
 # the server runtime pointing at chunks that no longer exist.
 rm -rf .next
 "$NPM" ci
+
+# Schema before code. Leaving migrations out of this script meant remembering a
+# second command, in the right order, every single time — and the one time that
+# order was wrong, a release went live reading columns that did not exist yet
+# and two screens returned 500 until it was noticed. Running them here removes
+# the step that has to be remembered.
+#
+# Safe to fail: `set -e` aborts the deploy before anything is staged or swapped,
+# so the previous release keeps serving. Our migrations are additive first
+# (a new column is invisible to the running code), which is what makes
+# "migrate, then swap" the correct order rather than a gamble.
+#
+# TMPDIR is pinned because the account's default points at a directory this user
+# cannot write, which failed drizzle-kit with EACCES.
+if [ "${ATHAR_SKIP_MIGRATE:-0}" = "1" ]; then
+  printf 'Skipping migrations (ATHAR_SKIP_MIGRATE=1).\n'
+else
+  TMPDIR="${TMPDIR:-$APP_ROOT/tmp}"
+  mkdir -p "$TMPDIR"
+  export TMPDIR
+  "$NPM" run db:migrate
+fi
+
 "$NPM" run build
 
 # Standalone does not copy these directories automatically. Assemble an

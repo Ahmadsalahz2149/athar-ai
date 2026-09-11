@@ -1,4 +1,5 @@
 import "server-only";
+import { readCapped } from "@/lib/http/readCapped";
 import dns from "node:dns/promises";
 import { extractPdfText } from "./extractPdf";
 import { isPrivateIp, assertSafeUrl } from "./ssrf";
@@ -64,39 +65,6 @@ export async function fetchUrlText(rawUrl: string): Promise<{ text: string; titl
   }
 }
 
-/** Read a response body while enforcing the byte cap *as it streams*. Buffering
- * the whole body first (arrayBuffer) made the cap decorative: a hostile URL
- * serving a multi-GB body could exhaust memory before the size was ever tested. */
-async function readCapped(res: Response, max: number): Promise<Uint8Array> {
-  const declared = Number(res.headers.get("content-length"));
-  if (Number.isFinite(declared) && declared > max) throw new Error("content too large");
-  if (!res.body) {
-    const b = new Uint8Array(await res.arrayBuffer());
-    if (b.byteLength > max) throw new Error("content too large");
-    return b;
-  }
-  const reader = res.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > max) throw new Error("content too large");
-      chunks.push(value);
-    }
-  } finally {
-    await reader.cancel().catch(() => {});
-  }
-  const out = new Uint8Array(total);
-  let off = 0;
-  for (const c of chunks) {
-    out.set(c, off);
-    off += c.byteLength;
-  }
-  return out;
-}
 
 function fileNameOf(u: URL): string {
   return decodeURIComponent(u.pathname.split("/").filter(Boolean).pop() || u.hostname);

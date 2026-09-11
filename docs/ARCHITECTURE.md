@@ -72,19 +72,25 @@ This document describes the system that is actually deployed. Proposed or future
   credentials are configured and a user connects an account; with no credentials the app
   stays export-first exactly as before. Platform *analytics* are still not connected.
   See `docs/PUBLISHING.md`.
+- Production dependencies carry zero known advisories; the handful that remain are
+  build/test tooling and are documented with their reasons in `docs/DEPENDENCIES.md`.
 - Operational visibility comes from the in-product admin area, structured server logs and
   Sentry (opt-in — inert without a DSN). PostHog is not installed. See `docs/MONITORING.md`.
 
 ## Deployment checklist
 
 1. Build with Node.js 22 and `npm ci`.
-2. Assemble an immutable release under `.releases`, including public assets,
+2. Apply pending migrations BEFORE the release is staged, so a failed migration
+   aborts the deploy with the previous release still serving. `deploy-cpanel.sh`
+   does this; `ATHAR_SKIP_MIGRATE=1` opts out when the schema is being moved by
+   hand.
+3. Assemble an immutable release under `.releases`, including public assets,
    `.next/static`, and the Passenger `app.js` adapter.
-3. Atomically switch `current`, then restart Passenger using `tmp/restart.txt`.
-4. Keep `.env.production` readable only by the cPanel account.
-5. Run `scripts/run-worker-cron.mjs` once per minute from cPanel cron under a non-overlapping `flock`.
-6. Voyage embedding inputs are token-budgeted and throttled so long Arabic sources remain within the free-tier 10K TPM limit.
-7. Verify `/api/health`, authentication redirects, both locales, static assets, and a real ingestion job after every deployment.
+4. Atomically switch `current`, then restart Passenger using `tmp/restart.txt`.
+5. Keep `.env.production` readable only by the cPanel account.
+6. Run `scripts/run-worker-cron.mjs` once per minute from cPanel cron under a non-overlapping `flock`.
+7. Voyage embedding inputs are token-budgeted and throttled so long Arabic sources remain within the free-tier 10K TPM limit.
+8. Verify `/api/health`, authentication redirects, both locales, static assets, and a real ingestion job after every deployment.
    `/api/health` reports `commit` (the short SHA the running build was compiled from, inlined by `next.config.ts`),
    so a deployment can be confirmed with `curl -s https://athargrowth.com/api/health` instead of an SSH session —
    compare it against the SHA you pushed.

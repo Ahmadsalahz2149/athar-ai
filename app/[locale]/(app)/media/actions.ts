@@ -1,6 +1,8 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { providerFetch } from "@/lib/ai/http";
+import { readCapped } from "@/lib/http/readCapped";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
@@ -13,6 +15,11 @@ import { uploadPublic } from "@/lib/storage/uploads";
 import { generateText, hasKeyFor, currentProvider } from "@/lib/ai/generate";
 import { MODELS } from "@/lib/ai/models";
 import { IMAGE_PROMPT_SYSTEM, buildImagePromptMessage, buildBrandContext } from "@/lib/ai/prompts";
+
+/** A generated image is a few hundred KB; 20 MB is far above any real one and
+ * far below anything that threatens the process. */
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const REHOST_TIMEOUT_MS = 30_000;
 
 type Ctx = { db: NonNullable<typeof db>; ctx: { orgId: string; brandId: string } };
 async function ctxOrNull(): Promise<Ctx | null> {
@@ -68,8 +75,14 @@ export async function generateImage(prompt: string, aspect?: ImageAspect, n?: nu
     const urls: string[] = [];
     for (const src of srcUrls) {
       try {
-        const res = await fetch(src);
-        const bytes = new Uint8Array(await res.arrayBuffer());
+        // Bounded on both axes. The bare fetch had no timeout (a provider that
+        // accepted the connection and then stalled held this action open until
+        // the platform killed it) and read the body with arrayBuffer(), so an
+        // oversized response was loaded into memory in full before anyone could
+        // object. A generated image that exceeds the cap is not re-hosted; the
+        // provider URL is kept instead, which is the existing fallback.
+        const res = await providerFetch(src, {}, REHOST_TIMEOUT_MS);
+        const bytes = await readCapped(res, MAX_IMAGE_BYTES);
         const url = await persist("image", "png", res.headers.get("content-type") || "image/png", bytes);
         await t.saveMediaAsset(c.ctx.brandId, { kind: "image", url, prompt: prompt.trim().slice(0, 200), draftId: draftId ?? null });
         urls.push(url);

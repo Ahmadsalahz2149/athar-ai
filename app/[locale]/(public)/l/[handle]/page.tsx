@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { brandByHandle, recordLinkEvent } from "@/lib/link/publicLookup";
 import { safeUrl } from "@/lib/link/types";
+import { consume, LIMITS } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/request-ip";
 import { LinkList } from "./LinkList";
 
 export const dynamic = "force-dynamic";
@@ -11,8 +13,14 @@ export default async function PublicLinkPage({ params }: { params: Promise<{ loc
   setRequestLocale(locale);
   const brand = await brandByHandle(handle.toLowerCase());
   if (!brand) notFound();
-  // Count the visit (best-effort).
-  await recordLinkEvent(brand.orgId, brand.brandId, "view");
+  // Count the visit (best-effort) — but only within a per-IP budget. This is an
+  // unauthenticated write: without a cap, anyone can reload in a loop and both
+  // pad the owner's view count and grow link_events without bound. Being over
+  // the limit only skips the counter; the page itself always renders.
+  const ip = await clientIp();
+  if (consume(`link:view:${handle}:${ip}`, LIMITS.linkView.limit, LIMITS.linkView.windowMs).ok) {
+    await recordLinkEvent(brand.orgId, brand.brandId, "view");
+  }
 
   const initial = (brand.name || "؟").trim().charAt(0);
   const links = brand.page.links.map((l) => ({ label: l.label, url: safeUrl(l.url) })).filter((l) => l.url);

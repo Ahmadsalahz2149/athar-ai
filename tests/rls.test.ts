@@ -90,12 +90,21 @@ describe.runIf(!!ownerDb && !!rlsDb)("row-level security", () => {
   });
 
   afterAll(async () => {
-    if (ownerDb && orgA) {
+    // Exhaustive on purpose. Deleting only what the first version of this file
+    // happened to create left orphans behind, and the organization delete then
+    // failed silently on a foreign key — so every run accumulated rows and the
+    // next run's assertions were reading somebody else's leftovers.
+    if (ownerSql && orgA) {
       for (const id of [orgA, orgB]) {
-        await ownerDb.delete(schema.drafts).where(eq(schema.drafts.orgId, id));
-        await ownerDb.delete(schema.creditLedger).where(eq(schema.creditLedger.orgId, id));
-        await ownerDb.delete(schema.brands).where(eq(schema.brands.orgId, id));
-        await ownerDb.delete(schema.organizations).where(eq(schema.organizations.id, id));
+        for (const table of [
+          "coupon_redemptions", "invoices", "social_connections", "media_assets",
+          "products", "ideas", "analyses", "source_chunks", "sources",
+          "drafts", "dna_versions", "credit_ledger", "jobs", "link_events",
+          "memberships", "brands",
+        ]) {
+          await ownerSql.unsafe(`delete from ${table} where org_id = $1`, [id]);
+        }
+        await ownerSql`delete from organizations where id = ${id}::uuid`;
       }
     }
     await ownerSql?.end({ timeout: 3 });
@@ -196,6 +205,181 @@ describe.runIf(!!ownerDb && !!rlsDb)("row-level security", () => {
         // savepoint inside the scoped one. If nesting were broken, this throws.
         await org.grant(100, "rls_test_grant");
         expect(await org.balance()).toBe(100);
+      } finally {
+        delete process.env.DB_RLS;
+      }
+    });
+
+    // Regression: a coupon's redemption counter lives on a PLATFORM-owned row,
+    // not a tenant one. Under RLS the write policy on `coupons` is system-only,
+    // so a plain UPDATE from tenant context silently affects zero rows — and a
+    // counter that never moves makes max_redemptions unenforceable, i.e. one
+    // coupon redeemable forever across every workspace.
+    it("still increments a coupon's redemption counter", async () => {
+      if (!ready) return;
+      process.env.DB_RLS = "true";
+      const code = `RLSTEST${Date.now().toString().slice(-6)}`;
+      try {
+        const [c] = await ownerDb!.insert(schema.coupons).values({ code, credits: 25, maxRedemptions: 1 }).returning();
+        const res = await forOrg(rlsDb!, orgA).redeemCoupon(code);
+        expect(res.ok).toBe(true);
+
+        const [after] = await ownerDb!.select().from(schema.coupons).where(eq(schema.coupons.id, c.id));
+        expect(after.redemptions).toBe(1);
+
+        // And the cap now actually binds for the next workspace.
+        const second = await forOrg(rlsDb!, orgB).redeemCoupon(code);
+        expect(second).toMatchObject({ ok: false, error: "exhausted" });
+
+        await ownerDb!.delete(schema.couponRedemptions).where(eq(schema.couponRedemptions.couponId, c.id));
+        await ownerDb!.delete(schema.coupons).where(eq(schema.coupons.id, c.id));
+      } finally {
+        delete process.env.DB_RLS;
+      }
+    });
+
+    // Regression: the handle uniqueness check reads across tenants. Under RLS
+    // another workspace's handle is invisible, so the check passes and the
+    // UPDATE hits the unique index — turning a clean "taken" into a raw
+    // Postgres error surfaced to the user.
+    it("reports a handle taken by ANOTHER workspace as taken, not as a crash", async () => {
+      if (!ready) return;
+      process.env.DB_RLS = "true";
+      const handle = `rls-h-${Date.now().toString().slice(-6)}`;
+      try {
+        expect(await forOrg(rlsDb!, orgB).setHandle(brandB, handle)).toBe(true);
+        expect(await forOrg(rlsDb!, orgA).setHandle(brandA, handle)).toBe(false);
+        // B keeps it; A did not steal it.
+        const [b] = await ownerDb!.select().from(schema.brands).where(eq(schema.brands.id, brandB));
+        expect(b.handle).toBe(handle);
+      } finally {
+        delete process.env.DB_RLS;
+      }
+    });
+
+    it("re-claiming your OWN handle still succeeds", async () => {
+      if (!ready) return;
+      process.env.DB_RLS = "true";
+      const handle = `rls-own-${Date.now().toString().slice(-6)}`;
+      try {
+        expect(await forOrg(rlsDb!, orgA).setHandle(brandA, handle)).toBe(true);
+        expect(await forOrg(rlsDb!, orgA).setHandle(brandA, handle)).toBe(true);
+      } finally {
+        delete process.env.DB_RLS;
+      }
+    });
+
+    // Regression: the affiliate count reads OTHER orgs' rows (the ones this org
+    // referred). The org policy hides them, so the number silently read zero.
+    it("counts referred workspaces, which live outside this org's scope", async () => {
+      if (!ready) return;
+      process.env.DB_RLS = "true";
+      try {
+        await ownerDb!.update(schema.organizations).set({ referredBy: orgA }).where(eq(schema.organizations.id, orgB));
+        const r = await forOrg(rlsDb!, orgA).getReferral();
+        expect(r.count).toBe(1);
+        expect(r.code).toMatch(/^AF/);
+      } finally {
+        await ownerDb!.update(schema.organizations).set({ referredBy: null }).where(eq(schema.organizations.id, orgB));
+        delete process.env.DB_RLS;
+      }
+    });
+
+    // The Stripe path. A webhook is delivered at least once, so the SECOND
+    // delivery must land on the duplicate-key branch — which means a failed
+    // INSERT inside the per-call RLS transaction. If that abort were not
+    // contained, a replayed payment would 500 instead of being a no-op, and
+    // Stripe would keep retrying it.
+    it("treats a replayed keyed grant as a no-op under RLS, not an error", async () => {
+      if (!ready) return;
+      process.env.DB_RLS = "true";
+      try {
+        const org = forOrg(rlsDb!, orgB);
+        const key = `rls_replay_${Date.now()}`;
+        const first = await org.grantOnceKeyed(50, "purchase", key, "stripe");
+        const second = await org.grantOnceKeyed(50, "purchase", key, "stripe");
+        expect(second).toBe(first); // credited once, and the replay still answers
+        expect(await org.balance()).toBe(first);
+      } finally {
+        delete process.env.DB_RLS;
+      }
+    });
+
+    it("treats a replayed idempotent debit as a no-op under RLS", async () => {
+      if (!ready) return;
+      process.env.DB_RLS = "true";
+      try {
+        const org = forOrg(rlsDb!, orgB);
+        const before = await org.balance();
+        const key = `rls_debit_${Date.now()}`;
+        await org.debitOnce(10, "ingest_source", key);
+        const afterFirst = await org.balance();
+        expect(afterFirst).toBe(before - 10);
+        await org.debitOnce(10, "ingest_source", key);
+        expect(await org.balance()).toBe(afterFirst);
+      } finally {
+        delete process.env.DB_RLS;
+      }
+    });
+
+    it("treats a second redemption of the same coupon as 'already', not a crash", async () => {
+      if (!ready) return;
+      process.env.DB_RLS = "true";
+      const code = `RLSDUP${Date.now().toString().slice(-6)}`;
+      try {
+        const [c] = await ownerDb!.insert(schema.coupons).values({ code, credits: 10, maxRedemptions: 5 }).returning();
+        expect((await forOrg(rlsDb!, orgA).redeemCoupon(code)).ok).toBe(true);
+        expect(await forOrg(rlsDb!, orgA).redeemCoupon(code)).toMatchObject({ ok: false, error: "already" });
+        const [after] = await ownerDb!.select().from(schema.coupons).where(eq(schema.coupons.id, c.id));
+        expect(after.redemptions).toBe(1); // the failed retry must not bump it
+        await ownerDb!.delete(schema.couponRedemptions).where(eq(schema.couponRedemptions.couponId, c.id));
+        await ownerDb!.delete(schema.coupons).where(eq(schema.coupons.id, c.id));
+      } finally {
+        delete process.env.DB_RLS;
+      }
+    });
+
+    /**
+     * A broad net rather than a list of the three bugs we happened to find.
+     *
+     * Every one of these reads its own workspace's data through the restricted
+     * connection. Under RLS a method that reaches outside its scope does not
+     * error — it silently returns nothing — so the only way to catch the next
+     * one is to assert that real seeded data actually comes back.
+     */
+    it("returns real data for a representative spread of facade reads", async () => {
+      if (!ready) return;
+      process.env.DB_RLS = "true";
+      try {
+        const org = forOrg(rlsDb!, orgA);
+
+        // Seed as the owner, read back through the restricted role.
+        const [src] = await ownerDb!.insert(schema.sources).values({ orgId: orgA, brandId: brandA, kind: "text", title: "S1", status: "ready" }).returning();
+        await ownerDb!.insert(schema.ideas).values({ orgId: orgA, brandId: brandA, title: "I1", angle: "a", postScore: 70 });
+        await ownerDb!.insert(schema.mediaAssets).values({ orgId: orgA, brandId: brandA, kind: "image", url: "https://x/y.png" });
+        await ownerDb!.insert(schema.products).values({ orgId: orgA, brandId: brandA, name: "P1" });
+        await ownerDb!.insert(schema.invoices).values({
+          orgId: orgA, stripeInvoiceId: `in_rls_${Date.now()}`, number: "RLS-1", status: "paid", currency: "usd",
+          subtotalCents: 100, taxCents: 0, totalCents: 100, amountPaidCents: 100, issuedAt: new Date(),
+        });
+        await org.saveConnection(brandA, "linkedin", { accessToken: "t", externalAccountId: "urn:li:person:x" });
+
+        expect((await org.currentBrand())?.id).toBe(brandA);
+        expect((await org.listSources(brandA)).length).toBeGreaterThan(0);
+        expect((await org.listIdeas(brandA)).length).toBeGreaterThan(0);
+        expect((await org.listMediaAssets(brandA)).length).toBeGreaterThan(0);
+        expect((await org.listProducts(brandA)).length).toBeGreaterThan(0);
+        expect((await org.listInvoices()).length).toBeGreaterThan(0);
+        expect((await org.listConnections(brandA)).length).toBeGreaterThan(0);
+        expect(await org.getConnection(brandA, "linkedin")).not.toBeNull();
+        expect((await org.counts(brandA)).sources).toBeGreaterThan(0);
+        expect(await org.balance()).toBeGreaterThanOrEqual(0);
+        expect((await org.listDrafts(brandA)).length).toBeGreaterThan(0);
+        expect(await org.planState()).toBeTruthy();
+        expect(await org.getLinkInfo(brandA)).toBeTruthy();
+        expect(await org.linkStats(brandA)).toBeTruthy();
+
+        await ownerDb!.delete(schema.sources).where(eq(schema.sources.id, src.id));
       } finally {
         delete process.env.DB_RLS;
       }

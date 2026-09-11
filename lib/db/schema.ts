@@ -78,7 +78,13 @@ export const brands = pgTable("brands", {
   linkPage: jsonb("link_page"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});
+}, (t) => [
+  // The handle is the public page's address, so it must be globally unique —
+  // otherwise one workspace could claim another's URL. The index has existed
+  // since 0018 but was missing from this file, which is the only thing that
+  // would have stopped `drizzle-kit push` from dropping it.
+  uniqueIndex("brands_handle_idx").on(t.handle),
+]);
 
 // Products & services the brand offers (Phase 1). Injected into content
 // generation so posts can reference what the brand actually sells.
@@ -139,7 +145,11 @@ export const dnaVersions = pgTable("dna_versions", {
   completionPct: integer("completion_pct").notNull().default(0),
   builtFromSourceIds: jsonb("built_from_source_ids"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  // The DNA history screen and every generation read the latest version for
+  // one brand, newest first.
+  index("dna_versions_brand_idx").on(t.orgId, t.brandId, t.createdAt),
+]);
 
 export const drafts = pgTable("drafts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -177,6 +187,12 @@ export const drafts = pgTable("drafts", {
 }, (t) => [
   // The publisher's claim query: due scheduled drafts, oldest first.
   index("drafts_due_idx").on(t.status, t.scheduledAt),
+  // Everything else. Drafts are the most-read table in the product — the
+  // dashboard counts, the Vault, Approvals, Studio and the Calendar all filter
+  // by (org, brand) — and without this every one of those was a sequential scan
+  // over every tenant's rows. `created_at` rides along so the usual
+  // "newest first" order comes from the index rather than a sort.
+  index("drafts_brand_idx").on(t.orgId, t.brandId, t.createdAt),
 ]);
 
 // Links a Supabase auth user to an organization (org → memberships → brands).
@@ -243,7 +259,10 @@ export const analyses = pgTable("analyses", {
   audience: jsonb("audience"),
   opportunities: jsonb("opportunities"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [
+  // Every analysis read is per brand; without this the table is scanned.
+  index("analyses_brand_idx").on(t.orgId, t.brandId),
+]);
 
 // A content idea (from a topic, a source, or trending) with a predicted score.
 export const ideas = pgTable("ideas", {
@@ -261,7 +280,9 @@ export const ideas = pgTable("ideas", {
   postScore: integer("post_score").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});
+}, (t) => [
+  index("ideas_brand_idx").on(t.orgId, t.brandId, t.createdAt),
+]);
 
 // A piece of ingested content (pasted text now; URL/PDF/audio in Stage 4).
 export const sources = pgTable("sources", {
@@ -283,7 +304,9 @@ export const sources = pgTable("sources", {
   status: text("status").notNull().default("ready"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});
+}, (t) => [
+  index("sources_brand_idx").on(t.orgId, t.brandId, t.createdAt),
+]);
 
 // Background job queue (INFRA phase 1). Durable, tenancy-scoped work items that
 // run outside the request lifetime: transcription, embedding, analysis. Claimed

@@ -38,6 +38,7 @@
 الهجرات**، فنفّذها مرّة واحدة على الخادم **قبل** أو **بعد** النشر مباشرة:
 
 ```bash
+# الهجرات صارت جزءًا من scripts/deploy-cpanel.sh — هذا الأمر للتشغيل اليدوي فقط
 su - athar -c 'mkdir -p ~/tmp && cd /home/athar/apps/athar-ai && TMPDIR=~/tmp npm run db:migrate'
 ```
 

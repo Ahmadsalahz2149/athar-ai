@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { usePathname } from "next/navigation";
 
 /**
@@ -7,9 +9,18 @@ import { usePathname } from "next/navigation";
  * app screen and shows a recoverable UI instead of a blank crash. Strings are
  * inlined bilingual (not next-intl) so an i18n failure can't break the boundary
  * itself. `reset()` re-renders the segment.
+ *
+ * The boundary also REPORTS. A client-side render crash never reaches the
+ * server, so `onRequestError` in instrumentation.ts cannot see it — without
+ * this, the errors this component exists to catch were the only ones nobody
+ * ever heard about. Sentry is inert without a DSN, so it stays a no-op until
+ * one is configured.
  */
-export default function AppError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function AppError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const pathname = usePathname();
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
   const ar = !pathname || pathname.startsWith("/ar");
   const T = ar
     ? { title: "حدث خطأ غير متوقّع", body: "تعذّر عرض هذه الشاشة. يمكنك المحاولة مجددًا أو العودة للوحة.", retry: "إعادة المحاولة", home: "لوحة التحكّم" }

@@ -64,3 +64,44 @@ describe("rate limiter (fixed window)", () => {
     expect(LIMITS.resetEmail.limit).toBeLessThanOrEqual(LIMITS.resetIp.limit);
   });
 });
+
+// The public link page is the only place an unauthenticated stranger can cause
+// a database write. These limits are what bound that.
+describe("public link page limits", () => {
+  beforeEach(() => resetRateLimit());
+
+  it("bounds how many views one IP can record for one handle", () => {
+    const t0 = 10_000_000;
+    const key = "link:view:acme:1.2.3.4";
+    let recorded = 0;
+    // A script hammering the page 500 times in the window.
+    for (let i = 0; i < 500; i++) {
+      if (consume(key, LIMITS.linkView.limit, LIMITS.linkView.windowMs, t0).ok) recorded++;
+    }
+    expect(recorded).toBe(LIMITS.linkView.limit);
+  });
+
+  it("counts each visitor separately, so a busy page is not throttled", () => {
+    const t0 = 11_000_000;
+    let recorded = 0;
+    for (let visitor = 0; visitor < 200; visitor++) {
+      if (consume(`link:view:acme:10.0.0.${visitor}`, LIMITS.linkView.limit, LIMITS.linkView.windowMs, t0).ok) recorded++;
+    }
+    expect(recorded).toBe(200); // every real visitor still counts
+  });
+
+  it("keeps one handle's flood from throttling another's", () => {
+    const t0 = 12_000_000;
+    for (let i = 0; i < LIMITS.linkClick.limit + 50; i++) {
+      consume("link:click:acme:9.9.9.9", LIMITS.linkClick.limit, LIMITS.linkClick.windowMs, t0);
+    }
+    expect(consume("link:click:acme:9.9.9.9", LIMITS.linkClick.limit, LIMITS.linkClick.windowMs, t0).ok).toBe(false);
+    expect(consume("link:click:other:9.9.9.9", LIMITS.linkClick.limit, LIMITS.linkClick.windowMs, t0).ok).toBe(true);
+  });
+
+  it("is generous enough that a real visitor never hits it", () => {
+    // A person opening a link page and tapping every link on it.
+    expect(LIMITS.linkView.limit).toBeGreaterThanOrEqual(20);
+    expect(LIMITS.linkClick.limit).toBeGreaterThanOrEqual(LIMITS.linkView.limit);
+  });
+});

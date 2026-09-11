@@ -227,7 +227,14 @@ async function publishInstagram(conn: PublishConnection, input: PublishInput): P
   // turn a successful publish into a retry.
   let url: string | null = null;
   try {
-    const meta = await providerFetch(`${GRAPH}/${encodeURIComponent(data.id)}?fields=permalink&access_token=${encodeURIComponent(conn.accessToken)}`, {}, PUBLISH_TIMEOUT_MS);
+    // The token goes in a header, not the query string: a URL is written to
+    // access logs, proxy logs and error reports, and a Page token pasted there
+    // is a credential sitting in plain text in places nobody audits.
+    const meta = await providerFetch(
+      `${GRAPH}/${encodeURIComponent(data.id)}?fields=permalink`,
+      { headers: { Authorization: `Bearer ${conn.accessToken}` } },
+      PUBLISH_TIMEOUT_MS,
+    );
     if (meta.ok) url = ((await meta.json()) as { permalink?: string }).permalink ?? null;
   } catch {
     /* permalink is cosmetic */

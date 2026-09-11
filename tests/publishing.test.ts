@@ -192,6 +192,22 @@ describe("publishPost", () => {
     expect(calls).toHaveLength(0);
   });
 
+  // A URL is written to access logs, proxy logs and error reports. A Page
+  // access token pasted into one is a live credential sitting in plain text in
+  // places nobody audits, so it belongs in a header.
+  it("never puts an access token in a URL", async () => {
+    const calls = stubFetch([
+      { body: { id: "container_1" } },
+      { body: { id: "media_1" } },
+      { body: { permalink: "https://instagram.com/p/abc" } },
+    ]);
+    await publishPost("instagram", { accessToken: "SECRET-TOKEN", externalAccountId: "ig1" }, { text: "hi", imageUrl: "https://cdn/x.png" });
+    for (const c of calls) expect(c.url).not.toContain("SECRET-TOKEN");
+    // The permalink lookup is the GET; it must authenticate by header.
+    const get = calls[calls.length - 1];
+    expect((get.init.headers as Record<string, string>)?.Authorization).toBe("Bearer SECRET-TOKEN");
+  });
+
   it("keeps a successful Instagram publish successful when the permalink lookup fails", async () => {
     stubFetch([
       { body: { id: "container_1" } },

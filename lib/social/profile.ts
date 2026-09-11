@@ -44,8 +44,16 @@ async function metaLongLived(shortToken: string): Promise<string> {
   const clientSecret = process.env.META_CLIENT_SECRET ?? "";
   if (!clientId || !clientSecret) return shortToken;
   try {
-    const q = new URLSearchParams({ grant_type: "fb_exchange_token", client_id: clientId, client_secret: clientSecret, fb_exchange_token: shortToken });
-    const data = await getJson<{ access_token?: string }>(`${GRAPH}/oauth/access_token?${q}`);
+    // POSTed as a form body, not a query string. A URL is recorded by access
+    // logs, proxies and error reporters — and this particular URL would carry
+    // the app's client_secret, which must never be written anywhere like that.
+    // (This is also exactly how oauth.ts already talks to the same endpoint.)
+    const body = new URLSearchParams({ grant_type: "fb_exchange_token", client_id: clientId, client_secret: clientSecret, fb_exchange_token: shortToken });
+    const data = await getJson<{ access_token?: string }>(`${GRAPH}/oauth/access_token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+      body: body.toString(),
+    });
     return data.access_token || shortToken;
   } catch {
     // Not fatal: the short-lived token still works for the next hour, and the
@@ -55,8 +63,10 @@ async function metaLongLived(shortToken: string): Promise<string> {
 }
 
 async function metaPages(userToken: string): Promise<Page[]> {
-  const q = new URLSearchParams({ fields: "id,name,access_token,instagram_business_account{id,username}", access_token: userToken });
-  const data = await getJson<{ data?: Page[] }>(`${GRAPH}/me/accounts?${q}`);
+  // Token in the Authorization header rather than the query string, for the
+  // same reason: a URL is not a safe place to put a credential.
+  const q = new URLSearchParams({ fields: "id,name,access_token,instagram_business_account{id,username}" });
+  const data = await getJson<{ data?: Page[] }>(`${GRAPH}/me/accounts?${q}`, { headers: bearer(userToken) });
   return data.data ?? [];
 }
 

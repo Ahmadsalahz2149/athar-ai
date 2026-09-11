@@ -45,6 +45,31 @@ function facade(db: Executor, orgId: string) {
     return rows[0];
   }
 
+  /**
+   * Run a write that is ALLOWED to fail on a unique violation, contained so the
+   * caller's transaction survives it. Returns false when the row was a
+   * duplicate, true when it landed.
+   *
+   * Catching the error is not enough on its own. Under RLS every façade call
+   * runs inside a transaction, and in Postgres a failed statement aborts the
+   * whole transaction — so the catch runs, the method returns a tidy `false`,
+   * and then the COMMIT blows up anyway with the error we thought we had
+   * handled. A nested transaction is a SAVEPOINT, so the failure is rolled back
+   * to that point and everything around it still works. Without RLS this is an
+   * ordinary transaction around one statement, which changes nothing.
+   */
+  async function attempt(fn: (tx: Executor) => Promise<unknown>): Promise<boolean> {
+    try {
+      await db.transaction(async (tx) => {
+        await fn(tx);
+      });
+      return true;
+    } catch (e) {
+      if (isUniqueViolation(e)) return false;
+      throw e;
+    }
+  }
+
   async function appendLedger(delta: number, reason: string, refType?: string, refId?: string, idempotencyKey?: string): Promise<number> {
     // A per-org advisory lock serializes balance calculation and insertion so
     // two simultaneous debits cannot both read the same balance and drive the
@@ -1434,18 +1459,13 @@ function facade(db: Executor, orgId: string) {
       if (coupon.redemptions >= coupon.maxRedemptions) return { ok: false, error: "exhausted" };
       // Record the redemption first; the unique (org, coupon) index is the real
       // guard against double-redeeming (even under a race).
-      try {
-        await db.insert(schema.couponRedemptions).values({ orgId, couponId: coupon.id });
-      } catch (e) {
-        // 23505 = unique_violation. Drizzle may wrap the pg error, so check the
-        // cause chain and message too (same as debitOnce).
-        const err = e as { code?: string; cause?: { code?: string }; message?: string };
-        if (err?.code === "23505" || err?.cause?.code === "23505" || /23505|duplicate key/i.test(err?.message ?? "")) {
-          return { ok: false, error: "already" };
-        }
-        throw e;
-      }
-      await db.update(schema.coupons).set({ redemptions: sql`${schema.coupons.redemptions} + 1` }).where(eq(schema.coupons.id, coupon.id));
+      const claimed = await attempt((tx) => tx.insert(schema.couponRedemptions).values({ orgId, couponId: coupon.id }));
+      if (!claimed) return { ok: false, error: "already" };
+      // The counter lives on a platform-owned row, which a tenant cannot write
+      // under RLS — a plain UPDATE here matched nothing and silently made
+      // max_redemptions unenforceable. The function grants exactly this one
+      // increment, and only for a coupon this org has just redeemed.
+      await db.execute(sql`select coupon_increment_redemption(${coupon.id}::uuid, ${orgId}::uuid)`);
       const balance = await appendLedger(Math.abs(coupon.credits), `coupon_${coupon.code}`);
       return { ok: true, credits: coupon.credits, balance };
     },
@@ -1467,8 +1487,12 @@ function facade(db: Executor, orgId: string) {
         code = "AF" + orgId.replace(/-/g, "").slice(0, 8).toUpperCase();
         await db.update(schema.organizations).set({ referralCode: code }).where(eq(schema.organizations.id, orgId));
       }
-      const cnt = await db.select({ n: sql<number>`count(*)::int` }).from(schema.organizations).where(eq(schema.organizations.referredBy, orgId));
-      return { code, count: cnt[0]?.n ?? 0 };
+      // The referred workspaces are OTHER tenants' rows, invisible to this org
+      // under RLS — counted here through a function that returns the number and
+      // nothing else, so the referrer never sees the workspaces behind it.
+      const cnt = await db.execute(sql`select count_referrals(${orgId}::uuid) as n`);
+      const n = (cnt as unknown as { n: number }[])[0]?.n ?? 0;
+      return { code, count: Number(n) };
     },
 
     // --- Public link page (Phase 3 #17) ---
@@ -1488,16 +1512,22 @@ function facade(db: Executor, orgId: string) {
     },
 
     /** Claim a handle. Returns false if already taken by another brand. */
+    /**
+     * Claim a public handle. Returns false when another brand already holds it.
+     *
+     * The claim IS the check: a read-then-write lost to two races. A cross-org
+     * SELECT is unreliable under RLS (another tenant's handle is invisible, so
+     * the check would pass and the write would then hit the index), and it was
+     * never atomic anyway — two workspaces claiming the same handle at once
+     * both saw it free. The unique index is the only real arbiter, so write
+     * first and read the outcome from it.
+     */
     async setHandle(brandId: string, handle: string): Promise<boolean> {
       await assertBrand(brandId);
-      const taken = await db
-        .select({ id: schema.brands.id })
-        .from(schema.brands)
-        .where(and(eq(schema.brands.handle, handle), isNull(schema.brands.deletedAt)))
-        .limit(1);
-      if (taken.length && taken[0].id !== brandId) return false;
-      await db.update(schema.brands).set({ handle }).where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)));
-      return true;
+      // 23505 on brands_handle_idx means somebody else owns this handle.
+      return attempt((tx) =>
+        tx.update(schema.brands).set({ handle }).where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId))),
+      );
     },
 
     /** View/click totals for the link page (last 30 days + all time). */

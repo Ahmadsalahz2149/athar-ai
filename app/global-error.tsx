@@ -1,11 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
+
 /**
  * Last-resort boundary for errors in the root layout itself (INFRA phase 5).
  * Must render its own <html>/<body>. Self-contained styles — nothing external
  * is guaranteed to be available at this point.
  */
-export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  // An error that reaches here has taken the whole app down for this visitor,
+  // so it is the single most important one to hear about — and being
+  // client-side, nothing on the server sees it unless this reports it.
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <html lang="ar" dir="rtl">
       <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#F8F5EF", color: "#1F2937" }}>

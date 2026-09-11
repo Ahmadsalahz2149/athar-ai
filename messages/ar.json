@@ -614,7 +614,8 @@
     "vtMatches": "ما يطابق صوتك",
     "vtBreaks": "ما يخرج عن صوتك",
     "vtTip": "نصيحة",
-    "vtShort": "النص قصير جدًا."
+    "vtShort": "النص قصير جدًا.",
+    "needKey": "مفتاح التوليد غير مضبوط."
   },
   "Vault": {
     "title": "مكتبة المعرفة",
@@ -1280,7 +1281,8 @@
     "preset_closeup": "لقطة قريبة",
     "preset_showcase": "عرض منتج",
     "preset_ugc": "أسلوب UGC",
-    "preset_lifestyle": "نمط حياة"
+    "preset_lifestyle": "نمط حياة",
+    "needKey": "مفتاح التوليد غير مضبوط لهذه الميزة."
   },
   "Assistant": {
     "title": "مساعد أثر",
