@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "credit_ledger_org_idx" ON "credit_ledger" USING btree ("org_id","created_at");

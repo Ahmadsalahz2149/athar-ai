@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS "brands_org_idx" ON "brands" USING btree ("org_id");

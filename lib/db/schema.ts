@@ -84,6 +84,9 @@ export const brands = pgTable("brands", {
   // since 0018 but was missing from this file, which is the only thing that
   // would have stopped `drizzle-kit push` from dropping it.
   uniqueIndex("brands_handle_idx").on(t.handle),
+  // currentBrand() looks a workspace's brand up by org on nearly every page
+  // render, and the handle index above cannot serve that.
+  index("brands_org_idx").on(t.orgId),
 ]);
 
 // Products & services the brand offers (Phase 1). Injected into content
@@ -244,6 +247,11 @@ export const creditLedger = pgTable(
     uniqueIndex("credit_ledger_idem_uq")
       .on(t.orgId, t.idempotencyKey)
       .where(sql`${t.idempotencyKey} is not null`),
+    // The balance. Both indexes above are PARTIAL, so neither could serve a
+    // plain lookup by org — and `balance()` sums this table on nearly every
+    // page render while the ledger, being append-only, only ever grows. That
+    // was a sequential scan over every tenant's history, forever.
+    index("credit_ledger_org_idx").on(t.orgId, t.createdAt),
   ],
 );
 
