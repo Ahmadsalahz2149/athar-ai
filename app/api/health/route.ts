@@ -15,6 +15,9 @@ export const dynamic = "force-dynamic";
  * session — compare it against the SHA you pushed. */
 const COMMIT = process.env.ATHAR_COMMIT || "unknown";
 
+/** Queue depth above which the system is reported degraded. Tune per traffic. */
+const BACKLOG_LIMIT = Number(process.env.HEALTH_BACKLOG_LIMIT ?? 50);
+
 /**
  * Diagnostic: `/api/health?probe=auth` verifies that THIS server can reach the
  * Supabase auth endpoint over HTTPS (the network path used by sign-in). It
@@ -60,7 +63,35 @@ export async function GET(req: Request) {
     await db.execute(sql`select 1`);
     const queue = await queueDepth(db);
     const backlog = (queue.queued ?? 0) + (queue.running ?? 0);
-    return NextResponse.json({ ok: true, db: "up", commit: COMMIT, queue, backlog, dead: queue.dead ?? 0, ts });
+    const dead = queue.dead ?? 0;
+
+    // A reachable DB is not the same as a healthy system: dead jobs mean work
+    // was silently dropped, and a climbing backlog means the worker is not
+    // keeping up. Both were invisible to an uptime check before, because the
+    // endpoint answered 200 regardless.
+    const reasons: string[] = [];
+    if (dead > 0) reasons.push(`dead_jobs:${dead}`);
+    if (backlog > BACKLOG_LIMIT) reasons.push(`backlog:${backlog}>${BACKLOG_LIMIT}`);
+    const degraded = reasons.length > 0;
+
+    const body = {
+      ok: true,
+      status: degraded ? "degraded" : "ok",
+      ...(degraded ? { degraded: reasons } : {}),
+      db: "up",
+      commit: COMMIT,
+      queue,
+      backlog,
+      dead,
+      ts,
+    };
+
+    // Default stays 200 whenever the DB is reachable, so existing liveness
+    // probes and load balancers are unaffected. `?alert=1` is the monitoring
+    // view: it answers 503 when degraded, which is what an uptime check can
+    // actually alert on.
+    const alertMode = new URL(req.url).searchParams.get("alert") === "1";
+    return NextResponse.json(body, { status: alertMode && degraded ? 503 : 200 });
   } catch (e) {
     return NextResponse.json({ ok: false, db: "down", commit: COMMIT, error: e instanceof Error ? e.message : "error", ts }, { status: 503 });
   }

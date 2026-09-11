@@ -6,6 +6,7 @@ import { streamAnthropicText } from "@/lib/ai/generate";
 import { MODELS } from "@/lib/ai/models";
 import { estimateRewrite } from "@/lib/credits/costs";
 import { REWRITE_SYSTEM_PLAIN, buildRewriteMessage } from "@/lib/ai/prompts";
+import { log } from "@/lib/log";
 
 /**
  * Live token streaming for Studio rewrites (INFRA phase 4). Streams the rewritten
@@ -45,8 +46,10 @@ export async function POST(req: Request) {
           if (delta) { produced = true; controller.enqueue(encoder.encode(delta)); }
         }
         if (produced) await t.debit(estimate, "studio_rewrite", "brand", ctx.brandId);
-      } catch {
+      } catch (e) {
         // Surface a terminal marker the client can detect; partial text stays usable.
+        // Also record it — previously the failure left no trace server-side.
+        log.error("studio.rewrite_stream_failed", { orgId: ctx.orgId }, e);
         controller.enqueue(encoder.encode("\n ERROR"));
       } finally {
         controller.close();

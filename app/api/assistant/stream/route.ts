@@ -5,6 +5,7 @@ import { hasKeyFor, streamAnthropicText } from "@/lib/ai/generate";
 import { MODELS } from "@/lib/ai/models";
 import { estimateRewrite } from "@/lib/credits/costs";
 import { ASSISTANT_SYSTEM, buildAssistantContext, buildBrandContext } from "@/lib/ai/prompts";
+import { log } from "@/lib/log";
 
 /**
  * Live token streaming for the floating brand assistant (Phase 3 #20). Streams
@@ -53,7 +54,10 @@ export async function POST(req: Request) {
           await t.saveAssistantMessages(ctx.brandId, [{ role: "user", content: message.trim() }, { role: "assistant", content: full.trim() }]);
           await t.debit(estimate, "assistant_chat", "brand", ctx.brandId);
         }
-      } catch {
+      } catch (e) {
+        // Record it: this used to vanish — the client saw the marker and the
+        // server kept no trace at all.
+        log.error("assistant.stream_failed", { orgId: ctx.orgId }, e);
         controller.enqueue(encoder.encode("\n ERROR"));
       } finally {
         controller.close();

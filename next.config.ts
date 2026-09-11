@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
@@ -81,4 +82,17 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+/**
+ * Sentry wraps the config last so it can instrument the built output. It stays
+ * inert without a DSN (see sentry.server.config.ts), and source-map upload only
+ * runs when a deploy token is present — the production build on cPanel has no
+ * Sentry token and must never fail, or stall, trying to upload.
+ */
+export default withSentryConfig(withNextIntl(nextConfig), {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  telemetry: false,
+  silent: true,
+});

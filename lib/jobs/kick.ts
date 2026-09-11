@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { db } from "@/lib/db";
 import { runBatch } from "./runner";
+import { log } from "@/lib/log";
 import "./handlers"; // ensure handlers are registered
 
 /**
@@ -15,8 +16,10 @@ export function kickWorker(): void {
   after(async () => {
     try {
       await runBatch(database, `after_${process.pid}`, 5);
-    } catch {
-      /* the durable worker/reaper will pick up anything left behind */
+    } catch (e) {
+      // The durable worker/reaper still picks up anything left behind, but a
+      // drain that keeps failing is a real signal — don't discard it.
+      log.error("worker.kick_failed", {}, e);
     }
   });
 }
