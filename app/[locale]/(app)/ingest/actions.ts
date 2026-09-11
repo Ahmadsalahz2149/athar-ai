@@ -30,6 +30,7 @@ export type IngestResult =
       ok: false;
       error:
         | "too_few"
+        | "too_long"
         | "no_embed_key"
         | "no_transcribe_key"
         | "no_storage"
@@ -43,6 +44,10 @@ export type IngestResult =
     };
 
 const MAX_FILE_BYTES = 30 * 1024 * 1024; // matches next.config serverActions.bodySizeLimit
+/** Pasted text, per source. Comfortably longer than any article or transcript
+ * someone would paste in one go, and bounded so one flat charge cannot buy an
+ * unbounded number of embeddings. */
+const MAX_INGEST_TEXT = 500_000;
 
 /** True when the user's actions imply post-ingest analysis (ideas/DNA). */
 function wantsAnalysis(opts?: IngestOptions): boolean {
@@ -155,6 +160,11 @@ export async function jobStatus(jobId: string): Promise<
 export async function ingestText(input: { title?: string; text: string; opts?: IngestOptions }): Promise<IngestResult> {
   const text = (input.text ?? "").trim();
   if (text.length < 150) return { ok: false, error: "too_few" };
+  // Rejected, not truncated: the user pasted this, so silently dropping the
+  // tail would leave them with a source that is quietly incomplete. The bound
+  // exists because ingestion is charged a flat cost while every chunk is a paid
+  // embedding — see MAX_CHUNKS in lib/ai/chunk.ts.
+  if (text.length > MAX_INGEST_TEXT) return { ok: false, error: "too_long" };
   if (!hasEmbeddingKey()) return { ok: false, error: "no_embed_key" };
   if (!db) return { ok: false, error: "no_session" };
 

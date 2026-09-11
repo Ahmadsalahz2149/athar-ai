@@ -480,7 +480,8 @@
     "charCount": "{n} chars · min {min}",
     "queueSummary": "{done} of {total} complete",
     "ingestDoneSimple": "Processed and learned from the source ✓",
-    "tooStorage": "Storage isn't configured"
+    "tooStorage": "Storage isn't configured",
+    "textTooLong": "That is too long for one source. Split it into a few smaller ones — each stays sharper for retrieval anyway."
   },
   "Analysis": {
     "title": "File analysis",

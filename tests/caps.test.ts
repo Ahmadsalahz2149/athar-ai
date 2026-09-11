@@ -4,6 +4,7 @@ import { normalizeDna, normalizeAnalysis } from "@/lib/ai/normalize";
 import { normalizeProfile } from "@/lib/brand/profile";
 import { normalizeKit } from "@/lib/distribution/types";
 import { normalizeLinkPage } from "@/lib/link/types";
+import { chunkArabic, MAX_CHUNKS } from "@/lib/ai/chunk";
 
 /**
  * These structures are stored as JSONB and — for the DNA and the brand profile
@@ -112,5 +113,42 @@ describe("the other stored structures", () => {
     expect(JSON.stringify(k).length).toBeLessThan(120_000);
     const l = normalizeLinkPage({ headline: huge, bio: huge, links: Array.from({ length: 500 }, () => ({ label: huge, url: huge })) });
     expect(JSON.stringify(l).length).toBeLessThan(20_000);
+  });
+});
+
+/**
+ * Ingestion is charged a FLAT credit cost, but every chunk it produces is a
+ * paid embedding call and a stored 1024-dimension vector. Without a ceiling on
+ * chunk count, one payment bought unbounded provider spend — and blew past the
+ * embedding provider's rate limit on the way.
+ */
+describe("chunk ceiling", () => {
+  it("caps how many chunks one source can produce", () => {
+    // ~30 MB of sentences: what the old 30 MB upload limit allowed through.
+    const enormous = "هذه جملة تجريبية قصيرة. ".repeat(1_200_000);
+    const chunks = chunkArabic(enormous);
+    expect(chunks.length).toBe(MAX_CHUNKS);
+  });
+
+  // The hard-split path turns one unpunctuated blob into many pieces, and used
+  // to run after the packing loop — so the ceiling is applied there too.
+  it("caps text with no sentence breaks at all", () => {
+    const wall = "ا".repeat(5_000_000);
+    expect(chunkArabic(wall).length).toBe(MAX_CHUNKS);
+  });
+
+  it("keeps indexes contiguous after capping", () => {
+    const chunks = chunkArabic("جملة. ".repeat(500_000));
+    expect(chunks.map((c) => c.idx)).toEqual(chunks.map((_, i) => i));
+  });
+
+  it("leaves an ordinary source completely untouched", () => {
+    // A long article: well under the ceiling, so nothing is dropped.
+    const article = "هذه فقرة من مقال حقيقي فيها فكرة كاملة. ".repeat(200);
+    const chunks = chunkArabic(article);
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks.length).toBeLessThan(MAX_CHUNKS);
+    // Every sentence still present somewhere.
+    expect(chunks.map((c) => c.content).join(" ")).toContain("فكرة كاملة");
   });
 });

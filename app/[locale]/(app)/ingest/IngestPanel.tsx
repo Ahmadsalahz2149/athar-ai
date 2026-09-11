@@ -366,6 +366,7 @@ function errorMessage(res: { error: string; message?: string }, t: (k: string) =
       case "no_session": return t("needSession");
       case "empty": return t("emptyExtract");
       case "too_few": return t("needText");
+      case "too_long": return t("textTooLong");
       default: return t("ingestError");
     }
   })();
