@@ -323,6 +323,22 @@ export function forOrg(db: Db, orgId: string) {
       }
     },
 
+    /** Idempotent grant keyed on an arbitrary key — used for paid top-ups, where
+     * the key is the payment id. Stripe delivers a webhook at least once and
+     * retries on any non-2xx, so the same purchase WILL arrive more than once;
+     * the partial unique index on (org_id, idempotency_key) makes the second
+     * delivery a no-op instead of free credits. Returns the balance either way,
+     * so the caller cannot tell a first delivery from a replay — and must not
+     * need to. */
+    async grantOnceKeyed(amount: number, reason: string, key: string, refType?: string, refId?: string): Promise<number> {
+      try {
+        return await appendLedger(Math.abs(amount), reason, refType, refId, key);
+      } catch (e) {
+        if (isUniqueViolation(e)) return this.balance();
+        throw e;
+      }
+    },
+
     /** Idempotent debit: charges at most once per `idempotencyKey`, so a retried
      * background job never double-charges. On a duplicate key it swallows the
      * unique violation and returns the current balance. */

@@ -1382,7 +1382,16 @@
     "packsDesc": "Buying credits is being set up — use a coupon to get credits now.",
     "affiliateTitle": "Affiliate",
     "affiliateDesc": "Share your link; everyone who signs up through it counts as a referral.",
-    "copyLink": "Copy link"
+    "copyLink": "Copy link",
+    "redirecting": "Redirecting…",
+    "purchaseSuccess": "Payment complete ✓ — your credits arrive within seconds. Refresh if you don't see them yet.",
+    "purchaseCancelled": "Checkout cancelled. You have not been charged.",
+    "err_payments_disabled": "Payments aren't enabled yet. Contact us to top up your credits.",
+    "err_unknown_pack": "Unknown pack.",
+    "err_rate_limited": "Too many attempts. Try again shortly.",
+    "err_no_session": "Your session expired. Please sign in again.",
+    "err_unavailable": "Service unavailable right now.",
+    "err_failed": "Could not start checkout. Please try again."
   },
   "Help": {
     "title": "Help & Learning center",

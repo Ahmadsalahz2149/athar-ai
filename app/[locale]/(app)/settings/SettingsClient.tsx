@@ -301,7 +301,7 @@ export function SettingsClient(p: Props) {
                       }
                       setDeleted(true);
                       // The account is gone; leave the app.
-                      setTimeout(() => { window.location.href = `/${locale}`; }, 2500);
+                      setTimeout(() => { window.location.assign(`/${locale}`); }, 2500);
                     }}
                     disabled={privBusy !== null || confirmEmail.trim().length === 0}
                     style={{ height: 40, padding: "0 18px", borderRadius: 11, border: "none", cursor: privBusy ? "default" : "pointer", background: "var(--coral)", color: "#fff", fontWeight: 700, fontSize: 13.5, opacity: privBusy || !confirmEmail.trim() ? 0.6 : 1 }}
