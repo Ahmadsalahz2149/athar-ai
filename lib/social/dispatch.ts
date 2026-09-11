@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/forOrg";
 import { log } from "@/lib/log";
+import { asSystem, rlsEnabled, setSystemScope } from "@/lib/db/rls";
 
 /**
  * Scheduled-post dispatcher (Phase 7.4). Cross-org by design, like the job
@@ -27,6 +28,8 @@ type Claimed = { id: string; orgId: string; brandId: string; platform: string };
  * for each. Returns how many were dispatched. */
 export async function dispatchDuePublishes(db: Db, limit = 20): Promise<number> {
   const claimed = await db.transaction(async (tx) => {
+    // Cross-org by design: this claims due posts for every tenant at once.
+    if (rlsEnabled()) await setSystemScope(tx);
     const rows = await tx.execute(sql`
       UPDATE drafts SET status = 'publishing'
       WHERE id IN (
@@ -65,7 +68,7 @@ export async function dispatchDuePublishes(db: Db, limit = 20): Promise<number> 
  * request that could still land cannot be in flight.
  */
 export async function requeueAbandonedPublishes(db: Db, olderThanMinutes = 60): Promise<number> {
-  const rows = await db.execute(sql`
+  const rows = await asSystem(db, (tx) => tx.execute(sql`
     UPDATE drafts SET status = 'scheduled'
     WHERE status = 'publishing'
       AND scheduled_at < now() - (${olderThanMinutes} * interval '1 minute')
@@ -76,7 +79,7 @@ export async function requeueAbandonedPublishes(db: Db, olderThanMinutes = 60): 
           AND jobs.payload->>'draftId' = drafts.id::text
       )
     RETURNING id
-  `);
+  `));
   const n = (rows as unknown as unknown[]).length;
   if (n) log.warn("publish.requeued_abandoned", { n });
   return n;

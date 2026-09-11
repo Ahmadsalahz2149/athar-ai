@@ -4,6 +4,7 @@ import * as schema from "./schema";
 import { isUniqueViolation } from "./pg-errors";
 import type { ContentDna } from "@/lib/ai/prompts";
 import { normalizeDna } from "@/lib/ai/normalize";
+import { rlsEnabled, setOrgScope } from "./rls";
 import { type BrandProfile, normalizeProfile } from "@/lib/brand/profile";
 import { type DistributionKit, normalizeKit } from "@/lib/distribution/types";
 import { type MonthlyPlan, normalizePlan } from "@/lib/plan/types";
@@ -18,6 +19,11 @@ import { type LinkPage, normalizeLinkPage } from "@/lib/link/types";
  */
 export type Db = PostgresJsDatabase<typeof schema>;
 
+/** Anything that can run a query: the pool, or a transaction on it. The façade
+ * body is written against this so the very same methods work unchanged whether
+ * they run directly or inside the RLS-scoped transaction below. */
+export type Executor = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
+
 /** Dashboard KPI trend: a cumulative daily series + the real last-7-days count. */
 export type KpiTrend = { points: number[]; weekAdded: number };
 
@@ -28,7 +34,7 @@ export class InsufficientCreditsError extends Error {
   }
 }
 
-export function forOrg(db: Db, orgId: string) {
+function facade(db: Executor, orgId: string) {
   async function assertBrand(brandId: string) {
     const rows = await db
       .select()
@@ -1621,4 +1627,43 @@ export function forOrg(db: Db, orgId: string) {
       return fresh.length;
     },
   };
+}
+
+export type OrgFacade = ReturnType<typeof facade>;
+
+/**
+ * The tenancy façade for one workspace.
+ *
+ * Without RLS this is the object above, unchanged: each method runs its own
+ * statement on the pool, exactly as before.
+ *
+ * With RLS on, each call is wrapped in a transaction that first sets
+ * `app.org_id`, so the database itself refuses to return another tenant's rows
+ * — the façade's promise stops being a convention the code has to keep and
+ * becomes something Postgres enforces. It must be a transaction and the setting
+ * must be transaction-local: connections are pooled, so a session-level scope
+ * would outlive the request and leak onto whoever got that connection next.
+ *
+ * The proxy is what keeps that from costing 102 rewritten methods, and keeps
+ * the two modes running literally the same code.
+ */
+export function forOrg(db: Db, orgId: string): OrgFacade {
+  const direct = facade(db, orgId);
+  if (!rlsEnabled()) return direct;
+
+  return new Proxy(direct, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (typeof value !== "function") return value;
+      return (...args: unknown[]) =>
+        db.transaction(async (tx) => {
+          await setOrgScope(tx, orgId);
+          // Rebuild the façade against the transaction: the methods close over
+          // their executor, so they must be created from `tx` to run inside the
+          // scope rather than on a fresh, unscoped connection from the pool.
+          const scoped = facade(tx, orgId) as unknown as Record<string | symbol, (...a: unknown[]) => Promise<unknown>>;
+          return scoped[prop](...args);
+        });
+    },
+  }) as OrgFacade;
 }

@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/forOrg";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { removePublicObject } from "@/lib/storage/uploads";
 import { log } from "@/lib/log";
+import { asSystem, rlsEnabled, setSystemScope } from "@/lib/db/rls";
 
 /**
  * Right to erasure (GDPR art. 17 / PDPL). Deletes everything belonging to a
@@ -70,6 +71,9 @@ export const ORG_SCOPED_TABLES = [
 export async function eraseOrgData(db: Db, orgId: string): Promise<Record<string, number>> {
   const deleted: Record<string, number> = {};
   await db.transaction(async (tx) => {
+    // Erasure deletes the organization row ITSELF, which no org scope can
+    // express — a scope that still saw the org would not be an erasure.
+    if (rlsEnabled()) await setSystemScope(tx);
     for (const name of ORG_SCOPED_TABLES) {
       // Table names come from the constant list above (never user input) and
       // are quoted as identifiers; the org id is bound as a parameter.
@@ -136,7 +140,7 @@ export async function eraseAccount(db: Db, orgId: string, userId: string): Promi
       orgDeleted = (deleted["organizations"] ?? 0) > 0;
     }
     // Platform-admin grants are keyed by user, not org.
-    await db.delete(schema.platformAdmins).where(eq(schema.platformAdmins.userId, userId));
+    await asSystem(db, (tx) => tx.delete(schema.platformAdmins).where(eq(schema.platformAdmins.userId, userId)));
   } catch (e) {
     log.error("gdpr.erase_failed", { orgId }, e);
     return { ok: false, orgDeleted: false, deleted, authDeleted: false, error: "erase_failed" };

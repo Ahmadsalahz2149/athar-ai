@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/forOrg";
 import { type JobRow } from "./types";
+import { asSystem } from "@/lib/db/rls";
 
 /**
  * System-level job queue operations (INFRA phase 1). These run in a trusted
@@ -25,7 +26,7 @@ const backoffSql = sql`(LEAST(30 * power(4, GREATEST(attempts - 1, 0)), 3600) * 
  * signed-in user can only drive their own queue, never another org's jobs. */
 export async function claimNext(db: Db, workerId: string, orgId?: string): Promise<JobRow | null> {
   const only = orgId ?? null;
-  const rows = await db.execute(sql`
+  const rows = await asSystem(db, (tx) => tx.execute(sql`
     UPDATE jobs SET
       status = 'running',
       locked_at = now(),
@@ -41,7 +42,7 @@ export async function claimNext(db: Db, workerId: string, orgId?: string): Promi
       FOR UPDATE SKIP LOCKED
     )
     RETURNING ${cols}
-  `);
+  `));
   const list = rows as unknown as JobRow[];
   return list[0] ?? null;
 }
@@ -52,24 +53,24 @@ export async function claimNext(db: Db, workerId: string, orgId?: string): Promi
 export async function setProgress(db: Db, jobId: string, progress: number, phase?: string, workerId?: string): Promise<void> {
   const pct = Math.max(0, Math.min(100, Math.round(progress)));
   const owner = workerId ?? null;
-  await db.execute(sql`
+  await asSystem(db, (tx) => tx.execute(sql`
     UPDATE jobs SET progress = ${pct}, phase = ${phase ?? null},
       locked_at = now(), updated_at = now()
     WHERE id = ${jobId} AND (${owner}::text IS NULL OR locked_by = ${owner})
-  `);
+  `));
 }
 
 /** Mark a job done. Returns false when the lease was lost (another worker owns
  * the job now), so the caller can log it instead of silently overwriting. */
 export async function complete(db: Db, jobId: string, result?: Record<string, unknown>, workerId?: string): Promise<boolean> {
   const owner = workerId ?? null;
-  const rows = await db.execute(sql`
+  const rows = await asSystem(db, (tx) => tx.execute(sql`
     UPDATE jobs SET
       status = 'done', progress = 100, result = ${JSON.stringify(result ?? {})}::jsonb,
       locked_at = null, locked_by = null, last_error = null, updated_at = now()
     WHERE id = ${jobId} AND (${owner}::text IS NULL OR locked_by = ${owner})
     RETURNING id
-  `);
+  `));
   return (rows as unknown as unknown[]).length > 0;
 }
 
@@ -80,25 +81,25 @@ export async function fail(db: Db, job: JobRow, error: string, workerId?: string
   const dead = job.attempts >= job.maxAttempts;
   const owner = workerId ?? null;
   const rows = dead
-    ? await db.execute(sql`
+    ? await asSystem(db, (tx) => tx.execute(sql`
         UPDATE jobs SET status = 'dead', last_error = ${error.slice(0, 2000)},
           locked_at = null, locked_by = null, updated_at = now()
         WHERE id = ${job.id} AND (${owner}::text IS NULL OR locked_by = ${owner})
         RETURNING id
-      `)
-    : await db.execute(sql`
+      `))
+    : await asSystem(db, (tx) => tx.execute(sql`
         UPDATE jobs SET status = 'queued', last_error = ${error.slice(0, 2000)},
           run_after = now() + ${backoffSql},
           locked_at = null, locked_by = null, updated_at = now()
         WHERE id = ${job.id} AND (${owner}::text IS NULL OR locked_by = ${owner})
         RETURNING id
-      `);
+      `));
   return (rows as unknown as unknown[]).length > 0;
 }
 
 /** Counts by status for health/metrics (INFRA phase 6). Cross-org, system view. */
 export async function queueDepth(db: Db): Promise<Record<string, number>> {
-  const rows = await db.execute(sql`SELECT status, count(*)::int AS n FROM jobs GROUP BY status`);
+  const rows = await asSystem(db, (tx) => tx.execute(sql`SELECT status, count(*)::int AS n FROM jobs GROUP BY status`));
   const out: Record<string, number> = { queued: 0, running: 0, done: 0, failed: 0, dead: 0 };
   for (const r of rows as unknown as { status: string; n: number }[]) out[r.status] = r.n;
   return out;
@@ -110,7 +111,7 @@ export async function queueDepth(db: Db): Promise<Record<string, number>> {
  * forever, and a retry gets the same backoff a normal failure would. */
 export async function reapStale(db: Db, staleSeconds = 1800, orgId?: string): Promise<number> {
   const only = orgId ?? null;
-  const rows = await db.execute(sql`
+  const rows = await asSystem(db, (tx) => tx.execute(sql`
     UPDATE jobs SET
       status = CASE WHEN attempts >= max_attempts THEN 'dead' ELSE 'queued' END,
       run_after = CASE WHEN attempts >= max_attempts THEN run_after ELSE now() + ${backoffSql} END,
@@ -119,6 +120,6 @@ export async function reapStale(db: Db, staleSeconds = 1800, orgId?: string): Pr
     WHERE status = 'running' AND locked_at < now() - (${staleSeconds} * interval '1 second')
       AND (${only}::uuid IS NULL OR org_id = ${only}::uuid)
     RETURNING id
-  `);
+  `));
   return (rows as unknown as unknown[]).length;
 }

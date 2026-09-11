@@ -3,6 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { normalizeLinkPage, type LinkPage } from "./types";
+import { asSystem } from "@/lib/db/rls";
 
 /**
  * Public brand lookup by handle (Phase 3 #17). This is intentionally OUTSIDE the
@@ -14,11 +15,13 @@ export type PublicBrand = { orgId: string; brandId: string; name: string; logoUr
 
 export async function brandByHandle(handle: string): Promise<PublicBrand | null> {
   if (!db) return null;
-  const rows = await db
+  // No session and no org to scope to — the handle IS the key, so this read
+  // must be able to cross tenants to find the one brand that owns it.
+  const rows = await asSystem(db, (tx) => tx
     .select({ id: schema.brands.id, orgId: schema.brands.orgId, name: schema.brands.name, logoUrl: schema.brands.logoUrl, linkPage: schema.brands.linkPage })
     .from(schema.brands)
     .where(and(eq(schema.brands.handle, handle), isNull(schema.brands.deletedAt)))
-    .limit(1);
+    .limit(1));
   const b = rows[0];
   if (!b) return null;
   return { orgId: b.orgId, brandId: b.id, name: b.name, logoUrl: b.logoUrl, page: normalizeLinkPage(b.linkPage) };
@@ -28,7 +31,7 @@ export async function brandByHandle(handle: string): Promise<PublicBrand | null>
 export async function recordLinkEvent(orgId: string, brandId: string, kind: "view" | "click", ref?: string): Promise<void> {
   if (!db) return;
   try {
-    await db.insert(schema.linkEvents).values({ orgId, brandId, kind, ref: ref?.slice(0, 200) ?? null });
+    await asSystem(db, (tx) => tx.insert(schema.linkEvents).values({ orgId, brandId, kind, ref: ref?.slice(0, 200) ?? null }));
   } catch {
     /* analytics is best-effort */
   }

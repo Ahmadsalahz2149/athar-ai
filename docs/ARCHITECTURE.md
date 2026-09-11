@@ -14,6 +14,10 @@ This document describes the system that is actually deployed. Proposed or future
 
 - Supabase provides PostgreSQL, Auth, private Storage, and pgvector.
 - Drizzle is the database access layer. Tenant data is accessed through `forOrg(db, orgId)`, which scopes operations to the current organization and brand.
+- Postgres row-level security backs that façade up: every tenant table denies by default
+  and only returns rows for the workspace in `app.org_id`, which `forOrg` sets per
+  transaction. The policies are dormant for the table owner, so enforcement is switched on
+  by connecting as the `athar_app` role — see `docs/RLS.md` and ADR-011.
 - `DATABASE_URL`, the Supabase service-role key, provider API keys, and `WORKER_SECRET` are server-only secrets. Only `NEXT_PUBLIC_SUPABASE_URL` and the anon key are exposed to the browser.
 - Email/password authentication is enabled. OAuth buttons are displayed only when the matching public feature flag is explicitly enabled and the provider is configured.
 

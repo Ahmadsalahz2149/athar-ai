@@ -1,6 +1,7 @@
 import "server-only";
 import { sql } from "drizzle-orm";
-import type { Db } from "@/lib/db/forOrg";
+import type { Db, Executor } from "@/lib/db/forOrg";
+import { asSystem } from "@/lib/db/rls";
 
 /**
  * Right of access / data portability (GDPR art. 15 & 20, PDPL equivalent).
@@ -46,10 +47,10 @@ export const EXPORTED_TABLES = [
 
 export type ExportProfile = { id: string; email?: string; metadata?: unknown };
 
-async function selectForOrg(db: Db, table: string, orgId: string): Promise<unknown[]> {
+async function selectForOrg(tx: Executor, table: string, orgId: string): Promise<unknown[]> {
   // `organizations` is keyed by id, everything else by org_id.
   const where = table === "organizations" ? sql`id = ${orgId}::uuid` : sql`org_id = ${orgId}::uuid`;
-  const rows = await db.execute(sql`select * from ${sql.identifier(table)} where ${where}`);
+  const rows = await tx.execute(sql`select * from ${sql.identifier(table)} where ${where}`);
   const list = rows as unknown as Record<string, unknown>[];
   const drop = REDACTED[table];
   if (!drop) return list;
@@ -63,9 +64,14 @@ async function selectForOrg(db: Db, table: string, orgId: string): Promise<unkno
 /** Build the full export document for one workspace. */
 export async function buildExport(db: Db, orgId: string, profile: ExportProfile) {
   const data: Record<string, unknown[]> = {};
-  for (const table of EXPORTED_TABLES) {
-    data[table] = await selectForOrg(db, table, orgId);
-  }
+  // One system-scoped transaction for the whole export: it reads every table by
+  // raw name, which no single org scope covers, and a consistent snapshot is
+  // what makes the document internally coherent.
+  await asSystem(db, async (tx) => {
+    for (const table of EXPORTED_TABLES) {
+      data[table] = await selectForOrg(tx, table, orgId);
+    }
+  });
   return {
     meta: {
       generatedAt: new Date().toISOString(),

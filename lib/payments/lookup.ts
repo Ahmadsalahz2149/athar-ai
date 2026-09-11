@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/forOrg";
+import { asSystem } from "@/lib/db/rls";
 
 /**
  * Which workspace does a Stripe customer belong to? (Phase 8)
@@ -15,9 +16,10 @@ import type { Db } from "@/lib/db/forOrg";
  */
 export async function orgIdForStripeCustomer(db: Db, customerId: string): Promise<string | null> {
   if (!customerId) return null;
-  const rows = await db.execute(sql`
+  // Cross-org by definition: the org is what we are looking for.
+  const rows = await asSystem(db, (tx) => tx.execute(sql`
     SELECT id FROM organizations WHERE stripe_customer_id = ${customerId} LIMIT 1
-  `);
+  `));
   const list = rows as unknown as { id: string }[];
   return list[0]?.id ?? null;
 }
