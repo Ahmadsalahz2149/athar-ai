@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 import { isUniqueViolation } from "./pg-errors";
@@ -241,6 +241,43 @@ function facade(db: Executor, orgId: string) {
             eq(schema.drafts.id, draftId),
             eq(schema.drafts.orgId, orgId),
             eq(schema.drafts.brandId, brandId),
+          ),
+        );
+    },
+
+    /**
+     * Persist an edited draft's text.
+     *
+     * This did not exist. The Studio's autosave and its Save button both called
+     * setDraftStatus, which writes a status and nothing else — so every edit
+     * lived only in React state, the UI reported "saved", and the row still
+     * held the model's original output. Approval, scheduling and publishing all
+     * read that row, so what went out was never what the user edited.
+     *
+     * Scores travel with the text because they describe it; leaving them behind
+     * would show a score for a draft that no longer exists.
+     */
+    async updateDraftText(
+      brandId: string,
+      draftId: string,
+      d: { hook: string; body: string; postScore?: number; dnaMatch?: number },
+    ): Promise<void> {
+      await db
+        .update(schema.drafts)
+        .set({
+          hook: d.hook,
+          body: d.body,
+          ...(d.postScore === undefined ? {} : { postScore: d.postScore }),
+          ...(d.dnaMatch === undefined ? {} : { dnaMatch: d.dnaMatch }),
+        })
+        .where(
+          and(
+            eq(schema.drafts.id, draftId),
+            eq(schema.drafts.orgId, orgId),
+            eq(schema.drafts.brandId, brandId),
+            isNull(schema.drafts.deletedAt),
+            // Published text is a record of what was posted, not a draft.
+            ne(schema.drafts.status, "published"),
           ),
         );
     },

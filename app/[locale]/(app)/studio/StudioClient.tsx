@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { studioGenerate, studioRewrite, setDraftState, suggestHashtags, translatePost, repurposePost, type StudioResult, type StudioSource } from "./actions";
+import { studioGenerate, studioRewrite, setDraftState, saveDraftText, suggestHashtags, translatePost, repurposePost, type StudioResult, type StudioSource } from "./actions";
 import { SlideEditor } from "./SlideEditor";
 import { Logo } from "@/components/Logo";
 import { StartHint } from "@/components/StartHint";
@@ -204,9 +204,19 @@ export function StudioClient({
     setTrans(null);
   };
 
+  /** Write the CURRENT text, then move the draft's state.
+   *
+   * The order matters and used to be missing entirely: setDraftState only
+   * changes a status, so approving or scheduling sent the model's original
+   * output downstream while the user's edits sat in React state. Saving first
+   * means what gets reviewed, scheduled and published is what is on screen. */
   const act = (state: "draft" | "pending" | "scheduled", labelKey: string) => {
     if (!ok?.id) return;
+    const sig = contentSig;
     start(async () => {
+      const saveRes = await saveDraftText(ok.id!, { hook, body, postScore: scores.ps, dnaMatch: scores.dm });
+      if (!saveRes.ok) return;
+      setSavedSig(sig);
       const r = await setDraftState(ok.id!, state);
       if (r.ok) setSaved(labelKey);
     });
@@ -221,7 +231,13 @@ export function StudioClient({
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     const sig = contentSig;
     autosaveTimer.current = setTimeout(() => {
-      setDraftState(ok.id!, "draft").then(() => setSavedSig(sig));
+      // Only mark it saved once the WRITE succeeded. The previous version
+      // called setDraftState — which persists a status, not the text — and then
+      // reported "saved" regardless, so the indicator was telling the user
+      // their work was safe when it had never left the browser.
+      saveDraftText(ok.id!, { hook, body, postScore: scores.ps, dnaMatch: scores.dm }).then((r) => {
+        if (r.ok) setSavedSig(sig);
+      });
     }, 1500);
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);

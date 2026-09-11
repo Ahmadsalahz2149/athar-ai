@@ -164,6 +164,79 @@ describe.runIf(!!db)("publishing pipeline", () => {
     });
   });
 
+  // --- Draft text ----------------------------------------------------------
+  /**
+   * The Studio had no way to persist an edit at all: autosave and the Save
+   * button both wrote a status. Since approvals, scheduling and publishing all
+   * read the stored row, the model's original output is what went out — while
+   * the UI said "saved". These are the tests that would have caught it.
+   */
+  describe("updateDraftText", () => {
+    it("persists the edited text and its scores", async () => {
+      const d = await newDraft({ status: "draft", hook: "old hook", body: "old body" });
+      await forOrg(db!, orgId).updateDraftText(brandId, d.id, {
+        hook: "عنوان محرَّر", body: "نص محرَّر", postScore: 88, dnaMatch: 74,
+      });
+      const row = await statusOf(d.id);
+      expect(row.hook).toBe("عنوان محرَّر");
+      expect(row.body).toBe("نص محرَّر");
+      expect(row.postScore).toBe(88);
+      expect(row.dnaMatch).toBe(74);
+      expect(row.status).toBe("draft"); // saving text must not move the state
+    });
+
+    it("leaves the scores alone when they are not supplied", async () => {
+      const d = await newDraft({ status: "draft", postScore: 55, dnaMatch: 44 });
+      await forOrg(db!, orgId).updateDraftText(brandId, d.id, { hook: "h", body: "b" });
+      const row = await statusOf(d.id);
+      expect(row.postScore).toBe(55);
+      expect(row.dnaMatch).toBe(44);
+    });
+
+    // A published row is a record of what was actually posted to a platform.
+    it("refuses to rewrite a published post", async () => {
+      const d = await newDraft({ status: "published", hook: "as published", body: "live text" });
+      await forOrg(db!, orgId).updateDraftText(brandId, d.id, { hook: "tampered", body: "tampered" });
+      const row = await statusOf(d.id);
+      expect(row.hook).toBe("as published");
+      expect(row.body).toBe("live text");
+    });
+
+    it("cannot touch another workspace's draft", async () => {
+      const [other] = await db!.insert(schema.organizations).values({ name: "text-other" }).returning();
+      const [ob] = await db!.insert(schema.brands).values({ orgId: other.id, name: "O" }).returning();
+      const [od] = await db!
+        .insert(schema.drafts)
+        .values({ orgId: other.id, brandId: ob.id, platform: "LinkedIn", hook: "theirs", body: "theirs", status: "draft" })
+        .returning();
+
+      await forOrg(db!, orgId).updateDraftText(brandId, od.id, { hook: "stolen", body: "stolen" });
+
+      const [row] = await db!.select().from(schema.drafts).where(eq(schema.drafts.id, od.id));
+      expect(row.hook).toBe("theirs");
+
+      await db!.delete(schema.drafts).where(eq(schema.drafts.orgId, other.id));
+      await db!.delete(schema.brands).where(eq(schema.brands.orgId, other.id));
+      await db!.delete(schema.organizations).where(eq(schema.organizations.id, other.id));
+    });
+
+    // The consequence that made this a publishing bug and not just a UX one.
+    it("is what the publisher then sends", async () => {
+      await forOrg(db!, orgId).saveConnection(brandId, "x", { accessToken: "tok", externalAccountId: "acct" });
+      const d = await newDraft({ status: "draft", hook: "generated", body: "generated" });
+      await forOrg(db!, orgId).updateDraftText(brandId, d.id, { hook: "ما كتبه المستخدم", body: "النص النهائي" });
+      await db!.update(schema.drafts).set({ status: "publishing" }).where(eq(schema.drafts.id, d.id));
+
+      let sent = "";
+      vi.stubGlobal("fetch", async (_u: string, init: RequestInit) => {
+        sent = JSON.parse(init.body as string).text;
+        return new Response(JSON.stringify({ data: { id: "1" } }), { status: 201 });
+      });
+      await run(jobFor(d.id));
+      expect(sent).toBe("ما كتبه المستخدم\n\nالنص النهائي");
+    });
+  });
+
   // --- Handler -------------------------------------------------------------
   describe("publish_draft handler", () => {
     const connect = (over: Partial<{ accessToken: string; expiresAt: Date | null; externalAccountId: string | null }> = {}) =>

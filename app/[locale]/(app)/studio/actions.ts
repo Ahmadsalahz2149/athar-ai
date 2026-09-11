@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { guardDraft } from "@/lib/ai/guardDraft";
 import { isUserSettableStatus } from "@/lib/drafts/states";
+import { capStr } from "@/lib/text/cap";
 import { estimateCompose, estimateRewrite } from "@/lib/credits/costs";
 import { embedOne, hasEmbeddingKey } from "@/lib/ai/embed";
 import { postScore, dnaMatch } from "@/lib/ai/score";
@@ -33,6 +34,11 @@ import {
   buildRepurposeMessage,
   type ContentDna,
 } from "@/lib/ai/prompts";
+
+/** A hook is a headline and a body is a social post — generous for both, and
+ * bounded because this text is stored, re-prompted and published. */
+const DRAFT_HOOK_MAX = 400;
+const DRAFT_BODY_MAX = 20_000;
 
 export type StudioSource = { id: string; title: string; label: string };
 
@@ -216,6 +222,38 @@ export async function studioRewrite(input: { body: string; tool: string; provide
 }
 
 /** Header actions: save / schedule / submit — all operate on a persisted draft. */
+/**
+ * Save an edited draft's text.
+ *
+ * The Studio had no way to do this: autosave and the Save button both called
+ * setDraftState, which writes a status. Everything downstream — approvals,
+ * scheduling, and now real publishing — reads the stored row, so the user's
+ * edits never reached the post that went out.
+ *
+ * The text is capped here rather than trusted: it arrives from the browser, and
+ * these columns feed both the prompt on a later rewrite and the post itself.
+ */
+export async function saveDraftText(
+  draftId: string,
+  input: { hook: string; body: string; postScore?: number; dnaMatch?: number },
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!db) return { ok: false, error: "no_session" };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false, error: "no_session" };
+    const hook = capStr(input.hook, DRAFT_HOOK_MAX).trim();
+    const body = capStr(input.body, DRAFT_BODY_MAX);
+    if (!hook && !body.trim()) return { ok: false, error: "empty" };
+    const pct = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : undefined);
+    await forOrg(db, ctx.orgId).updateDraftText(ctx.brandId, draftId, {
+      hook, body, postScore: pct(input.postScore), dnaMatch: pct(input.dnaMatch),
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "failed" };
+  }
+}
+
 export async function setDraftState(
   draftId: string,
   state: "draft" | "pending" | "scheduled",
