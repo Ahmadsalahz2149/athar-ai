@@ -413,6 +413,84 @@ export function forOrg(db: Db, orgId: string) {
         .where(eq(schema.organizations.id, orgId));
     },
 
+    // --- Tax invoices (Phase 8) ---
+    /** Record or update one Stripe invoice. Upserted on the Stripe id because
+     * Stripe delivers at least once AND an invoice legitimately changes (open →
+     * paid, or void), so the same invoice must land on the same row. */
+    async recordInvoice(inv: {
+      stripeInvoiceId: string;
+      number: string | null;
+      status: string;
+      currency: string;
+      subtotalCents: number;
+      taxCents: number;
+      totalCents: number;
+      amountPaidCents: number;
+      taxRateBps: number | null;
+      customerName: string | null;
+      customerCountry: string | null;
+      customerTaxId: string | null;
+      hostedInvoiceUrl: string | null;
+      invoicePdfUrl: string | null;
+      periodStart: Date | null;
+      periodEnd: Date | null;
+      issuedAt: Date;
+    }): Promise<void> {
+      const values = { orgId, ...inv, updatedAt: new Date() };
+      await db
+        .insert(schema.invoices)
+        .values(values)
+        .onConflictDoUpdate({
+          target: schema.invoices.stripeInvoiceId,
+          set: {
+            number: inv.number,
+            status: inv.status,
+            subtotalCents: inv.subtotalCents,
+            taxCents: inv.taxCents,
+            totalCents: inv.totalCents,
+            amountPaidCents: inv.amountPaidCents,
+            taxRateBps: inv.taxRateBps,
+            customerName: inv.customerName,
+            customerCountry: inv.customerCountry,
+            customerTaxId: inv.customerTaxId,
+            hostedInvoiceUrl: inv.hostedInvoiceUrl,
+            invoicePdfUrl: inv.invoicePdfUrl,
+            issuedAt: inv.issuedAt,
+            updatedAt: new Date(),
+          },
+          // An invoice id is globally unique in Stripe, but the row is still
+          // org-scoped: a replay must never move an invoice to another tenant.
+          setWhere: eq(schema.invoices.orgId, orgId),
+        });
+    },
+
+    /** This workspace's invoices, newest first. */
+    async listInvoices(limit = 50) {
+      return db
+        .select()
+        .from(schema.invoices)
+        .where(eq(schema.invoices.orgId, orgId))
+        .orderBy(desc(schema.invoices.issuedAt))
+        .limit(limit);
+    },
+
+    /** The billing identity as most recently invoiced — name, country and VAT
+     * number. Read from the last invoice rather than stored separately, so what
+     * the screen shows is exactly what the documents say. */
+    async billingProfile(): Promise<{ name: string | null; country: string | null; taxId: string | null } | null> {
+      const rows = await db
+        .select({
+          name: schema.invoices.customerName,
+          country: schema.invoices.customerCountry,
+          taxId: schema.invoices.customerTaxId,
+        })
+        .from(schema.invoices)
+        .where(eq(schema.invoices.orgId, orgId))
+        .orderBy(desc(schema.invoices.issuedAt))
+        .limit(1);
+      return rows[0] ?? null;
+    },
+
     // --- Sources & retrieval (pgvector; org + brand scoped) ---
     async saveSource(
       brandId: string,

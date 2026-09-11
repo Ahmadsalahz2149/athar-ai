@@ -46,6 +46,11 @@ export const ORG_SCOPED_TABLES = [
   "coupon_redemptions",
   "dismissed_suggestions",
   "ideas",
+  // Our local projection of the Stripe invoices. Deleting it is safe against
+  // the tax-retention obligation that would otherwise conflict with erasure:
+  // Stripe remains the system of record for the issued documents, so the
+  // statutory copy survives while the personal data leaves this database.
+  "invoices",
   "jobs",
   "lesson_progress",
   "link_events",

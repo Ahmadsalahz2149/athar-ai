@@ -1406,7 +1406,21 @@
     "planEndsOn": "Your plan: {plan} — renewal cancelled; stays active until {date}.",
     "sourcesLimitFeat": "Up to {n} knowledge sources",
     "err_unknown_plan": "Unknown plan.",
-    "err_no_subscription": "No subscription to manage."
+    "err_no_subscription": "No subscription to manage.",
+    "invoicesTitle": "Invoices",
+    "invoicesDesc": "Every payment issues a numbered tax invoice with the VAT breakdown. Download the PDF for your records.",
+    "noInvoices": "No invoices yet — one appears here after your first payment.",
+    "downloadPdf": "PDF",
+    "vatLine": "VAT {amount} ({rate}%)",
+    "vatExclusiveNote": "Prices exclude VAT. Tax is calculated at checkout based on your country, and a registered business can enter its VAT number.",
+    "billedTo": "Billed to {name}",
+    "taxIdLabel": "Tax number",
+    "billingProfileHint": "To change the name, address or tax number, open Manage subscription.",
+    "inv_paid": "Paid",
+    "inv_open": "Due",
+    "inv_void": "Void",
+    "inv_uncollectible": "Unpaid",
+    "inv_draft": "Draft"
   },
   "Help": {
     "title": "Help & Learning center",

@@ -37,6 +37,9 @@ export const EXPORTED_TABLES = [
   "social_connections",
   "credit_ledger",
   "coupon_redemptions",
+  // Billing history belongs in an export: it is the customer's own financial
+  // record of what they paid and what VAT was charged.
+  "invoices",
   "link_events",
   "jobs",
 ] as const;

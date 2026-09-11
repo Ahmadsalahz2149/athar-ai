@@ -14,7 +14,20 @@ const input: CSSProperties = { padding: "10px 12px", borderRadius: 10, border: "
 
 // Packs come from the shared catalog so the price shown is the price charged.
 
-export function BillingClient({ balance, referral, locale, payments, purchase, currentPlan, planStatus, renewsAt }: { balance: number; referral: { code: string; count: number }; locale: string; payments: boolean; purchase: "success" | "cancelled" | "subscribed" | null; currentPlan: string; planStatus: string | null; renewsAt: string | null }) {
+export type InvoiceView = {
+  id: string;
+  number: string | null;
+  date: string;
+  currency: string;
+  totalAmount: string;
+  taxAmount: string;
+  taxRatePct: number | null;
+  status: string;
+  pdfUrl: string | null;
+  hostedUrl: string | null;
+};
+
+export function BillingClient({ balance, referral, locale, payments, purchase, currentPlan, planStatus, renewsAt, invoices, vatExclusive, billingProfile }: { balance: number; referral: { code: string; count: number }; locale: string; payments: boolean; purchase: "success" | "cancelled" | "subscribed" | null; currentPlan: string; planStatus: string | null; renewsAt: string | null; invoices: InvoiceView[]; vatExclusive: boolean; billingProfile: { name: string | null; country: string | null; taxId: string | null } | null }) {
   const t = useTranslations("Billing");
   const router = useRouter();
   const nf = useMemo(() => new Intl.NumberFormat(locale === "ar" ? "ar" : "en"), [locale]);
@@ -141,7 +154,12 @@ export function BillingClient({ balance, referral, locale, payments, purchase, c
           <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--heading)" }}>{t("packsTitle")}</div>
           {!payments && <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: "var(--gold-tint)", color: "var(--gold-dark)" }}>{t("soon")}</span>}
         </div>
-        <div style={{ fontSize: 12.8, color: "var(--muted)", marginBlockEnd: 14 }}>{t("packsDesc")}</div>
+        <div style={{ fontSize: 12.8, color: "var(--muted)", marginBlockEnd: 14 }}>
+          {t("packsDesc")}
+          {/* Only claimed when VAT is actually being calculated, so the page
+              never promises a tax treatment the checkout is not applying. */}
+          {vatExclusive && <span style={{ display: "block", marginBlockStart: 4 }}>{t("vatExclusiveNote")}</span>}
+        </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {CREDIT_PACKS.map((p) => (
             <div key={p.id} style={{ flex: "1 1 130px", border: "1px solid var(--border)", borderRadius: 12, padding: 14, textAlign: "center" }}>
@@ -158,6 +176,50 @@ export function BillingClient({ balance, referral, locale, payments, purchase, c
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Tax invoices — the numbered documents a business actually files. The
+          PDF is served by Stripe, which issues the number and renders it. */}
+      <section style={cardStyle}>
+        <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--heading)", marginBlockEnd: 4 }}>{t("invoicesTitle")}</div>
+        <div style={{ fontSize: 12.8, color: "var(--muted)", marginBlockEnd: 12 }}>{t("invoicesDesc")}</div>
+
+        {billingProfile && (billingProfile.name || billingProfile.taxId) && (
+          <div style={{ fontSize: 12.5, color: "var(--slate)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "9px 12px", marginBlockEnd: 12, display: "grid", gap: 3 }}>
+            {billingProfile.name && <span>{t("billedTo", { name: billingProfile.name })}</span>}
+            {billingProfile.taxId && <span dir="ltr" style={{ fontFamily: "var(--font-latin)" }}>{t("taxIdLabel")}: {billingProfile.taxId}</span>}
+            <span style={{ color: "var(--muted)", fontSize: 11.5 }}>{t("billingProfileHint")}</span>
+          </div>
+        )}
+
+        {invoices.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--muted)" }}>{t("noInvoices")}</p>
+        ) : (
+          <div style={{ display: "grid", gap: 8 }}>
+            {invoices.map((inv) => (
+              <div key={inv.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", padding: "10px 12px", borderRadius: 11, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <div style={{ display: "grid", gap: 2, minWidth: 150 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--heading)", fontFamily: "var(--font-latin)" }} dir="ltr">{inv.number ?? "—"}</span>
+                  <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{inv.date}</span>
+                </div>
+                <div style={{ display: "grid", gap: 2, textAlign: "center" }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--heading)", fontFamily: "var(--font-latin)" }} dir="ltr">{inv.totalAmount} {inv.currency.toUpperCase()}</span>
+                  <span style={{ fontSize: 11.5, color: "var(--muted)" }}>
+                    {t("vatLine", { amount: inv.taxAmount, rate: inv.taxRatePct === null ? "—" : String(inv.taxRatePct) })}
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: inv.status === "paid" ? "var(--teal-tint-2)" : "var(--gold-tint)", color: inv.status === "paid" ? "var(--teal-deep)" : "var(--gold-dark)" }}>
+                    {t(`inv_${inv.status}`)}
+                  </span>
+                  {inv.pdfUrl && (
+                    <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ ...btnGhost, height: 32, fontSize: 12, padding: "0 12px", display: "inline-flex", alignItems: "center", textDecoration: "none" }}>{t("downloadPdf")}</a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Affiliate — real code/link */}

@@ -4,8 +4,9 @@ import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { paymentsEnabled } from "@/lib/payments/stripe";
 import { effectivePlan } from "@/lib/payments/plans";
+import { taxEnabled, bpsToPercent, formatAmount } from "@/lib/payments/tax";
 import { log } from "@/lib/log";
-import { BillingClient } from "./BillingClient";
+import { BillingClient, type InvoiceView } from "./BillingClient";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export default async function BillingPage({
   let planId = "free";
   let planStatus: string | null = null;
   let renewsAt: string | null = null;
+  let invoices: InvoiceView[] = [];
+  let billingProfile: { name: string | null; country: string | null; taxId: string | null } | null = null;
   if (db) {
     const ctx = await currentContext();
     if (ctx) {
@@ -34,9 +37,30 @@ export default async function BillingPage({
       // because ONE query failed is worse than one showing conservative
       // defaults. (This bit: the subscription columns exist only after the
       // migration runs, and the deploy script does not run migrations.)
-      const [b, r, ps] = await Promise.allSettled([org.balance(), org.getReferral(), org.planState()]);
+      const [b, r, ps, inv, bp] = await Promise.allSettled([
+        org.balance(), org.getReferral(), org.planState(), org.listInvoices(24), org.billingProfile(),
+      ]);
       if (b.status === "fulfilled") balance = b.value;
       if (r.status === "fulfilled") referral = r.value;
+      if (inv.status === "fulfilled") {
+        invoices = inv.value.map((i) => ({
+          id: i.id,
+          number: i.number,
+          // Formatted on the server so the list renders identically before
+          // hydration; the locale decides the calendar, not the browser.
+          date: new Intl.DateTimeFormat(locale === "ar" ? "ar" : "en", { year: "numeric", month: "short", day: "numeric" }).format(i.issuedAt),
+          currency: i.currency,
+          totalAmount: formatAmount(i.totalCents),
+          taxAmount: formatAmount(i.taxCents),
+          taxRatePct: i.taxRateBps === null ? null : bpsToPercent(i.taxRateBps),
+          status: i.status,
+          pdfUrl: i.invoicePdfUrl,
+          hostedUrl: i.hostedInvoiceUrl,
+        }));
+      } else {
+        log.error("billing.invoices_read_failed", {}, inv.reason);
+      }
+      if (bp.status === "fulfilled") billingProfile = bp.value;
       if (ps.status === "fulfilled") {
         // effectivePlan() decides entitlement; a lapsed subscription reads as free.
         planId = effectivePlan(ps.value.plan, ps.value.planStatus).id;
@@ -63,6 +87,9 @@ export default async function BillingPage({
         currentPlan={planId}
         planStatus={planStatus}
         renewsAt={renewsAt}
+        invoices={invoices}
+        vatExclusive={taxEnabled()}
+        billingProfile={billingProfile}
       />
     </main>
   );

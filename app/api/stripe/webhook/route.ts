@@ -3,6 +3,8 @@ import { forOrg } from "@/lib/db/forOrg";
 import { getStripe } from "@/lib/payments/stripe";
 import { findPack } from "@/lib/payments/catalog";
 import { findPlan } from "@/lib/payments/plans";
+import { isRecordableStatus, toInvoiceRecord, orgIdFromInvoice, customerIdFromInvoice } from "@/lib/payments/tax";
+import { orgIdForStripeCustomer } from "@/lib/payments/lookup";
 import { log } from "@/lib/log";
 import type Stripe from "stripe";
 
@@ -50,6 +52,38 @@ async function syncSubscription(sub: Stripe.Subscription): Promise<boolean> {
 }
 
 
+/**
+ * Store the tax invoice behind a payment.
+ *
+ * Every charge — a subscription renewal or a one-off credit pack — produces a
+ * Stripe invoice with a sequential number, the VAT breakdown and a PDF. That
+ * document is what a customer files and what a tax authority asks for, so it
+ * must be reachable from inside the product rather than only from a Stripe
+ * email that may never arrive.
+ *
+ * Never fatal: a payment that succeeded must not be re-driven by Stripe because
+ * our bookkeeping copy failed to save. The credits are the part that has to be
+ * right on retry; the invoice can be re-recorded by any later event on it.
+ */
+async function recordInvoice(inv: Stripe.Invoice): Promise<void> {
+  try {
+    if (!inv.id || !isRecordableStatus(inv.status)) return;
+    const orgId = orgIdFromInvoice(inv) ?? (await orgIdForStripeCustomer(db!, customerIdFromInvoice(inv) ?? ""));
+    if (!orgId) {
+      log.error("stripe.unmappable_invoice", { invoiceId: inv.id, customer: customerIdFromInvoice(inv) });
+      return;
+    }
+    const record = toInvoiceRecord(inv);
+    await forOrg(db!, orgId).recordInvoice(record);
+    log.info("stripe.invoice_recorded", {
+      orgId, invoiceId: inv.id, number: record.number, status: record.status,
+      totalCents: record.totalCents, taxCents: record.taxCents,
+    });
+  } catch (e) {
+    log.error("stripe.invoice_record_failed", { invoiceId: inv.id }, e);
+  }
+}
+
 export async function POST(req: Request) {
   const stripe = getStripe();
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -81,10 +115,26 @@ export async function POST(req: Request) {
     return Response.json({ received: true });
   }
 
+  // --- Tax invoices. `finalized` is when the document gets its number, `paid`
+  // when it is settled, and the rest are the states it can end in; each is
+  // recorded onto the same row so the history tracks reality. ---
+  if (
+    event.type === "invoice.finalized" ||
+    event.type === "invoice.paid" ||
+    event.type === "invoice.voided" ||
+    event.type === "invoice.marked_uncollectible"
+  ) {
+    await recordInvoice(event.data.object as Stripe.Invoice);
+    return Response.json({ received: true });
+  }
+
   // --- Recurring credits: fires on the first payment AND every renewal, which
   // is what makes the monthly allowance automatic with no cron of our own. ---
   if (event.type === "invoice.payment_succeeded") {
     const invoice = event.data.object as Stripe.Invoice;
+    // Record first: the credit grant below returns early for anything that is
+    // not a plan invoice, and a credit-pack invoice still needs storing.
+    await recordInvoice(invoice);
     const details = invoice.parent?.subscription_details;
     const orgId = details?.metadata?.orgId;
     const plan = findPlan(details?.metadata?.planId ?? "");

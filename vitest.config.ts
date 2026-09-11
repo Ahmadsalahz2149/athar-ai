@@ -11,6 +11,12 @@ export default defineConfig({
   },
   test: {
     include: ["tests/**/*.test.ts"],
+    // One database, several suites. The job queue is cross-org by design —
+    // claimNext() takes the oldest runnable job in the WHOLE table — so a suite
+    // that enqueues jobs will steal another suite's job if they run at the same
+    // time. That is a test-harness race, not a product bug, and serialising the
+    // files removes the whole class of it for ~1s of wall clock.
+    fileParallelism: false,
     testTimeout: 30000,
     hookTimeout: 30000,
   },

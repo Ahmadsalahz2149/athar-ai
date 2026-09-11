@@ -319,6 +319,54 @@ export const jobs = pgTable(
   ],
 );
 
+// Tax invoices (Phase 8). One row per Stripe invoice, written by the webhook —
+// never by the browser. Stripe is the system of record (it issues the sequential
+// number and the PDF that a tax authority accepts); this table is a local,
+// queryable projection so the billing screen can list a workspace's invoices
+// without an API round-trip, and so the history survives independently of an
+// API key that may be rotated or revoked.
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    /** Stripe's invoice id — the idempotency key for the webhook's upsert. */
+    stripeInvoiceId: text("stripe_invoice_id").notNull(),
+    /** Stripe's sequential, human-facing invoice number (e.g. "A1B2C3-0001"). */
+    number: text("number"),
+    // draft | open | paid | uncollectible | void
+    status: text("status").notNull(),
+    currency: text("currency").notNull(),
+    // All amounts in the currency's smallest unit (cents), never floats.
+    subtotalCents: integer("subtotal_cents").notNull(),
+    taxCents: integer("tax_cents").notNull().default(0),
+    totalCents: integer("total_cents").notNull(),
+    amountPaidCents: integer("amount_paid_cents").notNull().default(0),
+    /** Effective VAT rate, derived from tax ÷ taxable amount and stored as basis
+     * points so 15% is exactly 1500 — a float here would print as 14.999%. */
+    taxRateBps: integer("tax_rate_bps"),
+    /** Billing identity AS INVOICED. Copied, not joined: an invoice must keep
+     * showing the name, country and tax number that were on it at issue. */
+    customerName: text("customer_name"),
+    customerCountry: text("customer_country"),
+    customerTaxId: text("customer_tax_id"),
+    /** Stripe-hosted, signed links — the PDF is the document the customer files. */
+    hostedInvoiceUrl: text("hosted_invoice_url"),
+    invoicePdfUrl: text("invoice_pdf_url"),
+    periodStart: timestamp("period_start", { withTimezone: true }),
+    periodEnd: timestamp("period_end", { withTimezone: true }),
+    issuedAt: timestamp("issued_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    // Stripe delivers at least once and an invoice changes state (finalized →
+    // paid); the upsert target keeps that one row instead of one per delivery.
+    uniqueIndex("invoices_stripe_id_uq").on(t.stripeInvoiceId),
+    index("invoices_org_idx").on(t.orgId, t.issuedAt),
+  ],
+);
+
 // Social platform connections (Phase 7.3). One row per (brand, platform) holding
 // the OAuth tokens the publisher uses to post on the user's behalf. Tenancy-scoped;
 // tokens live behind the service role and Supabase at-rest encryption.
