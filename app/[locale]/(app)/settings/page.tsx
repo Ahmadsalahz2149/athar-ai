@@ -6,6 +6,7 @@ import { currentContext } from "@/lib/auth/current";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { configuredPlatforms } from "@/lib/social/registry";
 import { effectivePlan } from "@/lib/payments/plans";
+import { log } from "@/lib/log";
 import { SettingsClient } from "./SettingsClient";
 
 export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -40,18 +41,23 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
     const ctx = await currentContext();
     if (ctx) {
       const org = forOrg(db, ctx.orgId);
-      const [b, dna, c, conns, ps] = await Promise.all([
+      // Fault-tolerant per read — one failing query must not 500 the whole
+      // settings screen; each section falls back to a safe default instead.
+      const [b, dna, c, conns, ps] = await Promise.allSettled([
         org.balance(),
         org.currentDna(ctx.brandId),
         org.counts(ctx.brandId),
         org.listConnections(ctx.brandId),
         org.planState(),
       ]);
-      plan = effectivePlan(ps.plan, ps.planStatus);
-      balance = b;
-      completeness = dna?.completion_pct ?? 0;
-      sourcesUsed = c.sources;
-      connectedPlatforms = conns.filter((x) => x.status === "connected").map((x) => x.platform);
+      if (b.status === "fulfilled") balance = b.value;
+      if (dna.status === "fulfilled") completeness = dna.value?.completion_pct ?? 0;
+      if (c.status === "fulfilled") sourcesUsed = c.value.sources;
+      if (conns.status === "fulfilled") {
+        connectedPlatforms = conns.value.filter((x) => x.status === "connected").map((x) => x.platform);
+      }
+      if (ps.status === "fulfilled") plan = effectivePlan(ps.value.plan, ps.value.planStatus);
+      else log.error("settings.plan_read_failed", {}, ps.reason);
     }
   }
 

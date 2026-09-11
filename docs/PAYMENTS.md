@@ -38,8 +38,13 @@
 الهجرات**، فنفّذها مرّة واحدة على الخادم **قبل** أو **بعد** النشر مباشرة:
 
 ```bash
-su - athar -c 'cd /home/athar/apps/athar-ai && npm run db:migrate'
+su - athar -c 'mkdir -p ~/tmp && cd /home/athar/apps/athar-ai && TMPDIR=~/tmp npm run db:migrate'
 ```
+
+> **لماذا `TMPDIR`؟** `drizzle-kit` يشغّل `tsx` الذي يحتاج مجلدًا مؤقتًا، و
+> `TMPDIR` على هذا الخادم يشير إلى `/opt/restomind-tmp` ولا يملك المستخدم
+> `athar` صلاحية الكتابة فيه — فيفشل الأمر بـ`EACCES`. توجيهه لمجلد داخل
+> `$HOME` يحلّ المشكلة.
 
 الهجرة **إضافية وآمنة**: كل الأعمدة nullable أو لها قيمة افتراضية، فكل حساب
 قائم يقرأ تلقائيًا كـ`free` بلا أي تغيير في سلوكه. لا تفقد بيانات.

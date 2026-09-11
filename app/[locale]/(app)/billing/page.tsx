@@ -4,6 +4,7 @@ import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { paymentsEnabled } from "@/lib/payments/stripe";
 import { effectivePlan } from "@/lib/payments/plans";
+import { log } from "@/lib/log";
 import { BillingClient } from "./BillingClient";
 
 export const dynamic = "force-dynamic";
@@ -29,13 +30,21 @@ export default async function BillingPage({
     const ctx = await currentContext();
     if (ctx) {
       const org = forOrg(db, ctx.orgId);
-      const [b, r, ps] = await Promise.all([org.balance(), org.getReferral(), org.planState()]);
-      balance = b;
-      referral = r;
-      // effectivePlan() decides entitlement; a lapsed subscription reads as free.
-      planId = effectivePlan(ps.plan, ps.planStatus).id;
-      planStatus = ps.planStatus;
-      renewsAt = ps.planRenewsAt ? ps.planRenewsAt.toISOString().slice(0, 10) : null;
+      // Each read is independently fault-tolerant: a billing page that 500s
+      // because ONE query failed is worse than one showing conservative
+      // defaults. (This bit: the subscription columns exist only after the
+      // migration runs, and the deploy script does not run migrations.)
+      const [b, r, ps] = await Promise.allSettled([org.balance(), org.getReferral(), org.planState()]);
+      if (b.status === "fulfilled") balance = b.value;
+      if (r.status === "fulfilled") referral = r.value;
+      if (ps.status === "fulfilled") {
+        // effectivePlan() decides entitlement; a lapsed subscription reads as free.
+        planId = effectivePlan(ps.value.plan, ps.value.planStatus).id;
+        planStatus = ps.value.planStatus;
+        renewsAt = ps.value.planRenewsAt ? ps.value.planRenewsAt.toISOString().slice(0, 10) : null;
+      } else {
+        log.error("billing.plan_read_failed", {}, ps.reason);
+      }
     }
   }
 
