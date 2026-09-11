@@ -6,6 +6,7 @@ import { MODELS } from "@/lib/ai/models";
 import { estimateRewrite } from "@/lib/credits/costs";
 import { ASSISTANT_SYSTEM, buildAssistantContext, buildBrandContext } from "@/lib/ai/prompts";
 import { log } from "@/lib/log";
+import { consume, LIMITS } from "@/lib/rate-limit";
 
 /**
  * Live token streaming for the floating brand assistant (Phase 3 #20). Streams
@@ -23,6 +24,16 @@ export async function POST(req: Request) {
   if (!hasKeyFor("anthropic")) return new Response("no_key", { status: 400 });
   const ctx = await currentContext();
   if (!ctx) return new Response("no_session", { status: 401 });
+
+  // Burst guard in front of the provider. Credits are the real cost control,
+  // but they don't stop a tight loop from hammering Anthropic first.
+  const rl = consume(`ai:${ctx.orgId}`, LIMITS.aiStream.limit, LIMITS.aiStream.windowMs);
+  if (!rl.ok) {
+    return new Response("rate_limited", {
+      status: 429,
+      headers: { "retry-after": String(Math.ceil(rl.retryAfterMs / 1000)) },
+    });
+  }
 
   const { message, history } = (await req.json().catch(() => ({}))) as { message?: string; history?: Msg[] };
   if (typeof message !== "string" || !message.trim()) return new Response("empty", { status: 400 });

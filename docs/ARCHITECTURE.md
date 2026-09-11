@@ -37,6 +37,13 @@ This document describes the system that is actually deployed. Proposed or future
 - Model identifiers are centralized in `lib/ai/models.ts`.
 - The credit ledger is append-only. Balance writes use a per-organization PostgreSQL advisory lock and a conditional insert, preventing concurrent debits from creating a negative balance.
 - Retried background jobs use idempotency keys so the same completed operation cannot charge twice.
+- Sign-in, sign-up, password reset and the AI stream routes are rate limited server-side
+  (`lib/rate-limit.ts`). Sign-in and reset are capped per IP *and* per email address, so a
+  targeted brute force that rotates IPs is still bounded; AI streams are capped per
+  organization as a burst guard in front of the provider (credits remain the real cost
+  control). Counters are per-process and in-memory: they reset on restart and are not
+  shared across processes, which is sufficient for the current single-process deployment
+  and needs a shared store before scaling out.
 
 ## Product scope
 

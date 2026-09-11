@@ -7,6 +7,7 @@ import { MODELS } from "@/lib/ai/models";
 import { estimateRewrite } from "@/lib/credits/costs";
 import { REWRITE_SYSTEM_PLAIN, buildRewriteMessage } from "@/lib/ai/prompts";
 import { log } from "@/lib/log";
+import { consume, LIMITS } from "@/lib/rate-limit";
 
 /**
  * Live token streaming for Studio rewrites (INFRA phase 4). Streams the rewritten
@@ -23,6 +24,16 @@ export async function POST(req: Request) {
 
   const ctx = await currentContext();
   if (!ctx) return new Response("no_session", { status: 401 });
+
+  // Burst guard in front of the provider. Credits are the real cost control,
+  // but they don't stop a tight loop from hammering Anthropic first.
+  const rl = consume(`ai:${ctx.orgId}`, LIMITS.aiStream.limit, LIMITS.aiStream.windowMs);
+  if (!rl.ok) {
+    return new Response("rate_limited", {
+      status: 429,
+      headers: { "retry-after": String(Math.ceil(rl.retryAfterMs / 1000)) },
+    });
+  }
 
   const { body, tool, model } = (await req.json().catch(() => ({}))) as { body?: string; tool?: string; model?: string };
   if (typeof body !== "string" || !body.trim()) return new Response("no_body", { status: 400 });

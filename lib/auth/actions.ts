@@ -2,16 +2,27 @@
 
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { consume, LIMITS } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/request-ip";
 import { ensureUserContext } from "./bootstrap";
 
 /** `code` lets the client show a specific, localized message; `error` is the raw
  * fallback text for anything unmapped. */
 export type SignInCode = "invalid" | "unconfirmed" | "not_configured" | "rate_limited" | "other";
+
+/** Normalize an email for rate-limit keys so casing/spacing can't split buckets. */
+const emailKey = (e: string) => e.trim().toLowerCase();
 export type AuthResult = { ok: true; needsConfirm?: boolean } | { ok: false; error: string; code?: SignInCode };
 
 export async function signIn(input: { email: string; password: string }): Promise<AuthResult> {
   const supabase = await getSupabaseServer();
   if (!supabase) return { ok: false, error: "Auth is not configured.", code: "not_configured" };
+  // Throttle before touching Supabase: per IP, and per email so a targeted
+  // brute force that rotates IPs is still capped.
+  const ip = await clientIp();
+  const byIp = consume(`signin:ip:${ip}`, LIMITS.signInIp.limit, LIMITS.signInIp.windowMs);
+  const byEmail = consume(`signin:email:${emailKey(input.email)}`, LIMITS.signInEmail.limit, LIMITS.signInEmail.windowMs);
+  if (!byIp.ok || !byEmail.ok) return { ok: false, error: "Too many attempts. Please try again later.", code: "rate_limited" };
   const { data, error } = await supabase.auth.signInWithPassword({
     email: input.email.trim(),
     password: input.password,
@@ -39,6 +50,10 @@ export async function signUp(input: {
 }): Promise<AuthResult> {
   const supabase = await getSupabaseServer();
   if (!supabase) return { ok: false, error: "Auth is not configured." };
+  const ip = await clientIp();
+  if (!consume(`signup:ip:${ip}`, LIMITS.signUpIp.limit, LIMITS.signUpIp.windowMs).ok) {
+    return { ok: false, error: "Too many attempts. Please try again later.", code: "rate_limited" };
+  }
   const { data, error } = await supabase.auth.signUp({
     email: input.email.trim(),
     password: input.password,
@@ -64,7 +79,14 @@ export async function signUp(input: {
  * depends on Supabase SMTP being configured (needs intervention otherwise). */
 export async function requestPasswordReset(email: string, locale = "ar"): Promise<{ ok: true }> {
   const supabase = await getSupabaseServer();
-  if (supabase && email.trim()) {
+  // The browser cooldown was advisory only — this action could be called
+  // directly. Throttle here, and keep returning ok:true either way so a
+  // throttled caller still learns nothing about whether the address exists.
+  const ip = await clientIp();
+  const allowed =
+    consume(`reset:ip:${ip}`, LIMITS.resetIp.limit, LIMITS.resetIp.windowMs).ok &&
+    consume(`reset:email:${emailKey(email)}`, LIMITS.resetEmail.limit, LIMITS.resetEmail.windowMs).ok;
+  if (supabase && email.trim() && allowed) {
     // The recovery link must land on our /reset-password page so the user can
     // actually set a new password. Base URL comes from OAUTH_BASE_URL (same as
     // the social callbacks); this URL must be in Supabase's allowed redirects.
