@@ -4,21 +4,26 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { guardDraft } from "@/lib/ai/guardDraft";
+import { isUserSettableStatus } from "@/lib/drafts/states";
 
 /** Set a draft's approval status. `schedule` stamps scheduledAt = now (MVP slot). */
 export async function setDraftStatus(
   draftId: string,
-  status: "approved" | "needs_edit" | "scheduled" | "published" | "rejected",
+  status: "approved" | "needs_edit" | "scheduled" | "rejected",
   schedule = false,
 ): Promise<{ ok: boolean; error?: string; violations?: string[] }> {
   try {
     if (!db) return { ok: false };
     const ctx = await currentContext();
     if (!ctx) return { ok: false };
-    // Same server-side guardrail as Studio: approving/scheduling/publishing is
-    // the point of no return, so re-scan the stored text here. Sending a draft
-    // back (needs_edit / rejected) is always allowed.
-    if (status === "approved" || status === "scheduled" || status === "published") {
+    // The union above is a compile-time promise; this action is callable
+    // directly, so re-check it. "published" is deliberately not settable here —
+    // only the publisher may claim a post is live.
+    if (!isUserSettableStatus(status)) return { ok: false, error: "bad_status" };
+    // Same server-side guardrail as Studio: approving/scheduling is the point of
+    // no return, so re-scan the stored text here. Sending a draft back
+    // (needs_edit / rejected) is always allowed.
+    if (status === "approved" || status === "scheduled") {
       const guard = await guardDraft(db, ctx.orgId, ctx.brandId, draftId);
       if (!guard.ok) return { ok: false, error: "guardrail", violations: guard.violations };
     }

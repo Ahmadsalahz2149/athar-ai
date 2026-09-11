@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { platformColor, btnTeal } from "@/components/ui/display";
+import { toPlatformId } from "@/lib/social/registry";
 import { Scheduler } from "./Scheduler";
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -38,22 +39,38 @@ export default async function CalendarPage({ params, searchParams }: { params: P
   const prevWk = iso(new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() - 7));
   const nextWk = iso(new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7));
 
-  type Item = { hook: string; platform: string; time: string; sort: number };
+  type Item = { hook: string; platform: string; time: string; sort: number; state: PostState; url: string | null; error: string | null };
   const byDay = new Map<number, Item[]>();
   const byDate = new Map<string, Item[]>();
-  let unscheduled: { id: string; hook: string }[] = [];
+  let unscheduled: { id: string; hook: string; platform: string; canPublish: boolean }[] = [];
+  let connected: string[] = [];
   if (db) {
     const ctx = await currentContext();
     if (ctx) {
       const org = forOrg(db, ctx.orgId);
-      const [sched, approved] = await Promise.all([
+      // The calendar now shows the whole life of a post, not just its plan:
+      // waiting → going out → live (with a link) → failed (with the reason).
+      const [sched, approved, published, publishing, failed, conns] = await Promise.all([
         org.scheduledDrafts(ctx.brandId),
         org.listDraftsByStatus(ctx.brandId, "approved"),
+        org.publishedDrafts(ctx.brandId),
+        org.listDraftsByStatus(ctx.brandId, "publishing"),
+        org.listDraftsByStatus(ctx.brandId, "publish_failed"),
+        org.listConnections(ctx.brandId),
       ]);
-      for (const r of sched) {
-        if (!r.scheduledAt) continue;
-        const dt = new Date(r.scheduledAt);
-        const item: Item = { hook: r.hook, platform: r.platform, time: tf.format(dt), sort: dt.getHours() * 60 + dt.getMinutes() };
+      connected = conns.filter((c) => c.status === "connected").map((c) => c.platform);
+
+      const place = (r: { hook: string; platform: string; scheduledAt: Date | null; publishedAt?: Date | null; externalUrl?: string | null; publishError?: string | null }, state: PostState) => {
+        // A published post is pinned to when it actually went out; everything
+        // else to when it is meant to.
+        const at = (state === "published" ? r.publishedAt : null) ?? r.scheduledAt;
+        if (!at) return;
+        const dt = new Date(at);
+        const item: Item = {
+          hook: r.hook, platform: r.platform, time: tf.format(dt),
+          sort: dt.getHours() * 60 + dt.getMinutes(), state,
+          url: r.externalUrl ?? null, error: r.publishError ?? null,
+        };
         if (dt.getFullYear() === year && dt.getMonth() === month) {
           const arr = byDay.get(dt.getDate()) ?? [];
           arr.push(item);
@@ -63,12 +80,25 @@ export default async function CalendarPage({ params, searchParams }: { params: P
         const darr = byDate.get(key) ?? [];
         darr.push(item);
         byDate.set(key, darr);
-      }
-      unscheduled = approved.map((r) => ({ id: r.id, hook: r.hook }));
+      };
+
+      for (const r of sched) place(r, "scheduled");
+      for (const r of publishing) place(r, "publishing");
+      for (const r of published) place(r, "published");
+      for (const r of failed) place(r, "failed");
+
+      unscheduled = approved.map((r) => ({
+        id: r.id, hook: r.hook, platform: r.platform,
+        // "Publish now" is only offered when there is an account to publish to.
+        canPublish: Boolean(toPlatformId(r.platform) && connected.includes(toPlatformId(r.platform)!)),
+      }));
     }
   }
   for (const arr of byDate.values()) arr.sort((a, b) => a.sort - b.sort);
 
+  const stateLabels: Record<PostState, string> = {
+    scheduled: t("stScheduled"), publishing: t("stPublishing"), published: t("stPublished"), failed: t("stFailed"),
+  };
   const weekdays = t("weekdays").split("،").map((s) => s.trim());
   const weekRangeLabel = new Intl.DateTimeFormat(locale === "ar" ? "ar" : "en", { day: "numeric", month: "short" }).formatRange(weekDates[0], weekDates[6]);
   const cells: (number | null)[] = [];
@@ -113,6 +143,7 @@ export default async function CalendarPage({ params, searchParams }: { params: P
               unscheduled: t("unscheduled"), none: t("noUnscheduled"), scheduleBtn: t("scheduleBtn"),
               confirm: t("confirmSchedule"), cancel: t("cancel"), autoAll: t("autoScheduleAll"),
               scheduling: t("scheduling"), pickWhen: t("pickWhen"), autoDone: t("autoScheduled"), error: t("scheduleError"),
+              publishNow: t("publishNow"), publishSent: t("publishSent"), notConnected: t("publishNotConnected"),
             }}
           />
         </div>
@@ -145,12 +176,7 @@ export default async function CalendarPage({ params, searchParams }: { params: P
                         {items.length === 0 ? (
                           <span style={{ fontSize: 12.5, color: "var(--subtle)" }}>{t("noPostsDay")}</span>
                         ) : (
-                          items.map((p, j) => (
-                            <div key={j} title={p.hook} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, padding: "5px 9px", borderRadius: 8, background: "var(--card)", borderInlineStart: `3px solid ${platformColor(p.platform)}` }}>
-                              <span style={{ fontFamily: "var(--font-latin)", color: "var(--muted)", flex: "none", fontSize: 11.5 }}>{p.time}</span>
-                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--slate)" }}>{p.hook}</span>
-                            </div>
-                          ))
+                          items.map((p, j) => <PostChip key={j} p={p} labels={stateLabels} />)
                         )}
                       </div>
                     </div>
@@ -183,12 +209,7 @@ export default async function CalendarPage({ params, searchParams }: { params: P
                           <div style={{ fontSize: 19, fontWeight: 800, color: d === today ? "var(--teal-deep)" : "var(--heading)", fontFamily: "var(--font-latin)" }}>{d}</div>
                         </div>
                         <div style={{ flex: 1, display: "grid", gap: 5, borderInlineStart: "1px solid var(--border)", paddingInlineStart: 12 }}>
-                          {(byDay.get(d) ?? []).map((p, j) => (
-                            <div key={j} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, padding: "5px 9px", borderRadius: 8, background: "var(--card)", borderInlineStart: `3px solid ${platformColor(p.platform)}` }}>
-                              <span style={{ fontFamily: "var(--font-latin)", color: "var(--muted)", flex: "none", fontSize: 11.5 }}>{p.time}</span>
-                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--slate)" }}>{p.hook}</span>
-                            </div>
-                          ))}
+                          {(byDay.get(d) ?? []).map((p, j) => <PostChip key={j} p={p} labels={stateLabels} />)}
                         </div>
                       </div>
                     ))
@@ -205,12 +226,7 @@ export default async function CalendarPage({ params, searchParams }: { params: P
                       <>
                         <div style={{ fontSize: 12, fontWeight: 700, color: d === today ? "var(--teal-deep)" : "var(--slate)", fontFamily: "var(--font-latin)" }}>{d}</div>
                         <div style={{ display: "grid", gap: 3, marginBlockStart: 5 }}>
-                          {(byDay.get(d) ?? []).slice(0, 3).map((p, j) => (
-                            <div key={j} title={p.hook} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 9.5, padding: "2px 5px", borderRadius: 5, background: "var(--surface)", borderInlineStart: `2px solid ${platformColor(p.platform)}`, overflow: "hidden" }}>
-                              <span style={{ fontFamily: "var(--font-latin)", color: "var(--muted)", flex: "none" }}>{p.time}</span>
-                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--slate)" }}>{p.hook}</span>
-                            </div>
-                          ))}
+                          {(byDay.get(d) ?? []).slice(0, 3).map((p, j) => <PostChip key={j} p={p} labels={stateLabels} compact />)}
                           {(byDay.get(d)?.length ?? 0) > 3 && (
                             <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--teal-deep)", paddingInlineStart: 5 }}>{t("moreCount", { n: (byDay.get(d)!.length - 3) })}</span>
                           )}
@@ -227,6 +243,44 @@ export default async function CalendarPage({ params, searchParams }: { params: P
     </main>
   );
 }
+
+type PostState = "scheduled" | "publishing" | "published" | "failed";
+
+/** One post on a day. The dot carries the *publishing* state (waiting, going
+ * out, live, failed) while the leading bar stays the platform colour, so the
+ * calendar reads the same as before at a glance and gains a second dimension
+ * only when you look closer. A live post links to itself. */
+function PostChip({ p, labels, compact = false }: { p: { hook: string; platform: string; time: string; state: PostState; url: string | null; error: string | null }; labels: Record<PostState, string>; compact?: boolean }) {
+  const size = compact ? { fontSize: 9.5, padding: "2px 5px", radius: 5, bar: 2, gap: 4, dot: 5 } : { fontSize: 12.5, padding: "5px 9px", radius: 8, bar: 3, gap: 8, dot: 7 };
+  const title = `${labels[p.state]} — ${p.hook}${p.error ? `\n${p.error}` : ""}`;
+  const inner = (
+    <>
+      <span aria-hidden style={{ flex: "none", width: size.dot, height: size.dot, borderRadius: "50%", background: STATE_COLOR[p.state], border: p.state === "scheduled" ? "1px solid var(--border-2)" : "none" }} />
+      <span style={{ fontFamily: "var(--font-latin)", color: "var(--muted)", flex: "none", fontSize: compact ? undefined : 11.5 }}>{p.time}</span>
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--slate)", textDecoration: p.state === "published" && p.url ? "underline" : "none" }}>{p.hook}</span>
+    </>
+  );
+  const style: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: size.gap, fontSize: size.fontSize,
+    padding: size.padding, borderRadius: size.radius,
+    background: compact ? "var(--surface)" : "var(--card)",
+    borderInlineStart: `${size.bar}px solid ${platformColor(p.platform)}`,
+    overflow: "hidden", opacity: p.state === "failed" ? 0.75 : 1,
+    color: "inherit", textDecoration: "none",
+  };
+  return p.state === "published" && p.url ? (
+    <a href={p.url} target="_blank" rel="noopener noreferrer" title={title} style={style}>{inner}</a>
+  ) : (
+    <div title={title} style={style}>{inner}</div>
+  );
+}
+
+const STATE_COLOR: Record<PostState, string> = {
+  scheduled: "var(--border-2)",
+  publishing: "var(--gold)",
+  published: "var(--teal)",
+  failed: "var(--coral)",
+};
 
 const card: React.CSSProperties = { background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 18 };
 const cardTitle: React.CSSProperties = { fontWeight: 700, color: "var(--heading)", fontSize: 15 };

@@ -877,7 +877,14 @@
     "nextWeek": "Next week",
     "thisWeekBtn": "This week",
     "noPostsDay": "No posts",
-    "noPostsMonth": "No scheduled posts this month"
+    "noPostsMonth": "No scheduled posts this month",
+    "stScheduled": "Scheduled",
+    "stPublishing": "Publishing…",
+    "stPublished": "Published",
+    "stFailed": "Publish failed",
+    "publishNow": "Publish now",
+    "publishSent": "Sending — the post will appear as published in a moment.",
+    "publishNotConnected": "Connect this platform in Settings first."
   },
   "Analytics": {
     "title": "Analytics",
@@ -964,7 +971,7 @@
     "completenessHint": "Add more writing samples to raise accuracy.",
     "addSamples": "Add samples",
     "platformsTitle": "Connected platforms",
-    "platformsSub": "Connect your accounts to set up distribution. Direct auto-posting is in development — for now distribution is assisted: the app prepares the post and you publish it in one click.",
+    "platformsSub": "Connect your accounts to publish directly. Once a platform is connected, scheduled posts go out on their own at the time you set — and the calendar links to each live post.",
     "pf_linkedin": "LinkedIn",
     "pf_x": "X / Twitter",
     "pf_instagram": "Instagram",

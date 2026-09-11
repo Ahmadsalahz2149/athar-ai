@@ -62,9 +62,14 @@ This document describes the system that is actually deployed. Proposed or future
 
 ## Product scope
 
-- Billing screens clearly label unavailable checkout paths as coming soon; live payment processing is not enabled.
-- Social publishing and platform analytics are not connected. Export-first workflows are the current supported behavior.
-- Operational visibility is provided by the in-product admin area and structured server logs. Sentry and PostHog are not installed.
+- Live payment processing is enabled: Stripe Checkout for credit packs and monthly
+  subscriptions, credited by signature-verified webhooks. See `docs/PAYMENTS.md`.
+- Social publishing posts for real to LinkedIn, X, Facebook and Instagram once a platform's
+  credentials are configured and a user connects an account; with no credentials the app
+  stays export-first exactly as before. Platform *analytics* are still not connected.
+  See `docs/PUBLISHING.md`.
+- Operational visibility comes from the in-product admin area, structured server logs and
+  Sentry (opt-in — inert without a DSN). PostHog is not installed. See `docs/MONITORING.md`.
 
 ## Deployment checklist
 

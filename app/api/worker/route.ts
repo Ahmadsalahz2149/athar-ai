@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runBatch } from "@/lib/jobs/runner";
 import { reapStale } from "@/lib/jobs/queue";
+import { dispatchDuePublishes, requeueAbandonedPublishes } from "@/lib/social/dispatch";
 import "@/lib/jobs/handlers"; // registers all handlers as a side effect
 
 /**
@@ -30,8 +31,13 @@ async function handle(req: Request) {
 
   const workerId = `w_${process.pid}_${Date.now()}`;
   const reaped = await reapStale(db); // recover jobs abandoned by a crashed worker
+  // Scheduled posts ride the same cron as the queue: the dispatcher turns every
+  // draft whose slot has arrived into a publish job, which this same drain then
+  // runs. One cron, no second thing for the operator to keep alive.
+  const requeued = await requeueAbandonedPublishes(db);
+  const dispatched = await dispatchDuePublishes(db);
   const processed = await runBatch(db, workerId, 10);
-  return NextResponse.json({ ok: true, processed, reaped });
+  return NextResponse.json({ ok: true, processed, reaped, dispatched, requeued });
 }
 
 export async function POST(req: Request) {

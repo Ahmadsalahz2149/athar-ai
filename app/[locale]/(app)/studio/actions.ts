@@ -7,6 +7,7 @@ import { extractJson } from "@/lib/ai/json";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { guardDraft } from "@/lib/ai/guardDraft";
+import { isUserSettableStatus } from "@/lib/drafts/states";
 import { estimateCompose, estimateRewrite } from "@/lib/credits/costs";
 import { embedOne, hasEmbeddingKey } from "@/lib/ai/embed";
 import { postScore, dnaMatch } from "@/lib/ai/score";
@@ -223,6 +224,9 @@ export async function setDraftState(
     if (!db) return { ok: false };
     const ctx = await currentContext();
     if (!ctx) return { ok: false };
+    // The union in the signature is a compile-time promise only — this action is
+    // callable directly, so the publisher-owned states are refused here.
+    if (!isUserSettableStatus(state)) return { ok: false, error: "bad_status" };
     // Enforce the content guardrail server-side on any move toward publication.
     // The browser runs the same scan, but it is advisory — this action can be
     // called directly. Saving a plain draft stays unguarded so work isn't lost.

@@ -72,6 +72,23 @@ export function isPlatform(x: string): x is PlatformId {
   return x in PLATFORMS;
 }
 
+/**
+ * Map whatever is stored on a draft to a platform id. Drafts carry the Studio's
+ * *display* label ("X / Twitter", "LinkedIn"), while the registry, the OAuth
+ * routes and the publisher are keyed by id — so the publisher would otherwise
+ * never find a connection for a real draft.
+ */
+export function toPlatformId(value: string | null | undefined): PlatformId | null {
+  const v = (value ?? "").trim().toLowerCase();
+  if (!v) return null;
+  if (isPlatform(v)) return v;
+  if (v.includes("linkedin")) return "linkedin";
+  if (v.includes("instagram")) return "instagram";
+  if (v.includes("facebook")) return "facebook";
+  if (v === "x" || v.includes("twitter") || /^x\s*[/|-]/.test(v)) return "x";
+  return null;
+}
+
 /** True when this platform's client credentials are present in the environment. */
 export function isConfigured(id: PlatformId): boolean {
   const c = PLATFORMS[id];

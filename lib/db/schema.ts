@@ -164,9 +164,20 @@ export const drafts = pgTable("drafts", {
   postScore: integer("post_score").notNull().default(0),
   dnaMatch: integer("dna_match").notNull().default(0),
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+  // --- Publishing (Phase 7.4). Set by the publisher, never by the user. ---
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  /** The platform's own id for the created post (tweet id, LinkedIn URN, …). */
+  externalPostId: text("external_post_id"),
+  /** Permalink to the live post, when the platform gives us one. */
+  externalUrl: text("external_url"),
+  /** Why the last publish attempt failed — shown to the user, so keep it short. */
+  publishError: text("publish_error"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});
+}, (t) => [
+  // The publisher's claim query: due scheduled drafts, oldest first.
+  index("drafts_due_idx").on(t.status, t.scheduledAt),
+]);
 
 // Links a Supabase auth user to an organization (org → memberships → brands).
 export const memberships = pgTable(

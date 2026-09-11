@@ -1180,6 +1180,130 @@ export function forOrg(db: Db, orgId: string) {
       return { text: [r.hook, r.body].filter(Boolean).join("\n\n"), label: (r.topic || r.hook || "").slice(0, 80) };
     },
 
+    // --- Publishing (Phase 7.4) ---
+    /** Everything the publisher needs about one draft, including the image a
+     * platform like Instagram requires. Org-scoped like every other read here,
+     * so a job with a mismatched org/brand simply finds nothing. */
+    async draftForPublish(brandId: string, draftId: string): Promise<
+      { id: string; platform: string; hook: string; body: string; status: string; imageUrl: string | null } | null
+    > {
+      const rows = await db
+        .select({
+          id: schema.drafts.id,
+          platform: schema.drafts.platform,
+          hook: schema.drafts.hook,
+          body: schema.drafts.body,
+          status: schema.drafts.status,
+        })
+        .from(schema.drafts)
+        .where(
+          and(
+            eq(schema.drafts.id, draftId),
+            eq(schema.drafts.orgId, orgId),
+            eq(schema.drafts.brandId, brandId),
+            isNull(schema.drafts.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!rows.length) return null;
+      const img = await db
+        .select({ url: schema.mediaAssets.url })
+        .from(schema.mediaAssets)
+        .where(
+          and(
+            eq(schema.mediaAssets.orgId, orgId),
+            eq(schema.mediaAssets.brandId, brandId),
+            eq(schema.mediaAssets.draftId, draftId),
+            eq(schema.mediaAssets.kind, "image"),
+            isNull(schema.mediaAssets.deletedAt),
+          ),
+        )
+        .orderBy(desc(schema.mediaAssets.createdAt))
+        .limit(1);
+      return { ...rows[0], imageUrl: img[0]?.url ?? null };
+    },
+
+    /** Record a live post. Conditional on the draft still being 'publishing':
+     * the dispatcher is the only writer of that state, so this can never
+     * resurrect a draft the user deleted or rescheduled mid-flight. */
+    async markDraftPublished(
+      brandId: string,
+      draftId: string,
+      post: { externalPostId: string; externalUrl: string | null },
+    ): Promise<void> {
+      await db
+        .update(schema.drafts)
+        .set({
+          status: "published",
+          publishedAt: new Date(),
+          externalPostId: post.externalPostId,
+          externalUrl: post.externalUrl,
+          publishError: null,
+        })
+        .where(
+          and(
+            eq(schema.drafts.id, draftId),
+            eq(schema.drafts.orgId, orgId),
+            eq(schema.drafts.brandId, brandId),
+            eq(schema.drafts.status, "publishing"),
+          ),
+        );
+    },
+
+    /** Park a draft the platform refused. The reason is shown to the user, so
+     * it is truncated to something a card can render. */
+    async markDraftPublishFailed(brandId: string, draftId: string, error: string): Promise<void> {
+      await db
+        .update(schema.drafts)
+        .set({ status: "publish_failed", publishError: error.slice(0, 400) })
+        .where(
+          and(
+            eq(schema.drafts.id, draftId),
+            eq(schema.drafts.orgId, orgId),
+            eq(schema.drafts.brandId, brandId),
+            eq(schema.drafts.status, "publishing"),
+          ),
+        );
+    },
+
+    /** Published posts for the calendar/analytics, newest first. */
+    async publishedDrafts(brandId: string, limit = 100) {
+      return db
+        .select()
+        .from(schema.drafts)
+        .where(
+          and(
+            eq(schema.drafts.orgId, orgId),
+            eq(schema.drafts.brandId, brandId),
+            eq(schema.drafts.status, "published"),
+            isNull(schema.drafts.deletedAt),
+          ),
+        )
+        .orderBy(desc(schema.drafts.publishedAt))
+        .limit(limit);
+    },
+
+    /** Persist a rotated/refreshed token for a live connection. */
+    async updateConnectionTokens(
+      brandId: string,
+      platform: string,
+      t: { accessToken: string; refreshToken: string | null; expiresAt: Date | null },
+    ): Promise<void> {
+      await db
+        .update(schema.socialConnections)
+        .set({ accessToken: t.accessToken, refreshToken: t.refreshToken, expiresAt: t.expiresAt, status: "connected", updatedAt: new Date() })
+        .where(and(eq(schema.socialConnections.orgId, orgId), eq(schema.socialConnections.brandId, brandId), eq(schema.socialConnections.platform, platform)));
+    },
+
+    /** The platform rejected our credentials — flag the connection so the
+     * settings screen asks for re-consent instead of silently failing posts. */
+    async markConnectionExpired(brandId: string, platform: string): Promise<void> {
+      await db
+        .update(schema.socialConnections)
+        .set({ status: "expired", updatedAt: new Date() })
+        .where(and(eq(schema.socialConnections.orgId, orgId), eq(schema.socialConnections.brandId, brandId), eq(schema.socialConnections.platform, platform)));
+    },
+
     // --- Internal analytics (from our own data) ---
     /** Drafts created per ISO week for the last `weeks` weeks (content velocity). */
     async weeklyContent(brandId: string, weeks = 8): Promise<{ week: string; n: number }[]> {

@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { scheduleDraft, autoScheduleApproved } from "./actions";
+import { scheduleDraft, autoScheduleApproved, publishNow } from "./actions";
 import { CountBadge, btnGhost } from "@/components/ui/display";
 
-type Item = { id: string; hook: string };
+type Item = { id: string; hook: string; platform: string; canPublish: boolean };
 type Labels = {
   unscheduled: string; none: string; scheduleBtn: string; confirm: string; cancel: string;
   autoAll: string; scheduling: string; pickWhen: string; autoDone: string; error: string;
+  publishNow: string; publishSent: string; notConnected: string;
 };
 
 export function Scheduler({ items, labels, defaultWhen }: { items: Item[]; labels: Labels; defaultWhen: string }) {
@@ -25,6 +26,18 @@ export function Scheduler({ items, labels, defaultWhen }: { items: Item[]; label
       const r = await scheduleDraft(id, new Date(when).toISOString());
       if (!r.ok) return setErr(labels.error);
       setOpenId(null);
+      router.refresh();
+    });
+  };
+
+  /** Send one approved draft out now. The server re-checks approval state, the
+   * connection and the content guard — this button only asks. */
+  const doPublish = (id: string) => {
+    setErr(null); setMsg(null);
+    start(async () => {
+      const r = await publishNow(id);
+      if (!r.ok) return setErr(r.error === "not_connected" ? labels.notConnected : labels.error);
+      setMsg(labels.publishSent);
       router.refresh();
     });
   };
@@ -68,7 +81,12 @@ export function Scheduler({ items, labels, defaultWhen }: { items: Item[]; label
                     </div>
                   </div>
                 ) : (
-                  <button onClick={() => { setOpenId(u.id); setErr(null); }} style={{ display: "block", width: "100%", textAlign: "center", padding: "7px 0", borderRadius: 9, border: "1px solid var(--border-2)", background: "var(--card)", fontSize: 12.5, fontWeight: 600, color: "var(--text)", cursor: "pointer" }}>{labels.scheduleBtn}</button>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => { setOpenId(u.id); setErr(null); }} style={{ flex: 1, textAlign: "center", padding: "7px 0", borderRadius: 9, border: "1px solid var(--border-2)", background: "var(--card)", fontSize: 12.5, fontWeight: 600, color: "var(--text)", cursor: "pointer" }}>{labels.scheduleBtn}</button>
+                    {u.canPublish && (
+                      <button onClick={() => doPublish(u.id)} disabled={pending} style={{ flex: 1, textAlign: "center", padding: "7px 0", borderRadius: 9, border: "none", background: "var(--teal)", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer", opacity: pending ? 0.6 : 1 }}>{labels.publishNow}</button>
+                    )}
+                  </div>
                 )}
               </div>
             ))}
