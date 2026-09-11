@@ -45,6 +45,21 @@ This document describes the system that is actually deployed. Proposed or future
   shared across processes, which is sufficient for the current single-process deployment
   and needs a shared store before scaling out.
 
+## Privacy rights (GDPR / PDPL)
+
+- Both rights are self-service from Settings → Privacy; neither needs a support ticket.
+- **Access / portability** — `lib/gdpr/export.ts` builds one JSON document covering every
+  table that holds workspace data. OAuth access/refresh tokens are redacted: they are
+  credentials for the user's other accounts, not data about the user, and an export is a
+  file people forward.
+- **Erasure** — `lib/gdpr/erase.ts` deletes every org-scoped row in one transaction (a
+  partial erasure would be both a broken account and a standing breach), then the stored
+  brand assets, then the Supabase auth user. If other members remain in the workspace, only
+  the caller's membership and auth account are removed. The confirmation (typing the
+  account email) is verified server-side, so calling the action directly cannot skip it.
+- A test asserts the erasure table list matches every `org_id` table in the live schema, so
+  adding a table later without covering it fails CI rather than silently orphaning data.
+
 ## Product scope
 
 - Billing screens clearly label unavailable checkout paths as coming soon; live payment processing is not enabled.

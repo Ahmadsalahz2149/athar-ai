@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { updateProfile, updateNotifications } from "@/lib/auth/actions";
 import { disconnectPlatform } from "./social-actions";
+import { exportMyData, deleteMyAccount } from "./privacy-actions";
 import { ProgressMeter, btnNavy, btnTeal, btnGhost, btnGold } from "@/components/ui/display";
 
 /** Small "coming soon" affordance for actions that need external integration. */
@@ -36,7 +37,7 @@ type Props = {
   connectedPlatforms: string[];
 };
 
-const TABS = ["profile", "brand", "platforms", "team", "plan", "notifications"] as const;
+const TABS = ["profile", "brand", "platforms", "team", "plan", "notifications", "privacy"] as const;
 const NOTIF = ["analysis", "schedule", "weekly", "marketing"] as const;
 const PLATFORMS = [
   { key: "linkedin", glyph: "in", bg: "var(--blue-tint)", fg: "var(--blue)" },
@@ -57,6 +58,11 @@ export function SettingsClient(p: Props) {
   const [bio, setBio] = useState(p.bio);
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
+  // Privacy tab
+  const [privBusy, setPrivBusy] = useState<"export" | "delete" | null>(null);
+  const [privMsg, setPrivMsg] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [deleted, setDeleted] = useState(false);
   const dirty = name !== p.fullName || title !== p.title || bio !== p.bio;
   const save = () =>
     start(async () => {
@@ -237,6 +243,76 @@ export function SettingsClient(p: Props) {
                 </button>
               </div>
             ))}
+          </Panel>
+        )}
+
+        {tab === "privacy" && (
+          <Panel title={t("tab_privacy")}>
+            <p style={{ fontSize: 13.5, color: "var(--slate-2)", lineHeight: 1.8, marginBlockEnd: 18 }}>{t("privacyIntro")}</p>
+
+            {/* Export */}
+            <div style={{ padding: 16, borderRadius: 13, border: "1px solid var(--border-2)", background: "var(--card)" }}>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--heading)" }}>{t("exportTitle")}</div>
+              <p style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.7, marginBlock: "6px 12px" }}>{t("exportBody")}</p>
+              <button
+                onClick={async () => {
+                  setPrivMsg(""); setPrivBusy("export");
+                  const r = await exportMyData();
+                  setPrivBusy(null);
+                  if (!r.ok) { setPrivMsg(t(r.error === "rate_limited" ? "exportThrottled" : "exportError")); return; }
+                  // Hand the file to the browser without a round trip to storage.
+                  const url = URL.createObjectURL(new Blob([r.json], { type: "application/json" }));
+                  const a = document.createElement("a");
+                  a.href = url; a.download = r.filename; a.click();
+                  URL.revokeObjectURL(url);
+                  setPrivMsg(t("exportDone"));
+                }}
+                disabled={privBusy !== null}
+                style={{ ...btnNavy, height: 40, opacity: privBusy ? 0.6 : 1 }}
+              >
+                {privBusy === "export" ? t("exportWorking") : t("exportCta")}
+              </button>
+            </div>
+
+            {/* Delete */}
+            <div style={{ marginBlockStart: 18, padding: 16, borderRadius: 13, border: "1.5px solid var(--coral)", background: "var(--coral-tint, rgba(220,38,38,.05))" }}>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--coral)" }}>{t("deleteTitle")}</div>
+              <p style={{ fontSize: 12.5, color: "var(--slate-2)", lineHeight: 1.7, marginBlock: "6px 12px" }}>{t("deleteBody")}</p>
+              {deleted ? (
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--heading)" }}>{t("deleteDone")}</div>
+              ) : (
+                <>
+                  <label style={{ fontSize: 12.5, fontWeight: 600, color: "var(--slate)" }}>{t("deleteConfirmLabel", { email: p.email })}</label>
+                  <input
+                    value={confirmEmail}
+                    onChange={(e) => setConfirmEmail(e.target.value)}
+                    placeholder={p.email}
+                    aria-label={t("deleteConfirmLabel", { email: p.email })}
+                    style={{ ...inp, marginBlock: "8px 12px", direction: "ltr", textAlign: "start" }}
+                  />
+                  <button
+                    onClick={async () => {
+                      setPrivMsg(""); setPrivBusy("delete");
+                      const r = await deleteMyAccount(confirmEmail);
+                      setPrivBusy(null);
+                      if (!r.ok) {
+                        setPrivMsg(t(r.error === "confirm_mismatch" ? "deleteMismatch" : r.error === "rate_limited" ? "deleteThrottled" : "deleteError"));
+                        return;
+                      }
+                      setDeleted(true);
+                      // The account is gone; leave the app.
+                      setTimeout(() => { window.location.href = `/${locale}`; }, 2500);
+                    }}
+                    disabled={privBusy !== null || confirmEmail.trim().length === 0}
+                    style={{ height: 40, padding: "0 18px", borderRadius: 11, border: "none", cursor: privBusy ? "default" : "pointer", background: "var(--coral)", color: "#fff", fontWeight: 700, fontSize: 13.5, opacity: privBusy || !confirmEmail.trim() ? 0.6 : 1 }}
+                  >
+                    {privBusy === "delete" ? t("deleteWorking") : t("deleteCta")}
+                  </button>
+                </>
+              )}
+            </div>
+
+            {privMsg && <p style={{ fontSize: 13, color: "var(--slate)", marginBlockStart: 14 }}>{privMsg}</p>}
           </Panel>
         )}
       </section>

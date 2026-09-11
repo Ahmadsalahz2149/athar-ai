@@ -3,7 +3,11 @@ import path from "node:path";
 
 export default defineConfig({
   resolve: {
-    alias: { "@": path.resolve(import.meta.dirname, ".") },
+    alias: {
+      "@": path.resolve(import.meta.dirname, "."),
+      // See tests/stubs/server-only.ts — build-time guard, no runtime behaviour.
+      "server-only": path.resolve(import.meta.dirname, "tests/stubs/server-only.ts"),
+    },
   },
   test: {
     include: ["tests/**/*.test.ts"],

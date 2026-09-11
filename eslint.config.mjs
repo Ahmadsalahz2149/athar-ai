@@ -48,6 +48,13 @@ const eslintConfig = defineConfig([
       // Public link page (#17) — no org context; the handle is the lookup key,
       // and it only touches public link-page data. See lib/link/publicLookup.ts.
       "lib/link/publicLookup.ts",
+      // GDPR erasure — deletes the organization ITSELF (and the user-scoped
+      // platform_admins row), which the façade cannot express: forOrg scopes
+      // queries *within* an org, it cannot remove one. Every delete there is
+      // still bounded by the caller's own org/user id, resolved server-side,
+      // and tests/gdpr.test.ts asserts the table list covers every org_id
+      // table and that another tenant is untouched. See lib/gdpr/erase.ts.
+      "lib/gdpr/erase.ts",
       "tests/**/*.{ts,tsx}",
       "eval/**/*.{ts,tsx}",
     ],

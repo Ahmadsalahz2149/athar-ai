@@ -85,3 +85,11 @@ export async function uploadPublic(path: string, bytes: Uint8Array, contentType:
   if (error) throw new Error(`upload: ${error.message}`);
   return client.storage.from(PUBLIC_BUCKET).getPublicUrl(path).data.publicUrl;
 }
+
+/** Remove an object from the PUBLIC bucket (brand logos). Used by GDPR erasure;
+ * best-effort like removeObject. */
+export async function removePublicObject(path: string): Promise<void> {
+  const client = service();
+  if (!client) return;
+  await client.storage.from(PUBLIC_BUCKET).remove([path]);
+}
