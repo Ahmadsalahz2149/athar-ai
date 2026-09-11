@@ -5,6 +5,7 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import { consume, LIMITS } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request-ip";
 import { ensureUserContext } from "./bootstrap";
+import { capStr } from "@/lib/text/cap";
 
 /** `code` lets the client show a specific, localized message; `error` is the raw
  * fallback text for anything unmapped. */
@@ -102,21 +103,34 @@ export async function requestPasswordReset(email: string, locale = "ar"): Promis
 }
 
 /** Update the signed-in user's display profile (name + title + bio) — stored on
- * the Supabase user, so the app chrome reflects real values. */
+ * the Supabase user, so the app chrome reflects real values. Bounded like every
+ * other stored free text: this lands in user_metadata and is rendered in the
+ * app chrome on every page. */
 export async function updateProfile(input: { fullName: string; title: string; bio: string }): Promise<{ ok: boolean }> {
   const supabase = await getSupabaseServer();
   if (!supabase) return { ok: false };
   const { error } = await supabase.auth.updateUser({
-    data: { full_name: input.fullName.trim(), title: input.title.trim(), bio: input.bio.trim() },
+    data: {
+      full_name: capStr(input.fullName, 120).trim(),
+      title: capStr(input.title, 120).trim(),
+      bio: capStr(input.bio, 600).trim(),
+    },
   });
   return { ok: !error };
 }
+
+/** The notification toggles the settings screen offers. Anything else sent by a
+ * caller is dropped rather than stored — this is a fixed set of switches, not a
+ * key-value store the browser may fill. */
+const NOTIFICATION_KEYS = ["analysis", "schedule", "weekly", "marketing"] as const;
 
 /** Persist notification preferences to the Supabase user (cross-device). */
 export async function updateNotifications(prefs: Record<string, boolean>): Promise<{ ok: boolean }> {
   const supabase = await getSupabaseServer();
   if (!supabase) return { ok: false };
-  const { error } = await supabase.auth.updateUser({ data: { notifications: prefs } });
+  const notifications: Record<string, boolean> = {};
+  for (const k of NOTIFICATION_KEYS) notifications[k] = prefs?.[k] === true;
+  const { error } = await supabase.auth.updateUser({ data: { notifications } });
   return { ok: !error };
 }
 
