@@ -3,6 +3,9 @@
 import { db } from "@/lib/db";
 import { currentContext } from "@/lib/auth/current";
 import { findPack, CURRENCY } from "@/lib/payments/catalog";
+import { findPlan } from "@/lib/payments/plans";
+import { forOrg } from "@/lib/db/forOrg";
+import { getSupabaseServer } from "@/lib/supabase/server";
 import { getStripe, publicBaseUrl } from "@/lib/payments/stripe";
 import { consume } from "@/lib/rate-limit";
 import { log } from "@/lib/log";
@@ -57,6 +60,105 @@ export async function startCheckout(packId: string, locale = "ar"): Promise<Chec
     return { ok: true, url: session.url };
   } catch (e) {
     log.error("stripe.checkout_failed", { orgId: ctx.orgId, packId }, e);
+    return { ok: false, error: "failed" };
+  }
+}
+
+
+/** Reuse one Stripe customer per workspace so checkouts, the portal and the
+ * subscription all hang off the same record instead of a new customer each time. */
+async function ensureCustomer(orgId: string): Promise<string> {
+  const stripe = getStripe()!;
+  const org = forOrg(db!, orgId);
+  const state = await org.planState();
+  if (state.stripeCustomerId) return state.stripeCustomerId;
+
+  const supabase = await getSupabaseServer();
+  const { data } = supabase ? await supabase.auth.getUser() : { data: { user: null } };
+  const customer = await stripe.customers.create({
+    email: data.user?.email ?? undefined,
+    metadata: { orgId },
+  });
+  await org.setStripeCustomerId(customer.id);
+  return customer.id;
+}
+
+/**
+ * Start a subscription checkout. Like the packs, the price and the plan come
+ * from the server-side catalog — the browser sends a plan id and nothing else.
+ * The org id is written into the SUBSCRIPTION metadata so every later lifecycle
+ * event (renewal, cancellation) can be attributed without a lookup.
+ */
+export async function startSubscription(planId: string, locale = "ar"): Promise<CheckoutResult> {
+  if (!db) return { ok: false, error: "unavailable" };
+  const ctx = await currentContext();
+  if (!ctx) return { ok: false, error: "no_session" };
+
+  const stripe = getStripe();
+  if (!stripe) return { ok: false, error: "payments_disabled" };
+
+  const plan = findPlan(planId);
+  if (!plan || plan.amountCents === 0) return { ok: false, error: "unknown_plan" };
+
+  if (!consume(`subscribe:${ctx.orgId}`, 10, 10 * 60_000).ok) return { ok: false, error: "rate_limited" };
+
+  const base = publicBaseUrl();
+  const loc = locale === "en" ? "en" : "ar";
+  try {
+    const customerId = await ensureCustomer(ctx.orgId);
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: customerId,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: CURRENCY,
+            unit_amount: plan.amountCents,
+            recurring: { interval: "month" },
+            product_data: { name: `Athar ${plan.id} — ${plan.monthlyCredits} credits/month` },
+          },
+        },
+      ],
+      // Carried onto the subscription, so renewals and cancellations arrive
+      // already attributed to this workspace.
+      subscription_data: { metadata: { orgId: ctx.orgId, planId: plan.id } },
+      metadata: { orgId: ctx.orgId, planId: plan.id },
+      success_url: `${base}/${loc}/billing?purchase=subscribed`,
+      cancel_url: `${base}/${loc}/billing?purchase=cancelled`,
+    });
+    if (!session.url) return { ok: false, error: "failed" };
+    return { ok: true, url: session.url };
+  } catch (e) {
+    log.error("stripe.subscribe_failed", { orgId: ctx.orgId, planId }, e);
+    return { ok: false, error: "failed" };
+  }
+}
+
+/**
+ * Open Stripe's billing portal so the customer can change card, see invoices,
+ * or CANCEL. Self-service cancellation is not optional — a subscription people
+ * cannot end on their own is a support burden and a consumer-law problem.
+ */
+export async function openBillingPortal(locale = "ar"): Promise<CheckoutResult> {
+  if (!db) return { ok: false, error: "unavailable" };
+  const ctx = await currentContext();
+  if (!ctx) return { ok: false, error: "no_session" };
+  const stripe = getStripe();
+  if (!stripe) return { ok: false, error: "payments_disabled" };
+
+  const { stripeCustomerId } = await forOrg(db, ctx.orgId).planState();
+  if (!stripeCustomerId) return { ok: false, error: "no_subscription" };
+
+  const loc = locale === "en" ? "en" : "ar";
+  try {
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: stripeCustomerId,
+      return_url: `${publicBaseUrl()}/${loc}/billing`,
+    });
+    return { ok: true, url: portal.url };
+  } catch (e) {
+    log.error("stripe.portal_failed", { orgId: ctx.orgId }, e);
     return { ok: false, error: "failed" };
   }
 }

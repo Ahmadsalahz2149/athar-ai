@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import * as schema from "@/lib/db/schema";
 import { forOrg } from "@/lib/db/forOrg";
 import { CREDIT_PACKS, findPack, packPriceUsd } from "@/lib/payments/catalog";
+import { PLANS, findPlan, effectivePlan, FREE_PLAN } from "@/lib/payments/plans";
 
 describe("credit pack catalog", () => {
   it("has unique ids and sane values", () => {
@@ -37,6 +38,46 @@ describe("credit pack catalog", () => {
 
   it("displays the price it charges", () => {
     for (const p of CREDIT_PACKS) expect(packPriceUsd(p) * 100).toBe(p.amountCents);
+  });
+});
+
+
+describe("subscription plans", () => {
+  it("every paid plan grants more than the free one", () => {
+    for (const p of PLANS) {
+      if (p.amountCents === 0) continue;
+      expect(p.monthlyCredits).toBeGreaterThan(FREE_PLAN.monthlyCredits);
+      expect(p.sourcesLimit).toBeGreaterThan(FREE_PLAN.sourcesLimit);
+    }
+  });
+
+  it("costs more only when it gives more", () => {
+    const paid = PLANS.filter((p) => p.amountCents > 0).sort((a, b) => a.amountCents - b.amountCents);
+    for (let i = 1; i < paid.length; i++) {
+      expect(paid[i].monthlyCredits).toBeGreaterThan(paid[i - 1].monthlyCredits);
+      expect(paid[i].sourcesLimit).toBeGreaterThanOrEqual(paid[i - 1].sourcesLimit);
+    }
+  });
+
+  it("entitles an active subscription", () => {
+    for (const status of ["active", "trialing", "past_due"]) {
+      expect(effectivePlan("pro", status).id).toBe("pro");
+      expect(effectivePlan("pro", status).sourcesLimit).toBe(findPlan("pro")!.sourcesLimit);
+    }
+  });
+
+  // Fail safe: anything that is not clearly a paid, in-good-standing
+  // subscription must read as free. Getting this backwards would hand out paid
+  // entitlements to lapsed or forged plan values.
+  it("falls back to free for lapsed, unknown or missing state", () => {
+    for (const status of ["canceled", "unpaid", "incomplete", "incomplete_expired", null, undefined, ""]) {
+      expect(effectivePlan("pro", status as string | null).id).toBe("free");
+    }
+    expect(effectivePlan("enterprise_unlimited", "active").id).toBe("free");
+    expect(effectivePlan(null, "active").id).toBe("free");
+    expect(effectivePlan(undefined, undefined).id).toBe("free");
+    // A free plan never becomes paid, whatever status is claimed.
+    expect(effectivePlan("free", "active").id).toBe("free");
   });
 });
 
@@ -88,6 +129,23 @@ describe.runIf(!!db)("paid top-up crediting", () => {
 
     const rows = await sqlc!`select count(*)::int as n from credit_ledger where org_id = ${orgId} and idempotency_key = ${key}`;
     expect(rows[0].n).toBe(1);
+  });
+
+  it("credits each billing period once, and replays of an invoice are free", async () => {
+    const t = forOrg(db!, orgId);
+    const plan = findPlan("pro")!;
+    const before = await t.balance();
+
+    // Month 1 — delivered three times, as Stripe may.
+    for (let i = 0; i < 3; i++) {
+      await t.grantOnceKeyed(plan.monthlyCredits, "subscription_credits", "stripe_invoice:in_001", "stripe");
+    }
+    expect(await t.balance()).toBe(before + plan.monthlyCredits);
+
+    // Month 2 is a DIFFERENT invoice, so it must credit again — otherwise a
+    // subscriber stops receiving what they pay for after the first month.
+    await t.grantOnceKeyed(plan.monthlyCredits, "subscription_credits", "stripe_invoice:in_002", "stripe");
+    expect(await t.balance()).toBe(before + plan.monthlyCredits * 2);
   });
 
   it("treats a different payment as a separate purchase", async () => {

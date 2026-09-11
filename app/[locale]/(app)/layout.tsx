@@ -13,6 +13,7 @@ import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { SuspendedNotice } from "@/components/SuspendedNotice";
+import { effectivePlan, FREE_PLAN } from "@/lib/payments/plans";
 
 export default async function AppLayout({
   children,
@@ -31,6 +32,7 @@ export default async function AppLayout({
   let counts = { sources: 0, ideas: 0, drafts: 0, pending: 0, scheduled: 0 };
   let isAdmin = false;
   let suspended = false;
+  let sourcesLimit = FREE_PLAN.sourcesLimit;
   if (supabase) {
     const {
       data: { user },
@@ -41,12 +43,15 @@ export default async function AppLayout({
     if (ctx && db) {
       try {
         const org = forOrg(db, ctx.orgId);
-        [balance, counts, isAdmin, suspended] = await Promise.all([
+        const [b, c, admin, susp, ps] = await Promise.all([
           org.balance(),
           org.counts(ctx.brandId),
           isCurrentUserAdmin(),
           org.isSuspended(),
+          org.planState(),
         ]);
+        balance = b; counts = c; isAdmin = admin; suspended = susp;
+        sourcesLimit = effectivePlan(ps.plan, ps.planStatus).sourcesLimit;
       } catch {
         /* shell chrome is display-only — never block the app */
       }
@@ -68,6 +73,7 @@ export default async function AppLayout({
         <Sidebar
           balance={balance}
           sourcesUsed={counts.sources}
+          sourcesLimit={sourcesLimit}
           navCounts={navCounts}
           isAdmin={isAdmin}
           userEmail={userEmail}

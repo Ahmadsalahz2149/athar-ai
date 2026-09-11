@@ -28,6 +28,17 @@ export const organizations = pgTable("organizations", {
   // Admin panel: when set, the account is suspended (soft-blocked). The app shell
   // checks this and locks the workspace; the row is never deleted.
   suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+  // --- Subscription (Stripe). All nullable/defaulted: an org with no
+  // subscription is simply on "free", which is the state every existing row
+  // already has. Stripe remains the source of truth for money and lifecycle;
+  // these columns are the local projection the app gates entitlements on. ---
+  plan: text("plan").notNull().default("free"),
+  /** Mirrors Stripe's subscription status: active, trialing, past_due, canceled… */
+  planStatus: text("plan_status"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  /** End of the paid period — access continues until this even after cancelling. */
+  planRenewsAt: timestamp("plan_renews_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

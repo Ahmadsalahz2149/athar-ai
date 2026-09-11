@@ -360,6 +360,59 @@ export function forOrg(db: Db, orgId: string) {
       return appendLedger(-Math.abs(amount), reason, refType, refId);
     },
 
+    // --- Subscription (Stripe projection; Stripe stays the source of truth) ---
+
+    /** The org's stored plan row. Entitlements are derived from this via
+     * effectivePlan() — never trusted straight from the client. */
+    async planState(): Promise<{
+      plan: string;
+      planStatus: string | null;
+      stripeCustomerId: string | null;
+      stripeSubscriptionId: string | null;
+      planRenewsAt: Date | null;
+    }> {
+      const rows = await db
+        .select({
+          plan: schema.organizations.plan,
+          planStatus: schema.organizations.planStatus,
+          stripeCustomerId: schema.organizations.stripeCustomerId,
+          stripeSubscriptionId: schema.organizations.stripeSubscriptionId,
+          planRenewsAt: schema.organizations.planRenewsAt,
+        })
+        .from(schema.organizations)
+        .where(eq(schema.organizations.id, orgId))
+        .limit(1);
+      return rows[0] ?? { plan: "free", planStatus: null, stripeCustomerId: null, stripeSubscriptionId: null, planRenewsAt: null };
+    },
+
+    /** Remember the Stripe customer so repeat checkouts and the billing portal
+     * attach to one customer instead of creating a new one each time. */
+    async setStripeCustomerId(customerId: string): Promise<void> {
+      await db
+        .update(schema.organizations)
+        .set({ stripeCustomerId: customerId })
+        .where(eq(schema.organizations.id, orgId));
+    },
+
+    /** Project a Stripe subscription onto the org. Called only from the signed
+     * webhook — subscription state must never be settable from the browser. */
+    async applySubscription(v: {
+      plan: string;
+      status: string | null;
+      subscriptionId: string | null;
+      renewsAt: Date | null;
+    }): Promise<void> {
+      await db
+        .update(schema.organizations)
+        .set({
+          plan: v.plan,
+          planStatus: v.status,
+          stripeSubscriptionId: v.subscriptionId,
+          planRenewsAt: v.renewsAt,
+        })
+        .where(eq(schema.organizations.id, orgId));
+    },
+
     // --- Sources & retrieval (pgvector; org + brand scoped) ---
     async saveSource(
       brandId: string,

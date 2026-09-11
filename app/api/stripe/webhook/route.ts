@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { getStripe } from "@/lib/payments/stripe";
 import { findPack } from "@/lib/payments/catalog";
+import { findPlan } from "@/lib/payments/plans";
 import { log } from "@/lib/log";
 import type Stripe from "stripe";
 
@@ -17,6 +18,37 @@ import type Stripe from "stripe";
  * the ledger's unique (org_id, idempotency_key) index makes the replay a no-op.
  */
 export const dynamic = "force-dynamic";
+
+/** Period end moved onto subscription ITEMS in recent Stripe API versions; it is
+ * no longer a field on the subscription object. */
+function periodEnd(sub: Stripe.Subscription): Date | null {
+  const ts = sub.items?.data?.[0]?.current_period_end;
+  return typeof ts === "number" ? new Date(ts * 1000) : null;
+}
+
+/** Project a subscription onto the org it belongs to. The org id rides in the
+ * subscription metadata (written at checkout), so no cross-org lookup is needed. */
+async function syncSubscription(sub: Stripe.Subscription): Promise<boolean> {
+  const orgId = sub.metadata?.orgId;
+  const planId = sub.metadata?.planId;
+  if (!orgId || !findPlan(planId ?? "")) {
+    log.error("stripe.unmappable_subscription", { subscriptionId: sub.id, orgId, planId });
+    return false;
+  }
+  // A subscription that has ended drops the workspace back to free. Access
+  // during a cancelled-but-paid period is handled by effectivePlan(), which
+  // keeps "active" entitlements until the period actually lapses.
+  const ended = sub.status === "canceled" || sub.status === "incomplete_expired";
+  await forOrg(db!, orgId).applySubscription({
+    plan: ended ? "free" : planId!,
+    status: sub.status,
+    subscriptionId: sub.id,
+    renewsAt: periodEnd(sub),
+  });
+  log.info("stripe.subscription_synced", { orgId, plan: ended ? "free" : planId, status: sub.status });
+  return true;
+}
+
 
 export async function POST(req: Request) {
   const stripe = getStripe();
@@ -39,12 +71,54 @@ export async function POST(req: Request) {
     return new Response("bad_signature", { status: 400 });
   }
 
-  // Both the sync card path and the delayed (bank/async) path land here.
+  // --- Subscription lifecycle: created, renewed, plan changed, cancelled ---
+  if (
+    event.type === "customer.subscription.created" ||
+    event.type === "customer.subscription.updated" ||
+    event.type === "customer.subscription.deleted"
+  ) {
+    await syncSubscription(event.data.object as Stripe.Subscription);
+    return Response.json({ received: true });
+  }
+
+  // --- Recurring credits: fires on the first payment AND every renewal, which
+  // is what makes the monthly allowance automatic with no cron of our own. ---
+  if (event.type === "invoice.payment_succeeded") {
+    const invoice = event.data.object as Stripe.Invoice;
+    const details = invoice.parent?.subscription_details;
+    const orgId = details?.metadata?.orgId;
+    const plan = findPlan(details?.metadata?.planId ?? "");
+    if (!orgId || !plan || plan.monthlyCredits <= 0) {
+      return Response.json({ received: true, ignored: "not_a_plan_invoice" });
+    }
+    try {
+      const balance = await forOrg(db, orgId).grantOnceKeyed(
+        plan.monthlyCredits,
+        "subscription_credits",
+        // Keyed per INVOICE, so each billing period credits once while replays
+        // of the same invoice are free.
+        `stripe_invoice:${invoice.id}`,
+        "stripe",
+      );
+      log.info("stripe.subscription_credits", { orgId, plan: plan.id, credits: plan.monthlyCredits, balance });
+      return Response.json({ received: true });
+    } catch (e) {
+      log.error("stripe.subscription_credit_failed", { orgId, invoiceId: invoice.id }, e);
+      return new Response("grant_failed", { status: 500 });
+    }
+  }
+
+  // --- One-off credit packs ---
   if (event.type !== "checkout.session.completed" && event.type !== "checkout.session.async_payment_succeeded") {
     return Response.json({ received: true, ignored: event.type });
   }
 
   const session = event.data.object as Stripe.Checkout.Session;
+  // Subscription checkouts are credited by invoice.payment_succeeded above;
+  // crediting here too would double-grant the first month.
+  if (session.mode === "subscription") {
+    return Response.json({ received: true, handled: "subscription_checkout" });
+  }
   if (session.payment_status !== "paid") {
     return Response.json({ received: true, pending: session.payment_status });
   }

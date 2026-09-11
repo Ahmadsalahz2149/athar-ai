@@ -5,6 +5,7 @@ import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { configuredPlatforms } from "@/lib/social/registry";
+import { effectivePlan } from "@/lib/payments/plans";
 import { SettingsClient } from "./SettingsClient";
 
 export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -22,6 +23,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   let completeness = 0;
   let sourcesUsed = 0;
   let connectedPlatforms: string[] = [];
+  let plan = effectivePlan("free", null);
 
   const supabase = await getSupabaseServer();
   if (supabase) {
@@ -38,7 +40,14 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
     const ctx = await currentContext();
     if (ctx) {
       const org = forOrg(db, ctx.orgId);
-      const [b, dna, c, conns] = await Promise.all([org.balance(), org.currentDna(ctx.brandId), org.counts(ctx.brandId), org.listConnections(ctx.brandId)]);
+      const [b, dna, c, conns, ps] = await Promise.all([
+        org.balance(),
+        org.currentDna(ctx.brandId),
+        org.counts(ctx.brandId),
+        org.listConnections(ctx.brandId),
+        org.planState(),
+      ]);
+      plan = effectivePlan(ps.plan, ps.planStatus);
       balance = b;
       completeness = dna?.completion_pct ?? 0;
       sourcesUsed = c.sources;
@@ -63,7 +72,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           balance={balance}
           completeness={completeness}
           sourcesUsed={sourcesUsed}
-          sourcesLimit={5}
+          sourcesLimit={plan.sourcesLimit}
           brandType={safe(to, "bt_", onboarding.brandType)}
           field={safe(to, "field_", onboarding.field)}
           audience={safe(to, "aud_", onboarding.audience)}

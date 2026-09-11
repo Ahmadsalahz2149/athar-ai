@@ -5,20 +5,16 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { StatCard, btnTeal, btnGhost, btnGold } from "@/components/ui/display";
 import { redeemCoupon } from "./actions";
-import { startCheckout } from "./checkout-actions";
+import { startCheckout, startSubscription, openBillingPortal } from "./checkout-actions";
 import { CREDIT_PACKS, packPriceUsd } from "@/lib/payments/catalog";
+import { PLANS as PLAN_CATALOG, planPriceUsd } from "@/lib/payments/plans";
 
 const cardStyle: CSSProperties = { background: "var(--surface,#fff)", border: "1px solid var(--border)", borderRadius: 16, padding: "clamp(16px,2.4vw,22px)", marginBlockEnd: 16 };
 const input: CSSProperties = { padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg,#fff)", fontSize: 14, color: "var(--heading)", fontFamily: "inherit" };
 
-const PLANS = [
-  { key: "free", price: 0, credits: "200" },
-  { key: "pro", price: 99, credits: "3,000", highlight: true },
-  { key: "agency", price: 299, credits: "12,000" },
-];
 // Packs come from the shared catalog so the price shown is the price charged.
 
-export function BillingClient({ balance, referral, locale, payments, purchase }: { balance: number; referral: { code: string; count: number }; locale: string; payments: boolean; purchase: "success" | "cancelled" | null }) {
+export function BillingClient({ balance, referral, locale, payments, purchase, currentPlan, planStatus, renewsAt }: { balance: number; referral: { code: string; count: number }; locale: string; payments: boolean; purchase: "success" | "cancelled" | "subscribed" | null; currentPlan: string; planStatus: string | null; renewsAt: string | null }) {
   const t = useTranslations("Billing");
   const router = useRouter();
   const nf = useMemo(() => new Intl.NumberFormat(locale === "ar" ? "ar" : "en"), [locale]);
@@ -29,6 +25,18 @@ export function BillingClient({ balance, referral, locale, payments, purchase }:
 
   // Send the customer to Stripe. Credits are granted by the webhook, never here
   // — returning to the success URL is not proof that a payment settled.
+  const go = async (run: () => Promise<{ ok: true; url: string } | { ok: false; error: string }>, busyKey: string) => {
+    setMsg(null);
+    setBuying(busyKey);
+    const r = await run();
+    if (r.ok) { window.location.assign(r.url); return; }
+    setBuying(null);
+    setMsg({ ok: false, text: t(`err_${r.error}`) || t("err_generic") });
+  };
+
+  const subscribe = (planId: string) => go(() => startSubscription(planId, locale), planId);
+  const manage = () => go(() => openBillingPortal(locale), "portal");
+
   const buy = async (packId: string) => {
     setMsg(null);
     setBuying(packId);
@@ -57,12 +65,12 @@ export function BillingClient({ balance, referral, locale, payments, purchase }:
           role="status"
           style={{
             marginBlockEnd: 14, padding: "12px 16px", borderRadius: 12, fontSize: 13.5, fontWeight: 600,
-            background: purchase === "success" ? "var(--teal-tint,#e6f7f4)" : "var(--surface)",
-            border: `1px solid ${purchase === "success" ? "var(--teal)" : "var(--border)"}`,
-            color: purchase === "success" ? "var(--teal-deep)" : "var(--slate)",
+            background: purchase !== "cancelled" ? "var(--teal-tint,#e6f7f4)" : "var(--surface)",
+            border: `1px solid ${purchase !== "cancelled" ? "var(--teal)" : "var(--border)"}`,
+            color: purchase !== "cancelled" ? "var(--teal-deep)" : "var(--slate)",
           }}
         >
-          {t(purchase === "success" ? "purchaseSuccess" : "purchaseCancelled")}
+          {t(purchase === "cancelled" ? "purchaseCancelled" : purchase === "subscribed" ? "subscribeSuccess" : "purchaseSuccess")}
         </div>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,160px),1fr))", gap: 12, marginBlockEnd: 16 }}>
@@ -85,18 +93,45 @@ export function BillingClient({ balance, referral, locale, payments, purchase }:
       <section style={cardStyle}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBlockEnd: 4 }}>
           <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--heading)" }}>{t("plansTitle")}</div>
-          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: "var(--gold-tint)", color: "var(--gold-dark)" }}>{t("soon")}</span>
+          {!payments ? (
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: "var(--gold-tint)", color: "var(--gold-dark)" }}>{t("soon")}</span>
+          ) : currentPlan !== "free" ? (
+            <button onClick={manage} disabled={buying !== null} style={{ ...btnGhost, height: 32, fontSize: 12.5 }}>{t("managePlan")}</button>
+          ) : null}
         </div>
-        <div style={{ fontSize: 12.8, color: "var(--muted)", marginBlockEnd: 14 }}>{t("plansDesc")}</div>
+        <div style={{ fontSize: 12.8, color: "var(--muted)", marginBlockEnd: 14 }}>
+          {!payments
+            ? t("plansDesc")
+            : currentPlan !== "free" && renewsAt
+              ? t(planStatus === "canceled" ? "planEndsOn" : "planRenewsOn", { date: renewsAt, plan: t(`plan_${currentPlan}`) })
+              : t("plansDescLive")}
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,180px),1fr))", gap: 12 }}>
-          {PLANS.map((p) => (
-            <div key={p.key} style={{ border: `1px solid ${p.highlight ? "var(--teal)" : "var(--border)"}`, borderRadius: 14, padding: 16, background: p.highlight ? "var(--teal-tint,#e6f7f4)" : "transparent" }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "var(--heading)" }}>{t(`plan_${p.key}`)}</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: "var(--heading)", marginBlock: "6px 2px", fontFamily: "var(--font-latin)" }}>${p.price}<span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>/{t("mo")}</span></div>
-              <div style={{ fontSize: 12.5, color: "var(--muted)", marginBlockEnd: 12 }}>{t("creditsMo", { n: p.credits })}</div>
-              <button disabled style={{ ...(p.highlight ? btnTeal : btnGhost), width: "100%", height: 38, opacity: 0.55, cursor: "not-allowed" }}>{p.price === 0 ? t("current") : t("upgrade")}</button>
+          {PLAN_CATALOG.map((p) => {
+            const highlight = p.id === "pro";
+            const isCurrent = p.id === currentPlan;
+            return (
+            <div key={p.id} style={{ border: `1px solid ${highlight ? "var(--teal)" : "var(--border)"}`, borderRadius: 14, padding: 16, background: highlight ? "var(--teal-tint,#e6f7f4)" : "transparent" }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "var(--heading)" }}>{t(`plan_${p.id}`)}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "var(--heading)", marginBlock: "6px 2px", fontFamily: "var(--font-latin)" }}>${planPriceUsd(p)}<span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>/{t("mo")}</span></div>
+              <div style={{ fontSize: 12.5, color: "var(--muted)", marginBlockEnd: 4 }}>{t("creditsMo", { n: nf.format(p.monthlyCredits) })}</div>
+              {/* Second entitlement, stated plainly — both are enforced. */}
+              <div style={{ fontSize: 12, color: "var(--muted)", marginBlockEnd: 12 }}>{t("sourcesLimitFeat", { n: nf.format(p.sourcesLimit) })}</div>
+              <button
+                onClick={() => !isCurrent && p.amountCents > 0 && payments && subscribe(p.id)}
+                disabled={isCurrent || p.amountCents === 0 || !payments || buying !== null}
+                title={payments ? undefined : t("soon")}
+                style={{
+                  ...(highlight ? btnTeal : btnGhost), width: "100%", height: 38,
+                  opacity: isCurrent || p.amountCents === 0 || !payments || buying ? 0.55 : 1,
+                  cursor: !isCurrent && p.amountCents > 0 && payments && !buying ? "pointer" : "not-allowed",
+                }}
+              >
+                {buying === p.id ? t("redirecting") : isCurrent ? t("current") : p.amountCents === 0 ? t("current") : t("upgrade")}
+              </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -104,7 +139,7 @@ export function BillingClient({ balance, referral, locale, payments, purchase }:
       <section style={cardStyle}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBlockEnd: 4 }}>
           <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--heading)" }}>{t("packsTitle")}</div>
-          <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: "var(--gold-tint)", color: "var(--gold-dark)" }}>{t("soon")}</span>
+          {!payments && <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: "var(--gold-tint)", color: "var(--gold-dark)" }}>{t("soon")}</span>}
         </div>
         <div style={{ fontSize: 12.8, color: "var(--muted)", marginBlockEnd: 14 }}>{t("packsDesc")}</div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>

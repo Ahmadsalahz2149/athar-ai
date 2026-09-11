@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { paymentsEnabled } from "@/lib/payments/stripe";
+import { effectivePlan } from "@/lib/payments/plans";
 import { BillingClient } from "./BillingClient";
 
 export const dynamic = "force-dynamic";
@@ -21,11 +22,20 @@ export default async function BillingPage({
 
   let balance = 0;
   let referral = { code: "", count: 0 };
+  let planId = "free";
+  let planStatus: string | null = null;
+  let renewsAt: string | null = null;
   if (db) {
     const ctx = await currentContext();
     if (ctx) {
       const org = forOrg(db, ctx.orgId);
-      [balance, referral] = await Promise.all([org.balance(), org.getReferral()]);
+      const [b, r, ps] = await Promise.all([org.balance(), org.getReferral(), org.planState()]);
+      balance = b;
+      referral = r;
+      // effectivePlan() decides entitlement; a lapsed subscription reads as free.
+      planId = effectivePlan(ps.plan, ps.planStatus).id;
+      planStatus = ps.planStatus;
+      renewsAt = ps.planRenewsAt ? ps.planRenewsAt.toISOString().slice(0, 10) : null;
     }
   }
 
@@ -38,7 +48,12 @@ export default async function BillingPage({
         referral={referral}
         locale={locale}
         payments={paymentsEnabled()}
-        purchase={purchase === "success" ? "success" : purchase === "cancelled" ? "cancelled" : null}
+        purchase={
+          purchase === "success" ? "success" : purchase === "subscribed" ? "subscribed" : purchase === "cancelled" ? "cancelled" : null
+        }
+        currentPlan={planId}
+        planStatus={planStatus}
+        renewsAt={renewsAt}
       />
     </main>
   );

@@ -985,8 +985,8 @@
     "planAgency": "Agency",
     "perMonth": "SAR / mo",
     "upgrade": "Coming soon",
-    "featPro": "Expanded usage limits, advanced DNA, and analytics after connections are enabled.",
-    "featAgency": "Planned Pro features plus team roles and multi-approval.",
+    "featPro": "More monthly credits and a higher knowledge-source limit. Renews automatically each month.",
+    "featAgency": "The largest monthly credit allowance and source limit. Renews automatically each month.",
     "billingNote": "Upgrade & payment activate later (billing integration).",
     "ntitle_analysis": "Analysis complete",
     "ndesc_analysis": "Alert when ideas from a new file are ready",
@@ -1391,7 +1391,15 @@
     "err_rate_limited": "Too many attempts. Try again shortly.",
     "err_no_session": "Your session expired. Please sign in again.",
     "err_unavailable": "Service unavailable right now.",
-    "err_failed": "Could not start checkout. Please try again."
+    "err_failed": "Could not start checkout. Please try again.",
+    "subscribeSuccess": "Subscribed ✓ — your monthly credits arrive within seconds, then renew automatically each month.",
+    "managePlan": "Manage subscription",
+    "plansDescLive": "Subscribe for monthly credits that renew automatically, plus a higher knowledge-source limit.",
+    "planRenewsOn": "Your plan: {plan} — renews on {date}.",
+    "planEndsOn": "Your plan: {plan} — renewal cancelled; stays active until {date}.",
+    "sourcesLimitFeat": "Up to {n} knowledge sources",
+    "err_unknown_plan": "Unknown plan.",
+    "err_no_subscription": "No subscription to manage."
   },
   "Help": {
     "title": "Help & Learning center",
