@@ -1,6 +1,8 @@
 /** Brand profile (Phase 1) — identity depth beyond the DNA. Stored as jsonb on
  * the brand and injected into content generation. Every field is optional so a
  * brand created before this existed still normalizes cleanly. */
+import { capList, capStr, PROFILE_CAPS } from "@/lib/text/cap";
+
 export type BrandProfile = {
   constraints: string[];        // #10 content rules ("no client faces", "no music")
   productionNotes: string;      // #11 shooting / production guidance
@@ -17,22 +19,23 @@ export const EMPTY_PROFILE: BrandProfile = {
 
 export function normalizeProfile(raw: unknown): BrandProfile {
   const o = (raw ?? {}) as Record<string, unknown>;
-  const str = (v: unknown) => (typeof v === "string" ? v : "");
-  const arr = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim().length > 0).slice(0, 20) : []);
+  // Counts were capped here already; the strings inside them were not, and this
+  // profile is injected into generation prompts like the DNA is.
+  const arr = (v: unknown) => capList(v, PROFILE_CAPS.constraintItems, PROFILE_CAPS.constraintChars);
   const qa = Array.isArray(o.qa)
     ? (o.qa as unknown[])
         .filter((x): x is { q: unknown; a: unknown } => !!x && typeof x === "object")
-        .map((x) => ({ q: str(x.q), a: str(x.a) }))
+        .map((x) => ({ q: capStr(x.q, PROFILE_CAPS.qaQuestion), a: capStr(x.a, PROFILE_CAPS.qaAnswer) }))
         .filter((x) => x.q || x.a)
-        .slice(0, 20)
+        .slice(0, PROFILE_CAPS.qaItems)
     : [];
   return {
     constraints: arr(o.constraints),
-    productionNotes: str(o.productionNotes),
-    teamSize: str(o.teamSize),
-    descShort: str(o.descShort),
-    descDetailed: str(o.descDetailed),
-    descTechnical: str(o.descTechnical),
+    productionNotes: capStr(o.productionNotes, PROFILE_CAPS.productionNotes),
+    teamSize: capStr(o.teamSize, PROFILE_CAPS.teamSize),
+    descShort: capStr(o.descShort, PROFILE_CAPS.descShort),
+    descDetailed: capStr(o.descDetailed, PROFILE_CAPS.descDetailed),
+    descTechnical: capStr(o.descTechnical, PROFILE_CAPS.descTechnical),
     qa,
   };
 }

@@ -1,6 +1,7 @@
 /** Distribution hub (Phase 2) — the AI-derived audience understanding + the
  * group-search keywords/queries it produces. Cached on brands.distribution and
  * regenerated on demand from the DNA + brand profile + products. */
+import { capList, capStr, KIT_CAPS } from "@/lib/text/cap";
 
 export type AudienceProfile = {
   summary: string;          // one-paragraph who-they-are
@@ -35,20 +36,20 @@ export type GroupPlatform = (typeof GROUP_PLATFORMS)[number];
 export function normalizeKit(raw: unknown): DistributionKit {
   const o = (raw ?? {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" ? v : "");
-  const arr = (v: unknown, max = 30) => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()).slice(0, max) : []);
+  const arr = (v: unknown, max = 30) => capList(v, max, KIT_CAPS.listChars);
   const a = (o.audience ?? {}) as Record<string, unknown>;
   const queries = Array.isArray(o.queries)
     ? (o.queries as unknown[])
         .filter((x): x is { platform: unknown; query: unknown } => !!x && typeof x === "object")
-        .map((x) => ({ platform: str(x.platform) || "facebook", query: str(x.query) }))
+        .map((x) => ({ platform: capStr(x.platform, KIT_CAPS.platform) || "facebook", query: capStr(x.query, KIT_CAPS.query) }))
         .filter((x) => x.query.trim())
         .slice(0, 40)
     : [];
   return {
     audience: {
-      summary: str(a.summary),
+      summary: capStr(a.summary, KIT_CAPS.summary),
       segments: arr(a.segments),
-      demographics: str(a.demographics),
+      demographics: capStr(a.demographics, KIT_CAPS.demographics),
       interests: arr(a.interests),
       painPoints: arr(a.painPoints),
       wateringHoles: arr(a.wateringHoles),

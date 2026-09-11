@@ -1,12 +1,20 @@
 import type { ContentDna, FileAnalysis } from "./prompts";
+import { capList, capStr, ANALYSIS_CAPS, DNA_CAPS } from "@/lib/text/cap";
 
 export type Draft = { hook: string; body: string };
 
-/** Coerce any model output into a well-formed DNA — missing fields never crash the UI. */
+/**
+ * Coerce any model output into a well-formed DNA — missing fields never crash
+ * the UI, and no field is unbounded.
+ *
+ * The bounds are not cosmetic. This DNA is injected into every generation
+ * prompt, and the edit screen writes straight through here, so an unbounded
+ * field is an unbounded prompt on every generation from then on — billed to us,
+ * and stored as unbounded JSONB besides.
+ */
 export function normalizeDna(raw: unknown): ContentDna {
   const o = (raw ?? {}) as Record<string, unknown>;
-  const arr = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x)).filter(Boolean) : []);
-  const str = (v: unknown) => (typeof v === "string" ? v : "");
+  const arr = (v: unknown) => capList(v, DNA_CAPS.listItems, DNA_CAPS.listChars);
   const clampInt = (v: unknown, lo: number, hi: number, dflt: number) => {
     const n = Number(v);
     return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : dflt;
@@ -27,17 +35,17 @@ export function normalizeDna(raw: unknown): ContentDna {
   if (sum === 0) Object.assign(pillars, { educational: 35, story: 20, proof: 15, soft_sell: 12, thought_leadership: 10, engagement: 8 });
 
   return {
-    summary: str(o.summary),
-    dialect: str(o.dialect),
+    summary: capStr(o.summary, DNA_CAPS.summary),
+    dialect: capStr(o.dialect, DNA_CAPS.dialect),
     tone_traits: arr(o.tone_traits),
     hook_patterns: arr(o.hook_patterns),
-    audience: str(o.audience),
+    audience: capStr(o.audience, DNA_CAPS.audience),
     dos: arr(o.dos),
     donts: arr(o.donts),
-    explanation_style: str(o.explanation_style),
+    explanation_style: capStr(o.explanation_style, DNA_CAPS.explanationStyle),
     sentence_length: clampInt(o.sentence_length, 1, 3, 2),
     boldness: clampInt(o.boldness, 1, 3, 2),
-    awareness: str(o.awareness),
+    awareness: capStr(o.awareness, DNA_CAPS.awareness),
     cares_about: arr(o.cares_about),
     cta_patterns: arr(o.cta_patterns),
     pillars,
@@ -45,12 +53,12 @@ export function normalizeDna(raw: unknown): ContentDna {
   };
 }
 
-const strArr = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x)).filter(Boolean) : []);
+const strArr = (v: unknown) => capList(v, ANALYSIS_CAPS.listItems, ANALYSIS_CAPS.listChars);
 
 export function normalizeAnalysis(raw: unknown): FileAnalysis {
   const o = (raw ?? {}) as Record<string, unknown>;
   return {
-    summary: typeof o.summary === "string" ? o.summary : "",
+    summary: capStr(o.summary, ANALYSIS_CAPS.summary),
     key_ideas: strArr(o.key_ideas),
     quotes: strArr(o.quotes),
     audience_problems: strArr(o.audience_problems),
