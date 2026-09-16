@@ -100,7 +100,7 @@ describe.runIf(!!ownerDb && !!rlsDb)("row-level security", () => {
           "coupon_redemptions", "invoices", "social_connections", "media_assets",
           "products", "ideas", "analyses", "source_chunks", "sources",
           "drafts", "dna_versions", "credit_ledger", "jobs", "link_events",
-          "invitations", "post_metrics", "memberships", "brands",
+          "invitations", "review_links", "post_metrics", "memberships", "brands",
         ]) {
           await ownerSql.unsafe(`delete from ${table} where org_id = $1`, [id]);
         }

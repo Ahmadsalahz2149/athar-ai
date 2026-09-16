@@ -276,6 +276,42 @@ export const invitations = pgTable(
   ],
 );
 
+/**
+ * A share link that lets an agency's END CLIENT review posts without an account
+ * (Phase 4).
+ *
+ * Deliberately narrow. The token grants exactly one thing: seeing this brand's
+ * review queue and answering yes or "change this". It is not a login, it never
+ * becomes a session, and it cannot reach sources, DNA, billing, other brands or
+ * any other workspace. A review link that quietly widens into account access is
+ * how an agency loses a client.
+ */
+export const reviewLinks = pgTable(
+  "review_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    brandId: uuid("brand_id")
+      .notNull()
+      .references(() => brands.id),
+    /** Who this link was made for ("Acme's marketing lead"), so a note carries a
+     * name and the agency knows which link to revoke. */
+    label: text("label"),
+    tokenHash: text("token_hash").notNull(),
+    createdBy: uuid("created_by"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("review_links_token_uq").on(t.tokenHash),
+    index("review_links_brand_idx").on(t.orgId, t.brandId, t.createdAt),
+  ],
+);
+
 // Append-only credit ledger (ADR-004 / A4). Balance is derived (sum of deltas);
 // balance_after is a denormalized convenience. Never UPDATE/DELETE rows.
 export const creditLedger = pgTable(

@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+import { hashToken, newToken } from "@/lib/tokens";
 
 /**
  * Invitation tokens (Phase 4).
@@ -7,23 +7,17 @@ import crypto from "node:crypto";
  * good can be tested directly.
  *
  * The token is a bearer credential: whoever holds the link gets a seat in
- * someone's workspace. So it is treated like one — 32 bytes of CSPRNG entropy,
- * and only its SHA-256 is ever stored. The raw value exists in the link the
- * inviter sends and nowhere else, which means a database dump does not hand
- * anyone a way in.
+ * someone's workspace. It uses the shared token primitives in lib/tokens.ts,
+ * which the client review link uses too — one implementation, one set of
+ * properties, rather than two hand-rolled ones that drift.
  */
 
 /** How long an invitation stays valid. Long enough to survive a weekend and a
  * forwarded email; short enough that a link found in an old inbox is dead. */
 export const INVITE_TTL_DAYS = 7;
 
-export function newInviteToken(): string {
-  return crypto.randomBytes(32).toString("base64url");
-}
-
-export function hashInviteToken(token: string): string {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
+export const newInviteToken = newToken;
+export const hashInviteToken = hashToken;
 
 export function inviteExpiry(from: Date = new Date()): Date {
   return new Date(from.getTime() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000);

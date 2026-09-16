@@ -80,4 +80,14 @@ export const LIMITS = {
    */
   linkView: { limit: 30, windowMs: 60_000 },
   linkClick: { limit: 60, windowMs: 60_000 },
+  /**
+   * Client review link (Phase 4), per IP. The token is a bearer credential, so
+   * the open surface is also a guessing oracle: 32 bytes of entropy is only
+   * worth what the guessing budget allows. The read limit is generous enough
+   * that a client refreshing a month of posts never notices; the decision limit
+   * sits above a person answering every post in one sitting and far below a
+   * script.
+   */
+  reviewView: { limit: 40, windowMs: 60_000 },
+  reviewDecision: { limit: 80, windowMs: 10 * 60_000 },
 } as const;

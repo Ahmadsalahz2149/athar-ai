@@ -59,6 +59,7 @@ export const ORG_SCOPED_TABLES = [
   "media_assets",
   "post_metrics",
   "products",
+  "review_links",
   "social_connections",
   "target_groups",
   // parents last

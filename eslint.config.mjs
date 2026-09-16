@@ -48,6 +48,11 @@ const eslintConfig = defineConfig([
       // Public link page (#17) — no org context; the handle is the lookup key,
       // and it only touches public link-page data. See lib/link/publicLookup.ts.
       "lib/link/publicLookup.ts",
+      // Client review link (Phase 4) — a person with no account and no session;
+      // the token is the lookup key. Reads a fixed column set for ONE brand in
+      // one review state, and writes exactly two statuses. See
+      // lib/review/publicReview.ts.
+      "lib/review/publicReview.ts",
       // Invitation redemption (Phase 4) — the person accepting is NOT a member
       // of that workspace yet, which is the whole point, so there is no org to
       // scope to and the token is the lookup key. Every write is bounded to the

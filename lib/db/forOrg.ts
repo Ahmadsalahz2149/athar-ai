@@ -1971,6 +1971,51 @@ function facade(db: Executor, orgId: string) {
       return rows.length > 0;
     },
 
+    // --- Client review links (Phase 4) ---------------------------------------
+
+    async createReviewLink(brandId: string, link: { label: string | null; tokenHash: string; createdBy: string | null; expiresAt: Date | null }): Promise<string> {
+      await assertBrand(brandId);
+      const [row] = await db
+        .insert(schema.reviewLinks)
+        .values({ orgId, brandId, ...link })
+        .returning({ id: schema.reviewLinks.id });
+      return row.id;
+    },
+
+    /** Links for this brand, newest first. The token hash is never selected —
+     * it is a credential, and the screen only needs to show which links exist. */
+    async listReviewLinks(brandId: string, limit = 20) {
+      return await db
+        .select({
+          id: schema.reviewLinks.id,
+          label: schema.reviewLinks.label,
+          expiresAt: schema.reviewLinks.expiresAt,
+          revokedAt: schema.reviewLinks.revokedAt,
+          lastUsedAt: schema.reviewLinks.lastUsedAt,
+          createdAt: schema.reviewLinks.createdAt,
+        })
+        .from(schema.reviewLinks)
+        .where(and(eq(schema.reviewLinks.orgId, orgId), eq(schema.reviewLinks.brandId, brandId)))
+        .orderBy(desc(schema.reviewLinks.createdAt))
+        .limit(limit);
+    },
+
+    /** Cut off a link. Revoking rather than deleting, so the agency keeps a
+     * record that the client was given access and that it was withdrawn. */
+    async revokeReviewLink(brandId: string, linkId: string): Promise<boolean> {
+      const rows = await db
+        .update(schema.reviewLinks)
+        .set({ revokedAt: new Date() })
+        .where(and(
+          eq(schema.reviewLinks.id, linkId),
+          eq(schema.reviewLinks.orgId, orgId),
+          eq(schema.reviewLinks.brandId, brandId),
+          isNull(schema.reviewLinks.revokedAt),
+        ))
+        .returning({ id: schema.reviewLinks.id });
+      return rows.length > 0;
+    },
+
     // --- Invitations ---------------------------------------------------------
 
     async createInvitation(inv: {

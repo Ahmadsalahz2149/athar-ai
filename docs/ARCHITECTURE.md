@@ -111,6 +111,27 @@ This document describes the system that is actually deployed. Proposed or future
   themselves, and says so on screen. Outbound mail is not configured, and an invitation
   that silently fails to arrive is worse than no invitation.
 
+## Client review links (Phase 4)
+
+- `review_links` gives an agency's END CLIENT a way to see a cycle's posts and answer
+  them with no account: `/{locale}/r/{token}`. The approval flow already existed; the
+  surface a person outside the workspace could safely be pointed at did not.
+- The link is deliberately narrow, and what it CANNOT do is the point. `lib/review/publicReview.ts`
+  reads a fixed column set from `drafts` for ONE brand, in one state set
+  (`pending`, `needs_edit`, `approved`, `scheduled`) within 60 days, and writes exactly two
+  statuses (`approved`, `needs_edit`). It cannot reach sources, the DNA, credits, invoices,
+  other brands or any other workspace, and it never becomes a session. Work in progress
+  (`draft`) and decisions already taken (`rejected`) are not shown — that is the agency's
+  judgement, not the client's business.
+- Tokens are the shared primitives in `lib/tokens.ts` (32 bytes, stored as SHA-256 only),
+  expire in 90 days and are revocable from the Approvals screen. A client's note is
+  attributed to the link's label, so the agency reading Approvals knows it is the client
+  speaking and not a teammate.
+- Both the read and the write are rate-limited per IP (`LIMITS.reviewView` /
+  `LIMITS.reviewDecision`): an open page guarded by a bearer token is also a guessing
+  oracle, and this is the only unauthenticated write path besides the link page's counters.
+  The page is `noindex` — a client's unreleased posts do not belong in a search index.
+
 ## Deployment checklist
 
 1. Build with Node.js 22 and `npm ci`.

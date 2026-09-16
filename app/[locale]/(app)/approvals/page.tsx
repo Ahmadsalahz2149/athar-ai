@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { ApprovalsClient } from "./ApprovalsClient";
+import { ClientReviewLink } from "./ClientReviewLink";
 
 const QUEUE = ["pending", "approved", "scheduled", "needs_edit", "rejected"];
 
@@ -29,6 +30,9 @@ export default async function ApprovalsPage({ params }: { params: Promise<{ loca
     <main style={{ maxWidth: 860, margin: "0 auto", padding: "clamp(24px,4vw,40px) clamp(16px,4vw,32px) 80px", animation: "floatUp .4s ease" }}>
       <h1 style={{ fontSize: "clamp(22px,4vw,28px)", fontWeight: 700, color: "var(--heading)", letterSpacing: "-.4px" }}>{t("title")}</h1>
       <p style={{ fontSize: 15, color: "var(--muted)", lineHeight: 1.7, marginBlock: "6px 22px" }}>{t("subtitle")}</p>
+      {/* Phase 4: let the agency's end client see and answer this queue with no
+          account — the approval flow existed, the surface for it did not. */}
+      <ClientReviewLink />
       <ApprovalsClient drafts={drafts} media={media} />
     </main>
   );
