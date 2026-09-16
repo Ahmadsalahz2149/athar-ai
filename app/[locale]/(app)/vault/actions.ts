@@ -7,6 +7,7 @@ import { normalizeAnalysis } from "@/lib/ai/normalize";
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
+import { requireCap } from "@/lib/auth/guard";
 import { estimateAnalyze } from "@/lib/credits/costs";
 import {
   ANALYSIS_SYSTEM,
@@ -101,8 +102,11 @@ export async function retrySource(sourceId: string): Promise<{ ok: boolean }> {
 export async function deleteSource(sourceId: string): Promise<{ ok: boolean }> {
   try {
     if (!db) return { ok: false };
-    const ctx = await currentContext();
-    if (!ctx) return { ok: false };
+    // A reviewer is in the workspace to approve posts, not to destroy the
+    // material the brand's voice was built from.
+    const gate = await requireCap("content.delete");
+    if (!gate.ok) return { ok: false };
+    const ctx = gate;
     await forOrg(db, ctx.orgId).deleteSource(ctx.brandId, sourceId);
     return { ok: true };
   } catch {

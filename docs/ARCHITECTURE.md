@@ -91,6 +91,26 @@ This document describes the system that is actually deployed. Proposed or future
 - Operational visibility comes from the in-product admin area, structured server logs and
   Sentry (opt-in — inert without a DSN). PostHog is not installed. See `docs/MONITORING.md`.
 
+## Team seats and roles (ADR-012)
+
+- A workspace holds several people. `memberships` is unique on (user_id, org_id), with a
+  **partial** unique index on user_id `WHERE role = 'owner'` — that is what preserves the
+  bootstrap race guarantee (a user owns at most one workspace) while letting them be
+  invited into others.
+- Three roles — **owner**, **editor**, **reviewer** — and one capability matrix in
+  `lib/auth/roles.ts`. Server actions authorize through `requireCap()` (`lib/auth/guard.ts`),
+  which returns `forbidden` and `no_session` as distinct outcomes because "your role cannot
+  do this" and "sign in again" are different instructions.
+- `currentContext()` carries `{ userId, orgId, brandId, role }`, so every guarded action
+  authorizes against the same workspace it is about to write to.
+- Invitations store only a SHA-256 of a 32-byte token, expire in 7 days, and are redeemable
+  only by the address they were sent to — a forwarded link is not a credential. Redemption
+  is system-scoped (`lib/auth/invites.ts`, allowlisted alongside the public link page):
+  the person accepting is not a member of that workspace yet, which is the whole point.
+- The product does **not** send the invitation email. It returns a link the owner sends
+  themselves, and says so on screen. Outbound mail is not configured, and an invitation
+  that silently fails to arrive is worse than no invitation.
+
 ## Deployment checklist
 
 1. Build with Node.js 22 and `npm ci`.

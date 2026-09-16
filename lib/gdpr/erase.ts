@@ -52,6 +52,7 @@ export const ORG_SCOPED_TABLES = [
   // Stripe remains the system of record for the issued documents, so the
   // statutory copy survives while the personal data leaves this database.
   "invoices",
+  "invitations",
   "jobs",
   "lesson_progress",
   "link_events",

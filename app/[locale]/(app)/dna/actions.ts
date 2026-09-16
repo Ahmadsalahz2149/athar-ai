@@ -6,6 +6,7 @@ import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { normalizeDna } from "@/lib/ai/normalize";
 import type { ContentDna } from "@/lib/ai/prompts";
+import { requireCap } from "@/lib/auth/guard";
 
 /** The subset of DNA the user can edit by hand. Everything else is carried over
  * from the current version; saving creates a NEW version (history is preserved). */
@@ -73,8 +74,11 @@ export async function traitProvenance(): Promise<TraitProvenance> {
 export async function saveDnaEdits(edits: DnaEdits): Promise<{ ok: boolean; error?: string }> {
   try {
     if (!db) return { ok: false, error: "no_session" };
-    const ctx = await currentContext();
-    if (!ctx) return { ok: false, error: "no_session" };
+    // The DNA is the brand's voice; editing it changes every post generated
+    // from here on, for everyone in the workspace.
+    const gate = await requireCap("content.write");
+    if (!gate.ok) return { ok: false, error: gate.error };
+    const ctx = gate;
 
     const t = forOrg(db, ctx.orgId);
     const current = await t.currentDna(ctx.brandId);
@@ -151,8 +155,9 @@ export async function revertDnaVersion(versionId: string): Promise<{ ok: boolean
   try {
     if (!versionId) return { ok: false, error: "not_found" };
     if (!db) return { ok: false, error: "no_session" };
-    const ctx = await currentContext();
-    if (!ctx) return { ok: false, error: "no_session" };
+    const gate = await requireCap("content.write");
+    if (!gate.ok) return { ok: false, error: gate.error };
+    const ctx = gate;
 
     // forOrg scopes the lookup to this workspace and brand, so a forged id
     // cannot adopt another workspace's voice.

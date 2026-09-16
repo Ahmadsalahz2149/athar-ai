@@ -10,6 +10,7 @@ import { currentContext } from "@/lib/auth/current";
 import { estimateAudience } from "@/lib/credits/costs";
 import { AUDIENCE_SYSTEM, AUDIENCE_SCHEMA, buildAudienceMessage, buildBrandContext } from "@/lib/ai/prompts";
 import { normalizeKit, type DistributionKit } from "@/lib/distribution/types";
+import { requireCap } from "@/lib/auth/guard";
 
 type Res<T = unknown> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -90,6 +91,8 @@ export async function saveGroup(g: {
 export async function deleteGroup(groupId: string): Promise<Res> {
   try {
     const { db, ctx } = await ctxOrThrow();
+    const gate = await requireCap("content.delete");
+    if (!gate.ok) return { ok: false, error: gate.error };
     await forOrg(db, ctx.orgId).deleteGroup(ctx.brandId, groupId);
     revalidatePath("/distribute");
     return { ok: true };

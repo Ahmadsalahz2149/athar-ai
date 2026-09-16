@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/navigation";
+import { safeNextPath } from "@/lib/auth/next-path";
 import { signIn } from "@/lib/auth/actions";
 import { Logo } from "@/components/Logo";
 import { OAuthButtons, OAUTH_AVAILABLE } from "@/components/auth/OAuthButtons";
@@ -13,6 +15,10 @@ export function AuthForm() {
   const t = useTranslations("Auth");
   const brand = useTranslations("Brand");
   const router = useRouter();
+  // An invitation link sends people here first; `next` brings them back to it
+  // instead of dropping them on the dashboard with no idea what happened to the
+  // invitation they clicked. Validated, never trusted - see safeNextPath.
+  const next = safeNextPath(useSearchParams().get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +34,7 @@ export function AuthForm() {
         const key = r.code && r.code !== "other" ? `err_${r.code}` : null;
         return setError(key ? t(key) : r.error);
       }
-      router.push("/dashboard");
+      router.push(next ?? "/dashboard");
       router.refresh();
     });
   };

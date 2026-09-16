@@ -15,12 +15,18 @@ import { asSystem } from "@/lib/db/rls";
  * folder. The connection itself is still reported (platform, status, when). */
 const REDACTED: Record<string, string[]> = {
   social_connections: ["access_token", "refresh_token"],
+  // An unspent invitation token is a live way into this workspace, and an
+  // export is a file people forward.
+  invitations: ["token_hash"],
 };
 
 /** Tables included in the export, with the reason a person would care. */
 export const EXPORTED_TABLES = [
   "organizations",
   "memberships",
+  // Who was invited into this workspace and who accepted — the token hash is
+  // not exported: it is a credential, and the export is a file people forward.
+  "invitations",
   "brands",
   "products",
   "target_groups",

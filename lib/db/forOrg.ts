@@ -1902,6 +1902,145 @@ function facade(db: Executor, orgId: string) {
       );
       return fresh.length;
     },
+
+    // --- Team seats (Phase 4) ------------------------------------------------
+
+    /** Everyone with a seat in this workspace, oldest first so the owner leads. */
+    async members() {
+      return await db
+        .select({
+          id: schema.memberships.id,
+          userId: schema.memberships.userId,
+          role: schema.memberships.role,
+          email: schema.memberships.email,
+          createdAt: schema.memberships.createdAt,
+        })
+        .from(schema.memberships)
+        .where(eq(schema.memberships.orgId, orgId))
+        .orderBy(schema.memberships.createdAt);
+    },
+
+    /** This user's role here, or null when they have no seat. The authorization
+     * check every guarded action runs, so it is a scoped read by design: a
+     * membership in ANOTHER workspace must not answer this question. */
+    async memberRole(userId: string): Promise<string | null> {
+      const rows = await db
+        .select({ role: schema.memberships.role })
+        .from(schema.memberships)
+        .where(and(eq(schema.memberships.orgId, orgId), eq(schema.memberships.userId, userId)))
+        .limit(1);
+      return rows[0]?.role ?? null;
+    },
+
+    async countMembers(): Promise<number> {
+      const rows = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(schema.memberships)
+        .where(eq(schema.memberships.orgId, orgId));
+      return rows[0]?.n ?? 0;
+    },
+
+    /** Change a teammate's role. Refuses to touch an owner row, so the team
+     * screen can never be used to demote the person who pays — and refuses a
+     * membership from another workspace, which the org scope already makes
+     * invisible but the explicit predicate documents. */
+    async setMemberRole(userId: string, role: string): Promise<boolean> {
+      const rows = await db
+        .update(schema.memberships)
+        .set({ role })
+        .where(and(
+          eq(schema.memberships.orgId, orgId),
+          eq(schema.memberships.userId, userId),
+          ne(schema.memberships.role, "owner"),
+        ))
+        .returning({ id: schema.memberships.id });
+      return rows.length > 0;
+    },
+
+    /** Take back a seat. The person's own workspace, and everything they wrote
+     * here, are untouched: a seat is access, not authorship. */
+    async removeMember(userId: string): Promise<boolean> {
+      const rows = await db
+        .delete(schema.memberships)
+        .where(and(
+          eq(schema.memberships.orgId, orgId),
+          eq(schema.memberships.userId, userId),
+          ne(schema.memberships.role, "owner"),
+        ))
+        .returning({ id: schema.memberships.id });
+      return rows.length > 0;
+    },
+
+    // --- Invitations ---------------------------------------------------------
+
+    async createInvitation(inv: {
+      email: string;
+      role: string;
+      tokenHash: string;
+      invitedBy: string | null;
+      expiresAt: Date;
+    }): Promise<string> {
+      const [row] = await db
+        .insert(schema.invitations)
+        .values({ orgId, ...inv })
+        .returning({ id: schema.invitations.id });
+      return row.id;
+    },
+
+    /** Invitations for the team screen, newest first. The token hash is never
+     * selected: nothing outside acceptance has any business with it. */
+    async listInvitations(limit = 50) {
+      return await db
+        .select({
+          id: schema.invitations.id,
+          email: schema.invitations.email,
+          role: schema.invitations.role,
+          expiresAt: schema.invitations.expiresAt,
+          acceptedAt: schema.invitations.acceptedAt,
+          revokedAt: schema.invitations.revokedAt,
+          createdAt: schema.invitations.createdAt,
+        })
+        .from(schema.invitations)
+        .where(eq(schema.invitations.orgId, orgId))
+        .orderBy(desc(schema.invitations.createdAt))
+        .limit(limit);
+    },
+
+    /** A still-open invitation to this address, if one exists — so the screen
+     * can offer to replace it instead of quietly issuing a second live token
+     * for the same seat. */
+    async pendingInvitationFor(email: string): Promise<{ id: string } | null> {
+      const rows = await db
+        .select({ id: schema.invitations.id })
+        .from(schema.invitations)
+        .where(and(
+          eq(schema.invitations.orgId, orgId),
+          eq(schema.invitations.email, email),
+          isNull(schema.invitations.acceptedAt),
+          isNull(schema.invitations.revokedAt),
+          sql`${schema.invitations.expiresAt} > now()`,
+        ))
+        .limit(1);
+      return rows[0] ?? null;
+    },
+
+    /** Withdraw an invitation. Revoking is a state change rather than a delete,
+     * so the workspace keeps a record that the seat was offered and taken back
+     * — and an already-accepted invitation is deliberately not revocable here:
+     * that person has a seat now, and seats are removed on the members list. */
+    async revokeInvitation(invitationId: string): Promise<boolean> {
+      const rows = await db
+        .update(schema.invitations)
+        .set({ revokedAt: new Date() })
+        .where(and(
+          eq(schema.invitations.id, invitationId),
+          eq(schema.invitations.orgId, orgId),
+          isNull(schema.invitations.acceptedAt),
+          isNull(schema.invitations.revokedAt),
+        ))
+        .returning({ id: schema.invitations.id });
+      return rows.length > 0;
+    },
   };
 }
 

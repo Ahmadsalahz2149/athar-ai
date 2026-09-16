@@ -1,11 +1,20 @@
+import { Suspense } from "react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
+import { safeNextPath } from "@/lib/auth/next-path";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { AuthSplit } from "@/components/auth/AuthSplit";
 import { AuthForm } from "./AuthForm";
 
-export default async function LoginPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function LoginPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ next?: string }>;
+}) {
   const { locale } = await params;
+  const next = safeNextPath((await searchParams).next);
   setRequestLocale(locale);
   const t = await getTranslations("Auth");
 
@@ -15,7 +24,7 @@ export default async function LoginPage({ params }: { params: Promise<{ locale: 
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (user) redirect(`/${locale === "en" ? "en" : "ar"}/dashboard`);
+    if (user) redirect(next ?? `/${locale === "en" ? "en" : "ar"}/dashboard`);
   }
 
   return (
@@ -41,7 +50,9 @@ export default async function LoginPage({ params }: { params: Promise<{ locale: 
         </>
       }
     >
-      <AuthForm />
+      <Suspense fallback={null}>
+        <AuthForm />
+      </Suspense>
     </AuthSplit>
   );
 }

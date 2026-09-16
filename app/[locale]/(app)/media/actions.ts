@@ -15,6 +15,7 @@ import { uploadPublic } from "@/lib/storage/uploads";
 import { generateText, hasKeyFor, currentProvider } from "@/lib/ai/generate";
 import { MODELS } from "@/lib/ai/models";
 import { IMAGE_PROMPT_SYSTEM, buildImagePromptMessage, buildBrandContext } from "@/lib/ai/prompts";
+import { requireCap } from "@/lib/auth/guard";
 
 /** A generated image is a few hundred KB; 20 MB is far above any real one and
  * far below anything that threatens the process. */
@@ -171,6 +172,7 @@ export async function deleteAsset(assetId: string): Promise<{ ok: boolean }> {
   try {
     const c = await ctxOrNull();
     if (!c) return { ok: false };
+    if (!(await requireCap("content.delete")).ok) return { ok: false };
     await forOrg(c.db, c.ctx.orgId).deleteMediaAsset(c.ctx.brandId, assetId);
     revalidatePath("/media");
     return { ok: true };

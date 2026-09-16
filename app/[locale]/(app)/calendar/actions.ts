@@ -7,6 +7,7 @@ import { currentContext } from "@/lib/auth/current";
 import { guardDraft } from "@/lib/ai/guardDraft";
 import { kickPublisher } from "@/lib/jobs/kick";
 import { toPlatformId } from "@/lib/social/registry";
+import { requireCap } from "@/lib/auth/guard";
 
 /** Schedule one approved draft at an explicit datetime (from the calendar UI). */
 export async function scheduleDraft(draftId: string, iso: string): Promise<{ ok: boolean; error?: string }> {
@@ -29,8 +30,9 @@ export async function scheduleDraft(draftId: string, iso: string): Promise<{ ok:
 export async function autoScheduleApproved(baseIso: string): Promise<{ ok: boolean; scheduled: number; error?: string }> {
   try {
     if (!db) return { ok: false, scheduled: 0, error: "no_session" };
-    const ctx = await currentContext();
-    if (!ctx) return { ok: false, scheduled: 0, error: "no_session" };
+    const gate = await requireCap("publish");
+    if (!gate.ok) return { ok: false, scheduled: 0, error: gate.error };
+    const ctx = gate;
     const org = forOrg(db, ctx.orgId);
     const approved = await org.listDraftsByStatus(ctx.brandId, "approved");
     // baseIso is "today" computed on the client (server has no Date.now via our rules elsewhere,
@@ -63,8 +65,11 @@ export async function autoScheduleApproved(baseIso: string): Promise<{ ok: boole
 export async function publishNow(draftId: string): Promise<{ ok: boolean; error?: string }> {
   try {
     if (!db) return { ok: false, error: "no_session" };
-    const ctx = await currentContext();
-    if (!ctx) return { ok: false, error: "no_session" };
+    // Publishing is irreversible in public. A reviewer says yes to a post; the
+    // act of putting it on a real timeline is someone else's.
+    const gate = await requireCap("publish");
+    if (!gate.ok) return { ok: false, error: gate.error };
+    const ctx = gate;
     const org = forOrg(db, ctx.orgId);
 
     const draft = await org.draftForPublish(ctx.brandId, draftId);

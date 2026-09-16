@@ -8,6 +8,7 @@ import { configuredPlatforms } from "@/lib/social/registry";
 import { effectivePlan } from "@/lib/payments/plans";
 import { log } from "@/lib/log";
 import { SettingsClient } from "./SettingsClient";
+import { TeamSection } from "./TeamSection";
 
 export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -88,6 +89,9 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           connectedPlatforms={connectedPlatforms}
         />
       </Suspense>
+      {/* Seats (Phase 4): multi-brand already worked; what an agency could not
+          do was put a second person in the workspace. */}
+      <TeamSection />
     </main>
   );
 }

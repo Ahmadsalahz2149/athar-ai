@@ -7,6 +7,7 @@ import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { normalizeProfile, type BrandProfile } from "@/lib/brand/profile";
 import { uploadPublic } from "@/lib/storage/uploads";
+import { requireCap } from "@/lib/auth/guard";
 
 type Res<T = unknown> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -52,6 +53,8 @@ export async function saveProduct(p: {
 export async function deleteProduct(productId: string): Promise<Res> {
   try {
     const { db, ctx } = await ctxOrThrow();
+    const gate = await requireCap("content.delete");
+    if (!gate.ok) return { ok: false, error: gate.error };
     await forOrg(db, ctx.orgId).deleteProduct(ctx.brandId, productId);
     revalidatePath("/brand");
     return { ok: true };

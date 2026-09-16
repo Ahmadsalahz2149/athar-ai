@@ -220,13 +220,59 @@ export const memberships = pgTable(
       .notNull()
       .references(() => organizations.id),
     role: text("role").notNull().default("owner"),
+    /** The address this seat was given to, recorded when it was taken.
+     * Denormalized on purpose: the team screen has to show WHO holds a seat,
+     * and resolving that through Supabase's admin API needs a service-role key
+     * that a self-hosted deployment may not have configured — leaving the
+     * screen a list of anonymous UUIDs exactly when someone is trying to decide
+     * whom to remove. Nullable for rows that predate seats. */
+    email: text("email"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
-    // MVP invariant: exactly ONE workspace per user. Enforced at the DB level so
-    // concurrent first-requests can't each create an org (bootstrap race).
-    // Relax this when multi-workspace membership ships.
-    uniqueIndex("memberships_user_uq").on(t.userId),
+    // A user appears at most once in a workspace. Re-accepting an invitation
+    // must not silently create a second row with a different role.
+    uniqueIndex("memberships_user_org_uq").on(t.userId, t.orgId),
+    // Exactly ONE workspace a user OWNS, enforced at the DB level so concurrent
+    // first-requests cannot each create an org (the bootstrap race). Being
+    // invited into someone else's workspace adds a non-owner row and is
+    // deliberately not covered by this — that is what made seats possible.
+    uniqueIndex("memberships_owner_uq").on(t.userId).where(sql`role = 'owner'`),
+    index("memberships_org_idx").on(t.orgId),
+  ],
+);
+
+/**
+ * A pending seat (Phase 4). The invitee may not have an account yet, so the row
+ * is keyed by email and carries the role they will get on acceptance.
+ *
+ * Only a SHA-256 of the token is stored. The raw token exists once, in the link
+ * the inviter sends; a database dump therefore does not hand anyone a way into
+ * a workspace, the same rule the product already applies to API credentials.
+ */
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    /** Stored lowercased and trimmed; the acceptance check compares the same way. */
+    email: text("email").notNull(),
+    role: text("role").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    invitedBy: uuid("invited_by"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    acceptedBy: uuid("accepted_by"),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    // The token is the lookup key on acceptance, and a collision would hand one
+    // person another's seat.
+    uniqueIndex("invitations_token_uq").on(t.tokenHash),
+    index("invitations_org_idx").on(t.orgId, t.createdAt),
   ],
 );
 

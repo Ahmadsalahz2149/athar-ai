@@ -1,7 +1,6 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { currentContext } from "@/lib/auth/current";
 import { findPack, CURRENCY } from "@/lib/payments/catalog";
 import { taxEnabled, TAX_BEHAVIOR } from "@/lib/payments/tax";
 import { findPlan } from "@/lib/payments/plans";
@@ -10,6 +9,7 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 import { getStripe, publicBaseUrl } from "@/lib/payments/stripe";
 import { consume } from "@/lib/rate-limit";
 import { log } from "@/lib/log";
+import { requireCap } from "@/lib/auth/guard";
 
 export type CheckoutResult = { ok: true; url: string } | { ok: false; error: string };
 
@@ -47,8 +47,11 @@ function taxOptions() {
  */
 export async function startCheckout(packId: string, locale = "ar"): Promise<CheckoutResult> {
   if (!db) return { ok: false, error: "unavailable" };
-  const ctx = await currentContext();
-  if (!ctx) return { ok: false, error: "no_session" };
+  // Spending the workspace's money is the owner's alone. An invited editor with
+  // a company card in the browser is not who agreed to the plan.
+  const gate = await requireCap("billing");
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const ctx = gate;
 
   const stripe = getStripe();
   if (!stripe) return { ok: false, error: "payments_disabled" };
@@ -131,8 +134,9 @@ async function ensureCustomer(orgId: string): Promise<string> {
  */
 export async function startSubscription(planId: string, locale = "ar"): Promise<CheckoutResult> {
   if (!db) return { ok: false, error: "unavailable" };
-  const ctx = await currentContext();
-  if (!ctx) return { ok: false, error: "no_session" };
+  const gate = await requireCap("billing");
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const ctx = gate;
 
   const stripe = getStripe();
   if (!stripe) return { ok: false, error: "payments_disabled" };
@@ -185,8 +189,11 @@ export async function startSubscription(planId: string, locale = "ar"): Promise<
  */
 export async function openBillingPortal(locale = "ar"): Promise<CheckoutResult> {
   if (!db) return { ok: false, error: "unavailable" };
-  const ctx = await currentContext();
-  if (!ctx) return { ok: false, error: "no_session" };
+  // The portal can cancel the subscription outright, so it sits behind the same
+  // capability as buying one.
+  const gate = await requireCap("billing");
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const ctx = gate;
   const stripe = getStripe();
   if (!stripe) return { ok: false, error: "payments_disabled" };
 

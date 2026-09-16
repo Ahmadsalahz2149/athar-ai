@@ -100,7 +100,7 @@ describe.runIf(!!ownerDb && !!rlsDb)("row-level security", () => {
           "coupon_redemptions", "invoices", "social_connections", "media_assets",
           "products", "ideas", "analyses", "source_chunks", "sources",
           "drafts", "dna_versions", "credit_ledger", "jobs", "link_events",
-          "memberships", "brands",
+          "invitations", "post_metrics", "memberships", "brands",
         ]) {
           await ownerSql.unsafe(`delete from ${table} where org_id = $1`, [id]);
         }
@@ -124,6 +124,27 @@ describe.runIf(!!ownerDb && !!rlsDb)("row-level security", () => {
     if (!ready) return;
     const rows = await asRole({}, (tx) => tx`select id from drafts`);
     expect(rows.length).toBe(0);
+  });
+
+  // Seats (Phase 4) added a table after the RLS migration. A tenant table with
+  // no policy is a tenant table with no second line of defence, and the failure
+  // is silent: everything works, and one workspace can read another's pending
+  // invitations — which are credentials.
+  it("covers invitations, a table added after the policies were written", async () => {
+    if (!ready) return;
+    await ownerDb!.insert(schema.invitations).values([
+      { orgId: orgA, email: "a@a.test", role: "editor", tokenHash: "rls-hash-a", expiresAt: new Date(Date.now() + 86_400_000) },
+      { orgId: orgB, email: "b@b.test", role: "editor", tokenHash: "rls-hash-b", expiresAt: new Date(Date.now() + 86_400_000) },
+    ]);
+
+    expect((await asRole({}, (tx) => tx`select id from invitations`)).length).toBe(0);
+
+    const mine = await asRole({ "app.org_id": orgA }, (tx) => tx`select email from invitations`);
+    expect(mine.map((r) => r.email)).toEqual(["a@a.test"]);
+
+    // Acceptance has no org context by design, so it declares itself system.
+    const bySystem = await asRole({ "app.system": "on" }, (tx) => tx`select email from invitations where token_hash = 'rls-hash-b'`);
+    expect(bySystem.map((r) => r.email)).toEqual(["b@b.test"]);
   });
 
   it("shows only the scoped workspace's rows", async () => {

@@ -8,6 +8,7 @@ import { eraseAccount } from "@/lib/gdpr/erase";
 import { consume } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request-ip";
 import { log } from "@/lib/log";
+import { requireCap } from "@/lib/auth/guard";
 
 /**
  * Self-service privacy rights: export everything we hold (GDPR art. 15/20) and
@@ -48,7 +49,7 @@ export async function exportMyData(): Promise<ExportResult> {
   }
 }
 
-export type DeleteResult = { ok: true } | { ok: false; error: "no_session" | "confirm_mismatch" | "failed" | "rate_limited" };
+export type DeleteResult = { ok: true } | { ok: false; error: "no_session" | "forbidden" | "confirm_mismatch" | "failed" | "rate_limited" };
 
 /**
  * Permanently erase the caller's account. `confirmEmail` must match the signed-in
@@ -57,8 +58,12 @@ export type DeleteResult = { ok: true } | { ok: false; error: "no_session" | "co
  */
 export async function deleteMyAccount(confirmEmail: string): Promise<DeleteResult> {
   if (!db) return { ok: false, error: "failed" };
-  const ctx = await currentContext();
-  if (!ctx) return { ok: false, error: "no_session" };
+  // Erasure destroys the whole workspace, including work that is not the
+  // caller's. Only the owner can do that; an invited teammate leaving is a seat
+  // being removed, which is a different act on the team screen.
+  const gate = await requireCap("workspace.delete");
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const ctx = gate;
 
   const supabase = await getSupabaseServer();
   const { data } = supabase ? await supabase.auth.getUser() : { data: { user: null } };

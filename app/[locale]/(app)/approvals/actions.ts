@@ -2,9 +2,9 @@
 
 import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
-import { currentContext } from "@/lib/auth/current";
 import { guardDraft } from "@/lib/ai/guardDraft";
 import { isUserSettableStatus } from "@/lib/drafts/states";
+import { requireCap } from "@/lib/auth/guard";
 
 /** Set a draft's approval status. `schedule` stamps scheduledAt = now (MVP slot). */
 export async function setDraftStatus(
@@ -14,8 +14,9 @@ export async function setDraftStatus(
 ): Promise<{ ok: boolean; error?: string; violations?: string[] }> {
   try {
     if (!db) return { ok: false };
-    const ctx = await currentContext();
-    if (!ctx) return { ok: false };
+    const gate = await requireCap("approve");
+    if (!gate.ok) return { ok: false, error: gate.error };
+    const ctx = gate;
     // The union above is a compile-time promise; this action is callable
     // directly, so re-check it. "published" is deliberately not settable here —
     // only the publisher may claim a post is live.
@@ -42,8 +43,9 @@ export async function reviewDraft(
 ): Promise<{ ok: boolean }> {
   try {
     if (!db) return { ok: false };
-    const ctx = await currentContext();
-    if (!ctx) return { ok: false };
+    const gate = await requireCap("approve");
+    if (!gate.ok) return { ok: false };
+    const ctx = gate;
     await forOrg(db, ctx.orgId).reviewDraft(ctx.brandId, draftId, status, note);
     return { ok: true };
   } catch {
@@ -54,8 +56,9 @@ export async function reviewDraft(
 export async function approveAll(): Promise<{ ok: boolean; n: number }> {
   try {
     if (!db) return { ok: false, n: 0 };
-    const ctx = await currentContext();
-    if (!ctx) return { ok: false, n: 0 };
+    const gate = await requireCap("approve");
+    if (!gate.ok) return { ok: false, n: 0 };
+    const ctx = gate;
     const t = forOrg(db, ctx.orgId);
     const pending = await t.listDraftsByStatus(ctx.brandId, "pending");
     const now = new Date();

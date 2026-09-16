@@ -48,6 +48,11 @@ const eslintConfig = defineConfig([
       // Public link page (#17) — no org context; the handle is the lookup key,
       // and it only touches public link-page data. See lib/link/publicLookup.ts.
       "lib/link/publicLookup.ts",
+      // Invitation redemption (Phase 4) — the person accepting is NOT a member
+      // of that workspace yet, which is the whole point, so there is no org to
+      // scope to and the token is the lookup key. Every write is bounded to the
+      // single invitation row the token resolved to. See lib/auth/invites.ts.
+      "lib/auth/invites.ts",
       // GDPR erasure — deletes the organization ITSELF (and the user-scoped
       // platform_admins row), which the façade cannot express: forOrg scopes
       // queries *within* an org, it cannot remove one. Every delete there is
