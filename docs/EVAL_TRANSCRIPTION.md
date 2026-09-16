@@ -1,5 +1,8 @@
 # Eval — Transcription bake-off (M0.5, ADR-002)
 
+> **سجلّ تاريخي — تقييم من مرحلة ما قبل البناء.** نتيجته مثبّتة في القرار الذي
+> يشير إليه، وهو ما يُعمل به. للحالة الحالية اقرأ `docs/DECISIONS.md`.
+
 > **Status: NOT STARTED.** Gated on the founder's 10 dialect audio samples. Not on the Phase −1 path (text-only).
 
 ## Samples (owner: founder)

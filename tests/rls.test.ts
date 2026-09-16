@@ -424,3 +424,40 @@ describe.runIf(!!ownerDb && !!rlsDb)("row-level security", () => {
 it.runIf(!ownerSql || !rlsSql)("skipped RLS: no database or no restricted role", () => {
   expect(true).toBe(true);
 });
+
+/**
+ * The system-escape allowlist, kept honest.
+ *
+ * `asSystem()` is the one documented way out of tenant scoping, and its
+ * allowlist lives in a comment in lib/db/rls.ts. A comment drifts: Phase 4
+ * added two callers and the list did not follow, so for a while it read as an
+ * audit that had been done when it had not. This test makes the list a claim
+ * the code has to keep.
+ */
+describe("asSystem allowlist", () => {
+  const root = path.resolve(process.cwd());
+
+  function sourceFiles(dir: string): string[] {
+    const out: string[] = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) out.push(...sourceFiles(full));
+      else if (/\.tsx?$/.test(entry.name)) out.push(full);
+    }
+    return out;
+  }
+
+  it("names every module that escapes tenant scoping", () => {
+    const rlsPath = path.join(root, "lib/db/rls.ts");
+    const doc = fs.readFileSync(rlsPath, "utf8");
+
+    const callers = [...sourceFiles(path.join(root, "lib")), ...sourceFiles(path.join(root, "app"))]
+      .filter((f) => f !== rlsPath)
+      .filter((f) => /\basSystem\s*\(/.test(fs.readFileSync(f, "utf8")))
+      .map((f) => path.relative(root, f));
+
+    expect(callers.length).toBeGreaterThan(0); // the test itself must not silently pass
+    const undocumented = callers.filter((c) => !doc.includes(c));
+    expect(undocumented).toEqual([]);
+  });
+});

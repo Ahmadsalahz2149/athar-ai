@@ -1,5 +1,10 @@
 # Athar AI — Plan Revision Brief (v1)
 
+> **سجلّ تاريخي — كُتب قبل البناء (v4، صيف 2026).** يصف خطةً لا منتجًا، وقد
+> تغيّر كثير منها بالتنفيذ. للحالة الحالية: `docs/ARCHITECTURE.md` (ما هو مبنيّ)،
+> `docs/LAUNCH_READINESS.md` (ما يمنع الإطلاق)، `docs/DECISIONS.md` (القرارات
+> وأسبابها، وهي محدَّثة).
+
 > **Instruction to the agent:** This document supersedes conflicting parts of your previous plan.
 > **Do not write any application code.** Stay in plan mode. Produce a revised plan only.
 

@@ -1,5 +1,10 @@
 # Athar — Landing Page Design Prompt (for Claude Design / Artifacts)
 
+> **سجلّ تاريخي — كُتب قبل البناء (v4، صيف 2026).** يصف خطةً لا منتجًا، وقد
+> تغيّر كثير منها بالتنفيذ. للحالة الحالية: `docs/ARCHITECTURE.md` (ما هو مبنيّ)،
+> `docs/LAUNCH_READINESS.md` (ما يمنع الإطلاق)، `docs/DECISIONS.md` (القرارات
+> وأسبابها، وهي محدَّثة).
+
 Style derived from the reference set (Startups Advisory.Ai, Apptics, Fondo):
 clean light SaaS, bold near-black headlines with a bright gradient accent word,
 a "chaos → order" hero flow visual, glassmorphism cards, stat strips with mini

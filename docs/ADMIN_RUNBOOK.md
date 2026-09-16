@@ -70,3 +70,53 @@ remaining fourteen.
   own terminal as root: `su - athar -c '...'`, app root `/home/athar/apps/athar-ai`.
 - The deploy prints a banner before each phase, so a step that is killed rather
   than failed can still be identified from the last line on screen.
+
+## Backups, and the restore you have not tried
+
+Point-in-time recovery enabled in the Supabase dashboard is **not** a backup
+until a restore has been performed. An untested restore is a belief, and the
+day you need it is the worst possible day to discover the belief was wrong.
+
+### The drill (run it once, then after any schema-shaped change)
+
+1. **Confirm PITR is on.** Supabase → Database → Backups. Note the retention
+   window and the plan it depends on.
+2. **Record what "correct" looks like** on production, before restoring
+   anything:
+   ```bash
+   npm run db:status -- --deep      # every migration present, from the catalog
+   psql "$DATABASE_URL" -tAc "
+     select 'orgs='||(select count(*) from organizations)
+         ||' brands='||(select count(*) from brands)
+         ||' drafts='||(select count(*) from drafts)
+         ||' ledger='||(select count(*) from credit_ledger)"
+   ```
+3. **Restore to a scratch project or database**, never over production. Pick a
+   timestamp a few minutes in the past.
+4. **Verify the restored copy** with the same two commands. The migration check
+   must say the schema matches this checkout; the counts must be consistent with
+   the timestamp you chose (slightly behind production, never ahead).
+5. **Spot-check one workspace end to end**: an org, its brands, its current DNA
+   version, and that `credit_ledger` sums to the balance the account should
+   have. A restore that loses the ledger loses money.
+6. **Write down how long it took**, wall clock, from decision to verified. That
+   number is your real recovery time, and it is the only honest input to any
+   promise you make a customer.
+7. **Delete the scratch copy.**
+
+### What a restore does not bring back
+
+- **Stripe** is a separate system. A restore rolls the local record of
+  subscriptions and invoices back to the chosen timestamp; Stripe's own state
+  does not move. Reconcile from Stripe, which is the source of truth for money.
+- **Supabase auth users** live outside the application database. Restoring the
+  app database without them leaves memberships pointing at users that may not
+  exist in that project.
+- **Uploaded assets** in storage are not in the database dump.
+
+Record the date of the last successful drill here so the next person can see how
+stale it is:
+
+| Drill date | Restore time (decision → verified) | Notes |
+|---|---|---|
+| _(not yet performed)_ | — | — |

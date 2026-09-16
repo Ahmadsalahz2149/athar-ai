@@ -1,5 +1,10 @@
 # Phase −1 — Wizard of Oz (WTP gate)
 
+> **سجلّ تاريخي — كُتب قبل البناء (v4، صيف 2026).** يصف خطةً لا منتجًا، وقد
+> تغيّر كثير منها بالتنفيذ. للحالة الحالية: `docs/ARCHITECTURE.md` (ما هو مبنيّ)،
+> `docs/LAUNCH_READINESS.md` (ما يمنع الإطلاق)، `docs/DECISIONS.md` (القرارات
+> وأسبابها، وهي محدَّثة).
+
 > **Status: NOT STARTED.** This document gates M0. No product code is written until it records a paying agency.
 > See `PLAN.md` → "PHASE −1" for the full spec.
 

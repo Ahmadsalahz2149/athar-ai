@@ -11,6 +11,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:status": "node scripts/migration-status.mjs",
     "db:baseline": "node scripts/migration-baseline.mjs",
+    "db:rls-check": "node scripts/rls-check.mjs",
     "db:push": "drizzle-kit push",
     "test": "vitest run --no-file-parallelism",
     "eval": "tsx eval/run.ts"

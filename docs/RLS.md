@@ -28,6 +28,28 @@ LEVEL SECURITY` is set. The application currently connects as the owner, so
 applying migration 0025 changed nothing about how the app behaves. The policies
 are live already — they simply do not apply to the owner.
 
+### Check before you switch
+
+`npm run db:rls-check` asks the database rather than the code, because the code
+cannot tell you: it reports which role this connection uses, whether that role
+is exempt (it owns the tables), how many tenant tables carry a policy, and
+whether an unscoped read really returns nothing.
+
+Give it the candidate credential and it probes THAT role before you commit to
+it — which is the difference between finding out here and finding out from a
+production page that renders empty:
+
+```bash
+DATABASE_URL_RLS='postgres://athar_app:<password>@<host>:<port>/<db>?sslmode=require' \
+  npm run db:rls-check
+```
+
+It checks four things on the candidate: an unscoped read returns nothing, a
+scoped read sees no other workspace's rows, the system escape still works, and
+the role actually holds INSERT/UPDATE/DELETE — a role that cannot write is a
+role the app cannot run as. It exits non-zero on any failure, and it catches the
+obvious mistake of pointing the variable back at the owner.
+
 Enforcement is therefore a property of the *role*, not of a code flag:
 
 ```bash

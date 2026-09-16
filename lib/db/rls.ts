@@ -44,15 +44,23 @@ export async function setOrgScope(tx: Executor, orgId: string): Promise<void> {
 /**
  * Mark a transaction as system-level: cross-org by design.
  *
- * The allowlist, which mirrors the one the ADR-005 lint rule already exempts:
- *   lib/jobs/queue.ts        — claims the next job in the whole queue
- *   lib/social/dispatch.ts   — claims every due post across tenants
- *   lib/payments/lookup.ts   — finds the org FROM a Stripe customer id
- *   lib/gdpr/erase.ts        — deletes the organization itself
- *   lib/gdpr/export.ts       — reads one org's rows through raw SQL
- *   lib/auth/bootstrap.ts    — creates the org before any scope exists
- *   lib/auth/admin.ts        — platform admin, deliberately cross-tenant
- *   lib/link/publicLookup.ts — public page, keyed by handle, no session
+ * The allowlist, which mirrors the one the ADR-005 lint rule already exempts.
+ * A test keeps it honest — `tests/rls.test.ts` fails if a module calls
+ * asSystem() without appearing here, because a stale allowlist is worse than
+ * none: it reads as an audit that has been done.
+ *
+ *   lib/jobs/queue.ts          — claims the next job in the whole queue
+ *   lib/social/dispatch.ts     — claims every due post across tenants
+ *   lib/payments/lookup.ts     — finds the org FROM a Stripe customer id
+ *   lib/gdpr/erase.ts          — deletes the organization itself
+ *   lib/gdpr/export.ts         — reads one org's rows through raw SQL
+ *   lib/auth/bootstrap.ts      — creates the org before any scope exists
+ *   lib/db/admin.ts            — platform admin, deliberately cross-tenant
+ *   lib/link/publicLookup.ts   — public page, keyed by handle, no session
+ *   lib/auth/invites.ts        — the invitee is not a member yet; the token is
+ *                                the key (Phase 4)
+ *   lib/review/publicReview.ts — the client has no account at all; the token is
+ *                                the key (Phase 4)
  *
  * Adding a call here is adding to that list. It should be as hard to justify.
  */

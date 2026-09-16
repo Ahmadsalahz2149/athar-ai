@@ -1,5 +1,10 @@
 # Athar AI — Milestone Plan (v4)
 
+> **سجلّ تاريخي — كُتب قبل البناء (v4، صيف 2026).** يصف خطةً لا منتجًا، وقد
+> تغيّر كثير منها بالتنفيذ. للحالة الحالية: `docs/ARCHITECTURE.md` (ما هو مبنيّ)،
+> `docs/LAUNCH_READINESS.md` (ما يمنع الإطلاق)، `docs/DECISIONS.md` (القرارات
+> وأسبابها، وهي محدَّثة).
+
 ## PHASE −1 — WIZARD OF OZ (GATE) · 0 dev-days of product · ~1 calendar week
 Learn whether an agency will pay **before building anything.** No repo, auth, UI, or transcription.
 - **Day 1–2:** voice spike exactly as specced — throwaway ~50-line script, no repo. Hand-write the DNA-extraction + draft prompts on your 5 real posts + 1 transcript; iterate to 5 drafts; **blind-test to 3 Gulf agency owners** ("does this sound like the person who wrote the source posts?").

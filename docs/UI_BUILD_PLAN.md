@@ -1,5 +1,10 @@
 # Athar AI — UI Build Plan (design parity)
 
+> **سجلّ تاريخي — كُتب قبل البناء (v4، صيف 2026).** يصف خطةً لا منتجًا، وقد
+> تغيّر كثير منها بالتنفيذ. للحالة الحالية: `docs/ARCHITECTURE.md` (ما هو مبنيّ)،
+> `docs/LAUNCH_READINESS.md` (ما يمنع الإطلاق)، `docs/DECISIONS.md` (القرارات
+> وأسبابها، وهي محدَّثة).
+
 Derived from a screen-by-screen audit of all 41 prototype screenshots
 (`~/Desktop/الشاشات/`) against the current implementation. All 17 screens ARE
 designed in the prototype. This plan lists every element to build. Wiring/logic

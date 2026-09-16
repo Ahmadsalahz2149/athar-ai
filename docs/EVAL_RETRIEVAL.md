@@ -1,5 +1,8 @@
 # Eval — Arabic retrieval / embedding model (M0.5, ADR-008, C4)
 
+> **سجلّ تاريخي — تقييم من مرحلة ما قبل البناء.** نتيجته مثبّتة في القرار الذي
+> يشير إليه، وهو ما يُعمل به. للحالة الحالية اقرأ `docs/DECISIONS.md`.
+
 > **Status: NOT STARTED.** Pins `vector(N)` by evidence, not price. Changing the model later forces a full re-embed (RISKS #5).
 
 ## Corpus & queries

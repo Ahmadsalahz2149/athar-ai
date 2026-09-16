@@ -1,5 +1,8 @@
 # Eval — Voice Spike (Phase −1, days 1–2)
 
+> **سجلّ تاريخي — تقييم من مرحلة ما قبل البناء.** نتيجته مثبّتة في القرار الذي
+> يشير إليه، وهو ما يُعمل به. للحالة الحالية اقرأ `docs/DECISIONS.md`.
+
 > **Status: NOT STARTED.** Throwaway ~50-line script, no repo. Records whether Claude can write convincingly in a specific person's Arabic voice from their own posts.
 
 ## Inputs

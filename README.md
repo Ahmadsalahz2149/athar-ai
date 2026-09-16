@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# أثر · Athar AI
 
-## Getting Started
+منصّة عربية تتعلّم **صوت الكاتب** من محتواه، ثم تكتب به.
 
-First, run the development server:
+الحلقة: ارفع مصادرك → تُستخرج «بصمة المحتوى» (Content DNA) → تُولَّد بوستات بصوتك
+→ تُراجَع وتُجدوَل وتُنشر فعليًا → **يُقرأ أداؤها الحقيقي ويعود ليغذّي البصمة**.
+هذه الحلقة الأخيرة هي الفرق بين مولّد نصوص ونظام يتحسّن مع الوقت.
+
+Next.js 16 · TypeScript · Postgres + pgvector عبر Drizzle · Supabase Auth ·
+Stripe · عربي/إنجليزي بتكافؤ تامّ واتجاهين (RTL/LTR).
+
+## التشغيل محليًا
 
 ```bash
+npm ci
+cp .env.example .env.local     # ثم املأ DATABASE_URL ومفاتيح المزوّدين
+npm run db:migrate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+بلا `DATABASE_URL` يقلع التطبيق ويعمل، وتتعطّل الميزات التي تحتاج قاعدة بيانات
+بدل أن ينهار.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## الأوامر
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| الأمر | ماذا يفعل |
+|---|---|
+| `npm run dev` · `build` · `start` | التطوير والبناء والتشغيل |
+| `npm run lint` | ESLint — ومعه قاعدة العزل (ADR-005) |
+| `npm test` | كامل الاختبارات؛ ما يحتاج قاعدة بيانات يُتخطّى إن غابت |
+| `npm run db:generate` · `db:migrate` | توليد الهجرات وتطبيقها |
+| `npm run db:status [-- --deep]` | ما يقوله سجلّ الهجرات — و`--deep` يسأل المخطط نفسه |
+| `npm run db:baseline -- --through <tag>` | إصلاح سجلّ انحرف عن المخطط |
+| `npm run db:rls-check` | هل عزل الصفوف مُفعَّل فعلًا؟ يسأل القاعدة لا الكود |
+| `npm run eval` | تقييم الاسترجاع |
 
-## Learn More
+## ثلاث قواعد يحرسها الكود لا العرف
 
-To learn more about Next.js, take a look at the following resources:
+1. **كل وصول لبيانات المستأجرين يمرّ بـ `forOrg(db, orgId)`** (ADR-005). قاعدة
+   ESLint تمنع الالتفاف، وقائمة الاستثناءات موثّقة ويحرسها اختبار. تحتها عزل
+   صفوف في القاعدة نفسها (ADR-011): استعلام ينسى نطاقه يعيد **صفر صفوف** لا
+   بيانات مستأجر آخر.
+2. **ملفّا الترجمة متكافئان مفتاحًا بمفتاح.** `next-intl` لا يُفشل البناء على
+   مفتاح ناقص — يعرض مسار المفتاح للمستخدم. اختبار يمنع ذلك.
+3. **لا رقم مُختلَق في الواجهة.** ما لا تعطيه المنصّة يبقى «غير متاح»، لا صفرًا.
+   وتحليل لا تسنده بيانات كافية لا يُعرض أصلًا، وتُذكر كم بوستًا ينقص.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## الوثائق
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+ابدأ من **`docs/README.md`** — فهرس يفصل ما يصف الكود اليوم عن السجلّات
+التاريخية. أقصر مسار:
 
-## Deploy on Vercel
+- `docs/ARCHITECTURE.md` — ما هو مبنيّ وكيف
+- `docs/DECISIONS.md` — لماذا (ADR-000 … ADR-013)
+- `docs/LAUNCH_READINESS.md` — ما تبقّى قبل أول عميل يدفع
+- `docs/ADMIN_RUNBOOK.md` — النشر والهجرات والنسخ الاحتياطي
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## النشر
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+cPanel/Passenger خلف Cloudflare. `scripts/deploy-cpanel.sh` يطبّق الهجرات **قبل**
+تنصيب الإصدار، فهجرة فاشلة تُجهض النشر والإصدار السابق يبقى يخدم. التفاصيل
+والأخطاء المعروفة في `docs/ADMIN_RUNBOOK.md`.

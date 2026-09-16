@@ -4,7 +4,7 @@ import { db, schema } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { START_GRANT } from "@/lib/credits/costs";
-import { asSystem } from "@/lib/db/rls";
+import { asSystem, rlsEnabled, setSystemScope } from "@/lib/db/rls";
 import { asRole, type Role } from "./roles";
 
 /**
@@ -74,19 +74,34 @@ export async function ensureUserContext(
   // existed) can generate immediately (ADR-004). Idempotent — granted once ever.
   await forOrg(db, orgId).grantOnce(START_GRANT, "signup_grant");
 
-  const brandRows = await asSystem(db, (tx) => tx
-    .select()
-    .from(schema.brands)
-    .where(eq(schema.brands.orgId, orgId))
-    .limit(1));
-
-  let brandId: string;
-  if (brandRows.length) {
-    brandId = brandRows[0].id;
-  } else {
-    const [brand] = await asSystem(db, (tx) => tx.insert(schema.brands).values({ orgId, name }).returning());
-    brandId = brand.id;
-  }
+  // Find-or-create the first brand, serialized per org.
+  //
+  // This was a plain check-then-insert, and two concurrent first requests could
+  // each find nothing and each create one — leaving a new account with two
+  // identical brands and no way to tell which is "theirs".
+  //
+  // A unique index on brands.org_id would be the obvious fix and is the WRONG
+  // one now: an org is meant to hold several brands, which is the whole of the
+  // agency offering. The constraint that must hold is narrower — only the
+  // bootstrap may not race itself — so an advisory lock on the org is the right
+  // shape. It is the same lock the credit ledger uses, and it is taken in its
+  // own transaction so the select and the insert share one snapshot.
+  // An EXPLICIT transaction, not asSystem(): with RLS off asSystem runs the
+  // callback straight on the pool, so every statement is its own transaction
+  // and a transaction-scoped advisory lock would be released the instant it was
+  // taken — protection that reads correctly and does nothing.
+  const brandId = await db.transaction(async (tx) => {
+    if (rlsEnabled()) await setSystemScope(tx);
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${orgId}, 1))`);
+    const rows = await tx
+      .select({ id: schema.brands.id })
+      .from(schema.brands)
+      .where(eq(schema.brands.orgId, orgId))
+      .limit(1);
+    if (rows.length) return rows[0].id;
+    const [brand] = await tx.insert(schema.brands).values({ orgId, name }).returning({ id: schema.brands.id });
+    return brand.id;
+  });
 
   return { orgId, brandId, role };
 }

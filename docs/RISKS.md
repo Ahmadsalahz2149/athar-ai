@@ -1,5 +1,10 @@
 # Risks · mitigation · owner (v4)
 
+> **سجلّ تاريخي — كُتب قبل البناء (v4، صيف 2026).** يصف خطةً لا منتجًا، وقد
+> تغيّر كثير منها بالتنفيذ. للحالة الحالية: `docs/ARCHITECTURE.md` (ما هو مبنيّ)،
+> `docs/LAUNCH_READINESS.md` (ما يمنع الإطلاق)، `docs/DECISIONS.md` (القرارات
+> وأسبابها، وهي محدَّثة).
+
 1. **Willingness-to-pay unproven** (biggest risk now that billing is cut) → **Phase −1 GATE** (2 agencies, text-only concierge, ask for $200/mo) before any build; 0 pay → STOP. *Owner: founder.*
 2. **Voice/dialect fails** (Whisper MSA-ifies; DNA built on words never said) → Phase −1 day-1–2 voice-spike blind test + M0.5 transcription bake-off + dialect module; authenticity reviewer post-MVP. *Owner: founder (samples) + eng.*
 3. **Solo capacity** (at N=1 → ~20-month runway) → calendar table forces the number; contract the ~43 commodity dev-days (~$8k–16k) to parallelize (~3.5 mo at N=2) — **only after the acceptance harness exists.** *Owner: founder.*

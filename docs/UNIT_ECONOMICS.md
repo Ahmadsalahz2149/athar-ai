@@ -1,5 +1,10 @@
 # Unit economics (v4)
 
+> **سجلّ تاريخي — كُتب قبل البناء (v4، صيف 2026).** يصف خطةً لا منتجًا، وقد
+> تغيّر كثير منها بالتنفيذ. للحالة الحالية: `docs/ARCHITECTURE.md` (ما هو مبنيّ)،
+> `docs/LAUNCH_READINESS.md` (ما يمنع الإطلاق)، `docs/DECISIONS.md` (القرارات
+> وأسبابها، وهي محدَّثة).
+
 **Verified rates (July 2026, numbers founder-confirmed).** Claude/MTok: **Opus 4.8 $5/$25**, **Sonnet 5 $3/$15** ($2/$10 intro to 2026-08-31), **Haiku 4.5 $1/$5**; cache read 10%, write ×1.25; Batch −50%; Opus 4.8 no long-context premium — [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing). Transcription: **ElevenLabs Scribe batch $0.22/audio-hr** — [ElevenLabs](https://elevenlabs.io/pricing/api). Embeddings **$0.02/MTok** (Voyage-4-lite / OpenAI text-embedding-3-small) — [Voyage](https://docs.voyageai.com/docs/pricing). Payments (post-MVP): Paddle 5%+$0.50 — [Paddle](https://www.paddle.com/pricing).
 
 **Assumptions:** 1 audio-hour ≈ 9k words ≈ 12k transcript tokens. Retrieval keeps Claude inputs bounded (top-K chunks), so per-op input ≈ 6–12k tokens, not the full corpus.
