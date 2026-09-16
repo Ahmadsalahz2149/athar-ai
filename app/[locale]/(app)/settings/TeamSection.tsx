@@ -88,6 +88,7 @@ export function TeamSection() {
             {m.manageable && canManage && (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <select
+                  aria-label={t("changeRole")}
                   value={m.role}
                   disabled={pending}
                   onChange={(e) => act(() => changeMemberRole(m.userId, e.target.value))}
@@ -134,7 +135,7 @@ export function TeamSection() {
               placeholder={t("emailPlaceholder")}
               style={{ flex: "1 1 220px", height: 40, borderRadius: 10, border: "1px solid var(--border-2)", background: "var(--card)", color: "var(--heading)", paddingInline: 12, fontSize: 14 }}
             />
-            <select value={role} onChange={(e) => setRole(e.target.value)} style={{ ...btnGhost, height: 40, fontSize: 13.5, paddingInline: 10 }}>
+            <select aria-label={t("inviteTitle")} value={role} onChange={(e) => setRole(e.target.value)} style={{ ...btnGhost, height: 40, fontSize: 13.5, paddingInline: 10 }}>
               {INVITABLE_ROLES.map((r) => <option key={r} value={r}>{t(`role_${r}`)}</option>)}
             </select>
             <button onClick={invite} disabled={pending || !email.trim()} style={{ ...btnNavy, height: 40, opacity: pending || !email.trim() ? 0.6 : 1 }}>
@@ -149,6 +150,7 @@ export function TeamSection() {
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <input
                   readOnly
+                  aria-label={t("inviteTitle")}
                   value={link.url}
                   onFocus={(e) => e.currentTarget.select()}
                   style={{ flex: "1 1 240px", height: 36, borderRadius: 9, border: "1px solid var(--border-2)", background: "var(--card)", color: "var(--slate)", paddingInline: 10, fontSize: 12.5, direction: "ltr", fontFamily: "var(--font-latin)" }}

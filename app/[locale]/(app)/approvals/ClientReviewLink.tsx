@@ -86,6 +86,7 @@ export function ClientReviewLink() {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <input
               readOnly
+              aria-label={t("ready")}
               value={fresh}
               onFocus={(e) => e.currentTarget.select()}
               style={{ flex: "1 1 240px", height: 36, borderRadius: 9, border: "1px solid var(--border-2)", background: "var(--card)", color: "var(--slate)", paddingInline: 10, fontSize: 12.5, direction: "ltr", fontFamily: "var(--font-latin)" }}

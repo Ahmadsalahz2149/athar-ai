@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { saveDnaEdits, type DnaEdits } from "./actions";
 import { btnNavy, btnGhost } from "@/components/ui/display";
+import { Field } from "@/components/ui/Field";
 
 const PILLAR_KEYS = ["educational", "story", "proof", "soft_sell", "thought_leadership", "engagement"] as const;
 
@@ -90,7 +91,7 @@ export function EditDnaModal({
               {PILLAR_KEYS.map((k) => (
                 <div key={k} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ flex: 1, fontSize: 13, color: "var(--slate)" }}>{labels.pillar[k]}</span>
-                  <input type="range" min={0} max={100} step={1} value={pillars[k] || 0}
+                  <input type="range" aria-label={labels.pillar[k]} min={0} max={100} step={1} value={pillars[k] || 0}
                     onChange={(e) => setPillars((p) => ({ ...p, [k]: Number(e.target.value) }))}
                     style={{ flex: 2, accentColor: "var(--teal)" }} />
                   <span style={{ width: 42, textAlign: "end", fontSize: 12.5, fontWeight: 700, fontFamily: "var(--font-latin)", color: "var(--heading)" }}>{pillars[k] || 0}%</span>
@@ -111,17 +112,6 @@ export function EditDnaModal({
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBlockEnd: 12 }}>
-      <label style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, fontSize: 13, fontWeight: 600, color: "var(--slate)", marginBlockEnd: 6 }}>
-        <span>{label}</span>
-        {hint && <span style={{ fontSize: 11, fontWeight: 500, color: "var(--subtle)" }}>{hint}</span>}
-      </label>
-      {children}
-    </div>
-  );
-}
 
 const inp: React.CSSProperties = { width: "100%", height: 42, padding: "0 12px", borderRadius: 10, border: "1px solid var(--border-2)", background: "var(--surface)", fontSize: 14, outline: "none", fontFamily: "inherit" };
 const ta: React.CSSProperties = { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border-2)", background: "var(--surface)", fontSize: 14, outline: "none", resize: "vertical", lineHeight: 1.7, fontFamily: "inherit" };

@@ -8,6 +8,7 @@ export function PasswordInput({
   onChange,
   showLabel,
   hideLabel,
+  label,
   minLength = 6,
   required = true,
 }: {
@@ -15,6 +16,9 @@ export function PasswordInput({
   onChange: (v: string) => void;
   showLabel: string;
   hideLabel: string;
+  /** The field's accessible name. The visible label beside it is a sibling, not
+   * a wrapper, so without this the control announces itself as nothing. */
+  label: string;
   minLength?: number;
   required?: boolean;
 }) {
@@ -22,6 +26,7 @@ export function PasswordInput({
   return (
     <div style={{ position: "relative" }}>
       <input
+        aria-label={label}
         type={show ? "text" : "password"}
         required={required}
         minLength={minLength}

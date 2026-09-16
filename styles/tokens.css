@@ -10,6 +10,22 @@
    are the spec's exact tokens — tuned for correct contrast in both themes.
    Dark surfaces are neutral grey (NOT warm), fixing low-contrast text.
    ============================================================ */
+/* --------------------------------------------------------------
+   NAMES, AND WHY THEY LIE
+   --------------------------------------------------------------
+   `--teal` is burgundy. `--teal-deep` is LIGHTER than `--teal`, not deeper.
+   That is not an accident: the palette was re-skinned from teal to burgundy and
+   the variable names were kept so every existing inline style changed colour
+   without being touched. For a re-brand that was the right trade.
+
+   The cost lands on whoever writes the NEXT component: they read
+   `var(--teal-deep)` and reasonably expect a dark teal.
+
+   So the aliases below say what the colours are. Use these in new code; the
+   old names stay as-is and are not going anywhere, because hundreds of inline
+   styles depend on them and a sweep would be a large diff with no user-visible
+   benefit and real risk of missing one.
+   -------------------------------------------------------------- */
 :root {
   /* Dark neutral panels (sidebar / heroes) — dark in BOTH themes */
   --navy: #1d1d20;
@@ -72,6 +88,26 @@
   --font-latin: var(--font-inter), system-ui, sans-serif;
   --font-heading: var(--font-plex-arabic), var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  /* Preferred names — same values, honest labels. */
+  --brand: var(--teal);                /* solid brand fill (buttons, chips) */
+  --brand-hover: var(--teal-dark);
+  --brand-text: var(--teal-deep);      /* brand-coloured TEXT on a surface */
+  --brand-tint: var(--teal-tint);      /* active / selected background */
+  --brand-tint-soft: var(--teal-tint-2);
+  --accent: var(--gold);               /* amber accent */
+  --accent-text: var(--gold-dark);     /* amber TEXT on a surface */
+  --accent-tint: var(--gold-tint);
+
+  /* Preferred names — same values, honest labels. */
+  --brand: var(--teal);                /* solid brand fill (buttons, chips) */
+  --brand-hover: var(--teal-dark);
+  --brand-text: var(--teal-deep);      /* brand-coloured TEXT on a surface */
+  --brand-tint: var(--teal-tint);      /* active / selected background */
+  --brand-tint-soft: var(--teal-tint-2);
+  --accent: var(--gold);               /* amber accent */
+  --accent-text: var(--gold-dark);     /* amber TEXT on a surface */
+  --accent-tint: var(--gold-tint);
+
 }
 
 /* LIGHT theme — premium neutral surfaces, the same burgundy identity (deeper). */

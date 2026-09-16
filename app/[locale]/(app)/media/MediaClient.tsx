@@ -84,7 +84,7 @@ function DraftPicker({ drafts, onPick, t }: { drafts: RecentDraft[]; onPick: (d:
   return (
     <div style={{ marginBlockEnd: 14 }}>
       <label style={label}>{t("fromPost")}</label>
-      <select onChange={(e) => { const d = drafts.find((x) => x.id === e.target.value); if (d) onPick(d); }} style={{ ...input, cursor: "pointer" }} defaultValue="">
+      <select aria-label={t("fromPost")} onChange={(e) => { const d = drafts.find((x) => x.id === e.target.value); if (d) onPick(d); }} style={{ ...input, cursor: "pointer" }} defaultValue="">
         <option value="" disabled>{t("choosePost")}</option>
         {drafts.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
       </select>

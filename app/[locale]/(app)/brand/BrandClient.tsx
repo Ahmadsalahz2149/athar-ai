@@ -128,7 +128,7 @@ function BrandsSection({ data, t, router }: { data: BrandData; t: ReturnType<typ
             >
               <LogoThumb url={b.logoUrl} name={b.name} size={34} />
               {editId === b.id ? (
-                <input autoFocus value={editName} onChange={(e) => setEditName(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                <input autoFocus aria-label={t("rename")} value={editName} onChange={(e) => setEditName(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
               ) : (
                 <span style={{ flex: 1, fontWeight: 600, fontSize: 14, color: "var(--heading)" }}>{b.name}</span>
               )}

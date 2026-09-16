@@ -57,6 +57,7 @@ export function ForgotForm() {
           <p style={{ color: "var(--muted)", marginBlock: "8px 20px", lineHeight: 1.7 }}>{t("forgotBody")}</p>
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--slate)" }}>{t("email")}</label>
           <input
+            aria-label={t("email")}
             type="email"
             required
             value={email}

@@ -288,7 +288,7 @@ export function StudioClient({
                   {src && <FileTypeBadge label={src.label} size={28} />}
                   <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--heading)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{src?.title ?? t("noSource")}</span>
                 </div>
-                <select value={sourceId} onChange={(e) => setSourceId(e.target.value)} style={field}>
+                <select aria-label={t("noSource")} value={sourceId} onChange={(e) => setSourceId(e.target.value)} style={field}>
                   <option value="">{t("noSource")}</option>
                   {sources.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
                 </select>
@@ -317,13 +317,13 @@ export function StudioClient({
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,170px),1fr))", gap: 10 }}>
               <div>
                 <div style={label}>{t("providerLabel")}</div>
-                <select value={provider} onChange={(e) => { const p = e.target.value as ProviderId; setProvider(p); setModel(MODEL_CATALOG[p][0].id); }} style={field}>
+                <select aria-label={t("providerLabel")} value={provider} onChange={(e) => { const p = e.target.value as ProviderId; setProvider(p); setModel(MODEL_CATALOG[p][0].id); }} style={field}>
                   {PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                 </select>
               </div>
               <div>
                 <div style={label}>{t("modelLabel")}</div>
-                <select value={model} onChange={(e) => setModel(e.target.value)} style={field}>
+                <select aria-label={t("modelLabel")} value={model} onChange={(e) => setModel(e.target.value)} style={field}>
                   {MODEL_CATALOG[provider].map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select>
               </div>
@@ -409,7 +409,7 @@ export function StudioClient({
                     labels={{ slide: t("slide"), tweet: t("tweet"), add: format === "thread" ? t("addTweet") : t("addSlide"), remove: t("removeSlide"), up: t("moveUp"), down: t("moveDown"), overLimit: t("overLimit") }}
                   />
                 ) : (
-                  <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={9} className="scb" style={{ width: "100%", border: "none", outline: "none", background: "transparent", resize: "vertical", fontSize: 14.5, color: "var(--slate)", lineHeight: 1.95, fontFamily: "inherit" }} />
+                  <textarea aria-label={t("bodyLabel")} value={body} onChange={(e) => setBody(e.target.value)} rows={9} className="scb" style={{ width: "100%", border: "none", outline: "none", background: "transparent", resize: "vertical", fontSize: 14.5, color: "var(--slate)", lineHeight: 1.95, fontFamily: "inherit" }} />
                 )}
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBlockStart: 10, fontSize: 12, color: "var(--muted)" }}>
                   <span>{format === "thread" || format === "carousel" ? t("slideCount", { n: nf.format(body.split(/\n{2,}/).filter((s) => s.trim()).length) }) : t("wordCount", { n: nf.format(body.trim().split(/\s+/).filter(Boolean).length) })}</span>

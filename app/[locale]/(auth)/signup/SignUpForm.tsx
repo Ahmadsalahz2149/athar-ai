@@ -47,7 +47,7 @@ export function SignUpForm() {
             {brand("name")}
             <span style={{ color: "var(--teal-deep)" }}> {brand("ai")}</span>
           </div>
-          <div style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-latin)" }}>Personal Brand Growth OS</div>
+          <div style={{ fontSize: 10.5, color: "var(--muted)" }}>{brand("tagline")}</div>
         </div>
       </div>
 
@@ -72,7 +72,7 @@ export function SignUpForm() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,200px),1fr))", gap: 12, marginBlockStart: 14 }}>
         <div>
           <label style={label}>{t("password")}</label>
-          <PasswordInput value={password} onChange={setPassword} showLabel={t("showPassword")} hideLabel={t("hidePassword")} />
+          <PasswordInput label={t("password")} value={password} onChange={setPassword} showLabel={t("showPassword")} hideLabel={t("hidePassword")} />
           {password.length > 0 && (
             <div style={{ display: "flex", gap: 4, marginBlockStart: 7 }}>
               {[0, 1, 2].map((i) => (
@@ -83,7 +83,7 @@ export function SignUpForm() {
         </div>
         <div>
           <label style={label}>{t("confirmPassword")}</label>
-          <PasswordInput value={confirm} onChange={setConfirm} showLabel={t("showPassword")} hideLabel={t("hidePassword")} />
+          <PasswordInput label={t("confirmPassword")} value={confirm} onChange={setConfirm} showLabel={t("showPassword")} hideLabel={t("hidePassword")} />
           {confirm.length > 0 && confirm !== password && (
             <div style={{ fontSize: 11.5, color: "var(--coral)", marginBlockStart: 6 }}>{t("passwordMismatch")}</div>
           )}

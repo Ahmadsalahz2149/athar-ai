@@ -48,7 +48,7 @@ export function AuthForm() {
             {brand("name")}
             <span style={{ color: "var(--teal-deep)" }}> {brand("ai")}</span>
           </div>
-          <div style={{ fontSize: 10.5, color: "var(--muted)", fontFamily: "var(--font-latin)" }}>Personal Brand Growth OS</div>
+          <div style={{ fontSize: 10.5, color: "var(--muted)" }}>{brand("tagline")}</div>
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export function AuthForm() {
       <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={{ ...field, direction: "ltr", textAlign: "start", fontFamily: "var(--font-latin)" }} />
 
       <label style={{ ...label, marginBlockStart: 14 }}>{t("password")}</label>
-      <PasswordInput value={password} onChange={setPassword} showLabel={t("showPassword")} hideLabel={t("hidePassword")} />
+      <PasswordInput label={t("password")} value={password} onChange={setPassword} showLabel={t("showPassword")} hideLabel={t("hidePassword")} />
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, marginBlockStart: 14 }}>
         <Link href="/forgot-password" style={{ fontSize: 13.5, color: "var(--teal-deep)", fontWeight: 600 }}>{t("forgotLink")}</Link>

@@ -101,8 +101,8 @@ export function ScenesClient({ assets, keys, locale }: { assets: SceneAsset[]; k
                 <video src={a.url} style={{ width: "100%", display: "block" }} muted controls />
                 <div style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 11, color: "var(--subtle)", flex: 1 }}>{df.format(new Date(a.createdAt))}</span>
-                  <a href={a.url} download target="_blank" rel="noopener noreferrer" style={{ color: "var(--muted)", fontSize: 14, textDecoration: "none" }}>⬇</a>
-                  <button onClick={() => remove(a.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--coral,#dc2626)", fontSize: 16, padding: 0, lineHeight: 1 }}>×</button>
+                  <a href={a.url} download target="_blank" rel="noopener noreferrer" aria-label={t("download")} style={{ color: "var(--muted)", fontSize: 14, textDecoration: "none" }}>⬇</a>
+                  <button onClick={() => remove(a.id)} aria-label={t("delete")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--coral,#dc2626)", fontSize: 16, padding: 0, lineHeight: 1 }}>×</button>
                 </div>
               </div>
             ))}

@@ -277,7 +277,7 @@ function AssistedSection({ posts, groups, t, router }: { posts: ReadyPost[]; gro
         <div style={{ display: "grid", gap: 14 }}>
           <div>
             <label style={label}>{t("choosePost")}</label>
-            <select value={postId} onChange={(e) => setPostId(e.target.value)} style={{ ...input, cursor: "pointer" }}>
+            <select aria-label={t("choosePost")} value={postId} onChange={(e) => setPostId(e.target.value)} style={{ ...input, cursor: "pointer" }}>
               {posts.map((p) => (
                 <option key={p.id} value={p.id}>{(p.hook || p.body).slice(0, 70)}</option>
               ))}

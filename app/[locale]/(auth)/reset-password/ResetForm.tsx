@@ -103,14 +103,14 @@ export function ResetForm() {
 
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--slate)" }}>{t("newPassword")}</label>
           <div style={{ position: "relative", marginBlock: "8px 14px" }}>
-            <input type={show ? "text" : "password"} required autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} style={inp} />
+            <input type={show ? "text" : "password"} aria-label={t("newPassword")} required autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} style={inp} />
             <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? t("hide") : t("showPw")} style={{ position: "absolute", insetInlineEnd: 12, insetBlockStart: 13, background: "none", border: "none", cursor: "pointer", color: "var(--muted)", padding: 0 }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="2.5" /></svg>
             </button>
           </div>
 
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--slate)" }}>{t("confirmPassword")}</label>
-          <input type={show ? "text" : "password"} required autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} style={{ ...inp, marginBlock: "8px 4px" }} />
+          <input type={show ? "text" : "password"} aria-label={t("confirmPassword")} required autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} style={{ ...inp, marginBlock: "8px 4px" }} />
 
           {err && <p style={{ color: "var(--coral)", fontSize: 13, marginBlockStart: 10 }}>{err}</p>}
 

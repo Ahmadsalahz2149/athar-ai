@@ -65,6 +65,7 @@
     "note": "Stage 2 — the four screens and cold start are working."
   },
   "Studio": {
+    "bodyLabel": "Post body",
     "title": "Content Studio",
     "subtitle": "Write, generate, and edit your content in your voice — then submit or schedule.",
     "postsLabel": "Your posts (3+, separated by a blank line)",
@@ -1681,6 +1682,8 @@
     "footRights": "All rights reserved."
   },
   "Scenes": {
+    "delete": "Delete",
+    "download": "Download",
     "title": "Digital Scenes",
     "subtitle": "A digital avatar presenting your product, and cinematic video scenes from a text description — all AI-generated.",
     "tab_ugc": "Avatar / UGC",
@@ -1728,6 +1731,7 @@
     "mood_warm": "Warm"
   },
   "Team": {
+    "changeRole": "Change role",
     "title": "Team & seats",
     "subtitle": "Bring the people you work with into the same workspace: the same brands, the same DNA, the same drafts — with the permissions you choose.",
     "you": "you",

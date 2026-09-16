@@ -8,6 +8,7 @@ import { updateProfile, updateNotifications } from "@/lib/auth/actions";
 import { disconnectPlatform } from "./social-actions";
 import { exportMyData, deleteMyAccount } from "./privacy-actions";
 import { ProgressMeter, btnNavy, btnTeal, btnGhost, btnGold } from "@/components/ui/display";
+import { Field } from "@/components/ui/Field";
 
 /** Small "coming soon" affordance for actions that need external integration. */
 function Soon({ children, label }: { children: React.ReactNode; label: string }) {
@@ -327,14 +328,6 @@ function Panel({ title, action, children }: { title: string; action?: React.Reac
         <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--heading)" }}>{title}</h2>
         {action}
       </div>
-      {children}
-    </div>
-  );
-}
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBlockStart: 14 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--slate)", marginBlockEnd: 7 }}>{label}</div>
       {children}
     </div>
   );

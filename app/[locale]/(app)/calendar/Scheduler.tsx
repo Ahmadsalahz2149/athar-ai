@@ -74,7 +74,7 @@ export function Scheduler({ items, labels, defaultWhen }: { items: Item[]; label
                 {openId === u.id ? (
                   <div style={{ display: "grid", gap: 8 }}>
                     <label style={{ fontSize: 11.5, color: "var(--muted)" }}>{labels.pickWhen}</label>
-                    <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} style={{ width: "100%", height: 38, padding: "0 10px", borderRadius: 9, border: "1px solid var(--border-2)", background: "var(--card)", fontSize: 13, fontFamily: "var(--font-latin)" }} />
+                    <input type="datetime-local" aria-label={labels.pickWhen} value={when} onChange={(e) => setWhen(e.target.value)} style={{ width: "100%", height: 38, padding: "0 10px", borderRadius: 9, border: "1px solid var(--border-2)", background: "var(--card)", fontSize: 13, fontFamily: "var(--font-latin)" }} />
                     <div style={{ display: "flex", gap: 8 }}>
                       <button onClick={() => doSchedule(u.id)} disabled={pending} style={{ flex: 1, padding: "7px 0", borderRadius: 9, border: "none", background: "var(--navy)", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer", opacity: pending ? 0.6 : 1 }}>{labels.confirm}</button>
                       <button onClick={() => setOpenId(null)} disabled={pending} style={{ padding: "7px 12px", borderRadius: 9, border: "1px solid var(--border-2)", background: "var(--card)", fontSize: 12.5, color: "var(--muted)", cursor: "pointer" }}>{labels.cancel}</button>

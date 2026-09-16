@@ -17,6 +17,7 @@ export default async function SignUpPage({ params }: { params: Promise<{ locale:
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("Auth");
+  const b = await getTranslations("Brand");
 
   const supabase = await getSupabaseServer();
   if (supabase) {
@@ -29,7 +30,7 @@ export default async function SignUpPage({ params }: { params: Promise<{ locale:
       panel={
         <>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 999, background: "rgba(232, 138, 161,.14)", border: "1px solid rgba(232, 138, 161,.32)", color: "var(--teal-light)", fontSize: 12.5, fontWeight: 700, fontFamily: "var(--font-latin)" }}>
-            Personal Brand Growth OS
+            {b("tagline")}
           </span>
           <h2 style={{ fontSize: "clamp(26px,3vw,34px)", fontWeight: 700, lineHeight: 1.5, marginBlock: "22px 14px" }}>
             {t("panelSignupTitle")} <span style={{ color: "var(--gold)" }}>{t("panelSignupHighlight")}</span>
