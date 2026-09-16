@@ -23,7 +23,7 @@
  * Without --apply it prints what it would do and changes nothing.
  */
 import postgres from "postgres";
-import { appliedMillis, databaseUrl, inspectMigration, priorObjectKeys, readJournal } from "./migration-lib.mjs";
+import { appliedMillis, databaseUrl, droppedLaterKeys, inspectMigration, priorObjectKeys, readJournal } from "./migration-lib.mjs";
 
 const args = process.argv.slice(2);
 const apply = args.includes("--apply");
@@ -73,7 +73,7 @@ try {
   const stampable = [];
   let stoppedAt = null;
   for (const m of candidates) {
-    const { state, objects } = await inspectMigration(sql, m, priorObjectKeys(expected, expected.indexOf(m)));
+    const { state, objects } = await inspectMigration(sql, m, priorObjectKeys(expected, expected.indexOf(m)), droppedLaterKeys(expected, expected.indexOf(m)));
     if (state === "applied") {
       stampable.push(m);
       console.log(`  stamp   ${m.tag}`);

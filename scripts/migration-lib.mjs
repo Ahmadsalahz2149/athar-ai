@@ -64,6 +64,26 @@ export function objectsCreatedBy(sql) {
   return out;
 }
 
+/**
+ * The database objects a migration REMOVES.
+ *
+ * Needed because presence is not a one-way story: `0006` creates
+ * `memberships_user_uq` and `0033` drops it, so at HEAD that index is correctly
+ * absent — and a check that did not know this would report `0006` as never
+ * applied, which is both wrong and alarming.
+ */
+export function objectsDroppedBy(sql) {
+  const out = [];
+  const add = (kind, name, extra) => out.push({ kind, name, extra });
+
+  for (const m of sql.matchAll(/DROP TABLE(?: IF EXISTS)? "([^"]+)"/gi)) add("table", m[1]);
+  for (const m of sql.matchAll(/ALTER TABLE "([^"]+)" DROP COLUMN(?: IF EXISTS)? "([^"]+)"/gi)) add("column", m[2], m[1]);
+  for (const m of sql.matchAll(/DROP INDEX(?: IF EXISTS)? "([^"]+)"/gi)) add("index", m[1]);
+  for (const m of sql.matchAll(/DROP POLICY(?: IF EXISTS)? "([^"]+)" ON "([^"]+)"/gi)) add("policy", m[1], m[2]);
+
+  return out;
+}
+
 /** Does the database already have this object? */
 export async function objectExists(sql, obj) {
   switch (obj.kind) {
@@ -102,16 +122,21 @@ export const objectKey = (o) => `${o.kind}:${o.extra ?? ""}:${o.name}`;
  * "partial"  — some are: the dangerous case, and the one a person must look at
  * "unknown"  — it creates nothing this can check, or nothing DISTINCTIVE
  *
- * `priorKeys` is what every earlier migration already creates, and excluding it
- * is what makes the answer mean anything. `0026` re-creates an index that `0018`
- * created (`CREATE ... IF NOT EXISTS`), so at `0025` that index is present and a
- * naive check calls `0026` "partially applied" — alarming, and wrong: the
- * migration has not run at all. An object an earlier migration also creates is
- * not evidence about this one.
+ * Two kinds of object carry no information and are excluded.
+ *
+ * `priorKeys` — what every EARLIER migration already creates. `0026` re-creates
+ * an index that `0018` created, so at `0025` that index is present and a naive
+ * check calls `0026` "partially applied": alarming, and wrong — it has not run
+ * at all. An object an earlier migration also creates says nothing about this
+ * one.
+ *
+ * `goneKeys` — what a LATER migration drops. `0033` drops the index `0006`
+ * created, so at HEAD it is correctly absent, and a check that did not know
+ * would report `0006` as never applied.
  */
-export async function inspectMigration(sql, migration, priorKeys = new Set()) {
+export async function inspectMigration(sql, migration, priorKeys = new Set(), goneKeys = new Set()) {
   const all = objectsCreatedBy(migration.sql);
-  const distinctive = all.filter((o) => !priorKeys.has(objectKey(o)));
+  const distinctive = all.filter((o) => !priorKeys.has(objectKey(o)) && !goneKeys.has(objectKey(o)));
   if (!distinctive.length) return { state: "unknown", objects: [] };
 
   const checked = [];
@@ -128,6 +153,14 @@ export async function inspectMigration(sql, migration, priorKeys = new Set()) {
 export function priorObjectKeys(expected, index) {
   const keys = new Set();
   for (let i = 0; i < index; i++) for (const o of objectsCreatedBy(expected[i].sql)) keys.add(objectKey(o));
+  return keys;
+}
+
+/** Everything the migrations after `index` remove — objects whose absence today
+ * is correct rather than a gap. */
+export function droppedLaterKeys(expected, index) {
+  const keys = new Set();
+  for (let i = index + 1; i < expected.length; i++) for (const o of objectsDroppedBy(expected[i].sql)) keys.add(objectKey(o));
   return keys;
 }
 
