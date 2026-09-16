@@ -115,7 +115,18 @@ function facade(db: Executor, orgId: string) {
       return rows[0] ?? null;
     },
 
-    async saveDna(brandId: string, dna: ContentDna): Promise<string> {
+    /**
+     * Store a new DNA version and make it current.
+     *
+     * `learnedFrom` records the published posts whose real performance informed
+     * it. A voice model that changes itself has to be able to account for why,
+     * or the user has no basis on which to accept or reject the change.
+     */
+    async saveDna(
+      brandId: string,
+      dna: ContentDna,
+      learnedFrom?: { draftId: string; hook: string; engagement: number }[],
+    ): Promise<string> {
       await assertBrand(brandId);
       const last = await db
         .select({ v: schema.dnaVersions.version })
@@ -126,13 +137,67 @@ function facade(db: Executor, orgId: string) {
       const version = (last[0]?.v ?? 0) + 1;
       const [row] = await db
         .insert(schema.dnaVersions)
-        .values({ orgId, brandId, version, payload: dna, completionPct: dna.completion_pct ?? 0 })
+        .values({
+          orgId, brandId, version, payload: dna,
+          completionPct: dna.completion_pct ?? 0,
+          learnedFromPosts: learnedFrom?.length ? learnedFrom : null,
+        })
         .returning();
       await db
         .update(schema.brands)
         .set({ currentDnaVersionId: row.id })
         .where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)));
       return row.id;
+    },
+
+    /** Every DNA version, newest first, with what it learned from. */
+    async dnaVersions(brandId: string, limit = 20) {
+      const rows = await db
+        .select({
+          id: schema.dnaVersions.id,
+          version: schema.dnaVersions.version,
+          completionPct: schema.dnaVersions.completionPct,
+          learnedFromPosts: schema.dnaVersions.learnedFromPosts,
+          createdAt: schema.dnaVersions.createdAt,
+        })
+        .from(schema.dnaVersions)
+        .where(and(eq(schema.dnaVersions.orgId, orgId), eq(schema.dnaVersions.brandId, brandId)))
+        .orderBy(desc(schema.dnaVersions.version))
+        .limit(limit);
+      return rows;
+    },
+
+    /**
+     * Point the brand back at an earlier DNA version.
+     *
+     * The safety half of letting performance data reshape the voice model: a
+     * change the user did not ask for has to be undoable in one click. Versions
+     * are immutable records and `currentDnaVersionId` is just a pointer, so a
+     * revert moves the pointer rather than rewriting history — the rejected
+     * version stays visible, which is the point.
+     *
+     * Returns false when the version is not this brand's, so a forged id
+     * cannot adopt another workspace's voice.
+     */
+    async revertDna(brandId: string, versionId: string): Promise<boolean> {
+      await assertBrand(brandId);
+      const rows = await db
+        .select({ id: schema.dnaVersions.id })
+        .from(schema.dnaVersions)
+        .where(
+          and(
+            eq(schema.dnaVersions.id, versionId),
+            eq(schema.dnaVersions.orgId, orgId),
+            eq(schema.dnaVersions.brandId, brandId),
+          ),
+        )
+        .limit(1);
+      if (!rows.length) return false;
+      await db
+        .update(schema.brands)
+        .set({ currentDnaVersionId: versionId })
+        .where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)));
+      return true;
     },
 
     async currentDna(brandId: string): Promise<ContentDna | null> {

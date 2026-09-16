@@ -154,6 +154,11 @@ export const dnaVersions = pgTable("dna_versions", {
   payload: jsonb("payload").notNull(),
   completionPct: integer("completion_pct").notNull().default(0),
   builtFromSourceIds: jsonb("built_from_source_ids"),
+  /** The published posts whose real performance informed this version (Phase 8):
+   * [{ draftId, hook, engagement }]. Stored so the DNA screen can show what a
+   * version learned from — a voice model that changes itself has to be able to
+   * account for why, or the user has no basis to accept or reject it. */
+  learnedFromPosts: jsonb("learned_from_posts"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   // The DNA history screen and every generation read the latest version for

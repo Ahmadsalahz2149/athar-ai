@@ -70,8 +70,22 @@ This document describes the system that is actually deployed. Proposed or future
   subscriptions, credited by signature-verified webhooks. See `docs/PAYMENTS.md`.
 - Social publishing posts for real to LinkedIn, X, Facebook and Instagram once a platform's
   credentials are configured and a user connects an account; with no credentials the app
-  stays export-first exactly as before. Platform *analytics* are still not connected.
-  See `docs/PUBLISHING.md`.
+  stays export-first exactly as before. See `docs/PUBLISHING.md`.
+- **The feedback loop is closed.** `lib/social/metrics.ts` reads each published post's real
+  numbers back from its platform, `lib/analytics/performance.ts` turns them into findings
+  only when the evidence supports one, and `synthesizeDna` weights the top-performing posts
+  of the last 90 days when it rebuilds the voice model. Three rules hold it together:
+  - An unavailable metric is `null`, never `0`. Platforms differ in what they expose and
+    several expose nothing without a scope the app may not hold, so `not_permitted` is a
+    distinct outcome from a real zero at every layer. A dashboard that renders an unknown
+    as zero is a lie the customer makes decisions on.
+  - A finding must clear eight measured posts overall, three on each side and a 1.25x gap.
+    Below that the screen reports totals and says exactly how many more posts are needed.
+  - Every DNA version records the posts it learned from (`dna_versions.learned_from_posts`)
+    and the DNA page shows them by their own hooks, with a one-click revert. The product
+    changes how the customer sounds; it has to be able to account for why, and be told no.
+    Versions are immutable and `current_dna_version_id` is a pointer, so a revert moves the
+    pointer and the rejected version stays visible.
 - Production dependencies carry zero known advisories; the handful that remain are
   build/test tooling and are documented with their reasons in `docs/DEPENDENCIES.md`.
 - Operational visibility comes from the in-product admin area, structured server logs and

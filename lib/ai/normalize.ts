@@ -96,3 +96,30 @@ export function normalizeDrafts(raw: unknown): Draft[] {
     })
     .filter((d) => d.hook.trim() || d.body.trim());
 }
+
+/** What a DNA version learned from: the published posts whose real performance
+ * informed it, as the UI needs them. */
+export type LearnedFromPost = { hook: string; engagement: number };
+
+/**
+ * Coerce the `learned_from_posts` JSONB into something the DNA page can render.
+ *
+ * This column is provenance for a change the product made to how the customer
+ * sounds, so it is read defensively: rows written by an older shape, or by a
+ * future one, must degrade to "learned from nothing" rather than break the
+ * page that exists to let the user reject the change.
+ */
+export function normalizeLearnedFrom(raw: unknown): LearnedFromPost[] {
+  if (!Array.isArray(raw)) return [];
+  const out: LearnedFromPost[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const hook = typeof o.hook === "string" ? o.hook.trim().slice(0, DNA_CAPS.listChars) : "";
+    const engagement = Number(o.engagement);
+    if (!hook || !Number.isFinite(engagement) || engagement < 0) continue;
+    out.push({ hook, engagement: Math.round(engagement) });
+    if (out.length >= 12) break;
+  }
+  return out;
+}

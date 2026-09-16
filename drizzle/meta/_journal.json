@@ -225,6 +225,13 @@
       "when": 1789524886510,
       "tag": "0031_brand_timezone",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1789525193520,
+      "tag": "0032_dna_learned_from",
+      "breakpoints": true
     }
   ]
 }

@@ -4,10 +4,12 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import type { ContentDna } from "@/lib/ai/prompts";
+import { buildHistoryRows } from "@/lib/dna/history";
 import { ScoreRadial, SegmentMeter, EmptyState, GlyphIcon, btnNavy, btnGhost } from "@/components/ui/display";
 import { EditDnaModal } from "./EditDnaModal";
 import { TraitSources } from "./TraitSources";
 import { VoiceTest } from "./VoiceTest";
+import { DnaHistory, type DnaVersionRow } from "./DnaHistory";
 import { BuildDnaButton } from "./BuildDnaButton";
 
 const PILLAR_META = [
@@ -75,14 +77,18 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
   let dna: ContentDna | null = null;
   let meta: { version: number; createdAt: Date; count: number } | null = null;
   let hasSources = false;
+  let versions: Awaited<ReturnType<ReturnType<typeof forOrg>["dnaVersions"]>> = [];
   if (db) {
     const ctx = await currentContext();
     if (ctx) {
       const t = forOrg(db, ctx.orgId);
-      const [d, m, chunks] = await Promise.all([t.currentDna(ctx.brandId), t.dnaMeta(ctx.brandId), t.countChunks(ctx.brandId)]);
+      const [d, m, chunks, vs] = await Promise.all([
+        t.currentDna(ctx.brandId), t.dnaMeta(ctx.brandId), t.countChunks(ctx.brandId), t.dnaVersions(ctx.brandId, 12),
+      ]);
       dna = d;
       meta = m;
       hasSources = chunks > 0;
+      versions = vs;
     }
   }
 
@@ -111,6 +117,17 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
     sumOk: t("editSumOk"), sumBad: t("editSumBad"), saveError: t("editError"),
     pillar: Object.fromEntries(PILLAR_META.map((p) => [p.key, t(`pillar_${p.key}`)])),
   };
+  // Shape the version history for the client. Dates, numbers and the ICU
+  // interpolation all happen here, where the locale lives, so the client
+  // component renders exactly what the server sent it.
+  const historyRows: DnaVersionRow[] = buildHistoryRows(versions, meta?.version ?? null, {
+    date: (d) => dtf.format(d),
+    complete: (pct) => t("histComplete", { pct: nf.format(pct) }),
+    learned: (n) => t("histLearned", { n: nf.format(n) }),
+    learnedNone: t("histLearnedNone"),
+    engagement: (n) => t("histEngagement", { n: nf.format(n) }),
+  });
+
   const editInitial = {
     tone_traits: dna.tone_traits, dialect: dna.dialect, explanation_style: dna.explanation_style,
     dos: dna.dos, donts: dna.donts, hook_patterns: dna.hook_patterns, cta_patterns: dna.cta_patterns,
@@ -234,6 +251,15 @@ export default async function DnaPage({ params }: { params: Promise<{ locale: st
 
       {/* Voice test — paste text, see how on-brand it is + AI critique. */}
       <VoiceTest dna={dna} />
+
+      {/* Version history + revert — the user's veto over what performance taught the voice. */}
+      <DnaHistory
+        versions={historyRows}
+        labels={{
+          title: t("histTitle"), sub: t("histSub"), current: t("histCurrent"), revert: t("histRevert"),
+          reverting: t("histReverting"), error: t("histError"), provenTitle: t("histProvenTitle"),
+        }}
+      />
 
       {/* Actions */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBlockStart: 20 }}>

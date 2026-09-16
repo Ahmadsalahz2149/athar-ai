@@ -206,8 +206,24 @@ export const DNA_SYSTEM = `أنت محلّل أسلوب كتابة خبير با
 - sentence_length و boldness من ١ إلى ٣.
 - أعد النتيجة بصيغة JSON المطلوبة فقط، بلغة العينات نفسها.`;
 
-export function buildDnaUserMessage(samples: string): string {
-  return `استخرج بصمة المحتوى من العينات التالية:\n\n<SAMPLES>\n${samples}\n</SAMPLES>`;
+/**
+ * The DNA synthesis message.
+ *
+ * `proven` is the feedback loop: the brand's own published posts that actually
+ * performed, fed back in as a separately labelled block. They are the same
+ * voice as the samples, with one extra fact attached — an audience responded to
+ * them — so the model is told to weight them without treating them as a
+ * different person.
+ *
+ * Kept in its own delimited block rather than mixed into <SAMPLES>, for the
+ * same reason every other block here is delimited: the text is data, never
+ * instructions, and the model must be able to tell the two apart.
+ */
+export function buildDnaUserMessage(samples: string, proven?: string): string {
+  const provenBlock = proven?.trim()
+    ? `\n\n<PROVEN>\n${proven}\n</PROVEN>\n\nالبوستات داخل <PROVEN> من كتابة الشخص نفسه، وقد حقّقت أعلى تفاعل حقيقي مع جمهوره. رجّح أنماطها (الهوكس، الطول، النبرة، المحاور) عند استخراج البصمة، دون أن تعاملها كصوت مختلف.`
+    : "";
+  return `استخرج بصمة المحتوى من العينات التالية:\n\n<SAMPLES>\n${samples}\n</SAMPLES>${provenBlock}`;
 }
 
 export const DRAFT_SYSTEM = `أنت كاتب محتوى يكتب *بصوت شخص محدد* بناءً على بصمة محتواه (Content DNA). لا تكتب بأسلوب روبوت عام — التزم بلهجة الشخص ونبرته وأنماط الهوكس الخاصة به.

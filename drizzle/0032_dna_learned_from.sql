@@ -1,0 +1,1 @@
+ALTER TABLE "dna_versions" ADD COLUMN "learned_from_posts" jsonb;

@@ -137,3 +137,30 @@ export async function voiceFeedback(text: string): Promise<
     return { ok: false, error: (e as Error).message };
   }
 }
+
+/**
+ * Point the brand back at an earlier DNA version.
+ *
+ * The other half of letting real performance reshape the voice model. A system
+ * that rewrites how you sound based on engagement numbers has to be rejectable
+ * in one click, or the user is a passenger in their own voice. Versions are
+ * immutable and `currentDnaVersionId` is a pointer, so this moves the pointer —
+ * the rejected version stays in the history rather than being erased.
+ */
+export async function revertDnaVersion(versionId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!versionId) return { ok: false, error: "not_found" };
+    if (!db) return { ok: false, error: "no_session" };
+    const ctx = await currentContext();
+    if (!ctx) return { ok: false, error: "no_session" };
+
+    // forOrg scopes the lookup to this workspace and brand, so a forged id
+    // cannot adopt another workspace's voice.
+    const ok = await forOrg(db, ctx.orgId).revertDna(ctx.brandId, versionId);
+    if (!ok) return { ok: false, error: "not_found" };
+    revalidatePath("/[locale]/(app)/dna", "page");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "failed" };
+  }
+}
