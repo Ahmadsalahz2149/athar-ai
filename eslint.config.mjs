@@ -53,6 +53,11 @@ const eslintConfig = defineConfig([
       // one review state, and writes exactly two statuses. See
       // lib/review/publicReview.ts.
       "lib/review/publicReview.ts",
+      // Meta data-deletion / deauthorize callbacks (Phase 6) — the request
+      // identifies a PERSON ON A PLATFORM with no session and no org; they may
+      // hold connections in several workspaces or none. Every write is bounded
+      // to rows carrying that one platform user id. See lib/social/metaDeletion.ts.
+      "lib/social/metaDeletion.ts",
       // Invitation redemption (Phase 4) — the person accepting is NOT a member
       // of that workspace yet, which is the whole point, so there is no org to
       // scope to and the token is the lookup key. Every write is bounded to the

@@ -61,6 +61,9 @@ export async function setOrgScope(tx: Executor, orgId: string): Promise<void> {
  *                                the key (Phase 4)
  *   lib/review/publicReview.ts — the client has no account at all; the token is
  *                                the key (Phase 4)
+ *   lib/social/metaDeletion.ts — a platform asking us to erase a person's data;
+ *                                they are not a session and may span workspaces
+ *                                (Phase 6)
  *
  * Adding a call here is adding to that list. It should be as hard to justify.
  */

@@ -20,6 +20,10 @@ const PROFILE_TIMEOUT_MS = 20_000;
 
 export type Account = {
   externalAccountId: string;
+  /** The platform USER who authorized this — distinct from what we post to.
+   * Meta's deletion and deauthorize callbacks identify a person by this alone,
+   * so a connection without it cannot be found when they ask to be forgotten. */
+  externalUserId?: string | null;
   accountName: string | null;
   /** Set when the platform requires a different token than the one we exchanged. */
   accessToken?: string;
@@ -70,6 +74,18 @@ async function metaPages(userToken: string): Promise<Page[]> {
   return data.data ?? [];
 }
 
+/** The Meta user behind the token. Best-effort: failing to learn it must not
+ * fail the connection — but it does mean a later deletion request cannot match
+ * this row, which is why it is fetched at connect time rather than on demand. */
+async function metaUserId(userToken: string): Promise<string | null> {
+  try {
+    const me = await getJson<{ id?: string }>(`${GRAPH}/me?fields=id`, { headers: bearer(userToken) });
+    return me.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchAccount(platform: PlatformId, accessToken: string): Promise<Account> {
   if (platform === "linkedin") {
     const me = await getJson<{ sub?: string; name?: string }>("https://api.linkedin.com/v2/userinfo", { headers: bearer(accessToken) });
@@ -85,12 +101,12 @@ export async function fetchAccount(platform: PlatformId, accessToken: string): P
   }
 
   const userToken = await metaLongLived(accessToken);
-  const pages = await metaPages(userToken);
+  const [pages, userId] = await Promise.all([metaPages(userToken), metaUserId(userToken)]);
 
   if (platform === "facebook") {
     const page = pages.find((p) => p.access_token);
     if (!page) throw new Error("no facebook page found on this account");
-    return { externalAccountId: page.id, accountName: page.name ?? null, accessToken: page.access_token, expiresAt: null };
+    return { externalAccountId: page.id, externalUserId: userId, accountName: page.name ?? null, accessToken: page.access_token, expiresAt: null };
   }
 
   // instagram
@@ -98,6 +114,7 @@ export async function fetchAccount(platform: PlatformId, accessToken: string): P
   if (!page) throw new Error("no instagram business account linked to a facebook page");
   return {
     externalAccountId: page.instagram_business_account!.id,
+    externalUserId: userId,
     accountName: page.instagram_business_account!.username ? `@${page.instagram_business_account!.username}` : (page.name ?? null),
     accessToken: page.access_token,
     expiresAt: null,

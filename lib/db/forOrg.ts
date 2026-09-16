@@ -947,7 +947,7 @@ function facade(db: Executor, orgId: string) {
     async saveConnection(
       brandId: string,
       platform: string,
-      c: { accessToken: string; refreshToken?: string | null; expiresAt?: Date | null; externalAccountId?: string | null; accountName?: string | null; scopes?: string | null },
+      c: { accessToken: string; refreshToken?: string | null; expiresAt?: Date | null; externalAccountId?: string | null; externalUserId?: string | null; accountName?: string | null; scopes?: string | null },
     ): Promise<void> {
       await assertBrand(brandId);
       await db
@@ -958,6 +958,7 @@ function facade(db: Executor, orgId: string) {
           refreshToken: c.refreshToken ?? null,
           expiresAt: c.expiresAt ?? null,
           externalAccountId: c.externalAccountId ?? null,
+          externalUserId: c.externalUserId ?? null,
           accountName: c.accountName ?? null,
           scopes: c.scopes ?? null,
           status: "connected",
@@ -970,6 +971,7 @@ function facade(db: Executor, orgId: string) {
             refreshToken: c.refreshToken ?? null,
             expiresAt: c.expiresAt ?? null,
             externalAccountId: c.externalAccountId ?? null,
+            externalUserId: c.externalUserId ?? null,
             accountName: c.accountName ?? null,
             scopes: c.scopes ?? null,
             status: "connected",

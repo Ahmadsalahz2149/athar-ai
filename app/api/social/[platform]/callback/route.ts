@@ -52,6 +52,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ platform
       refreshToken: tokens.refreshToken,
       expiresAt: account.accessToken ? (account.expiresAt ?? null) : tokens.expiresAt,
       externalAccountId: account.externalAccountId,
+      externalUserId: account.externalUserId ?? null,
       accountName: account.accountName,
       scopes: tokens.scopes,
     });

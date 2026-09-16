@@ -1851,5 +1851,16 @@
     "err_not_found": "That post is no longer open for review.",
     "err_bad_decision": "Unknown action.",
     "err_no_db": "Temporarily unavailable. Try again shortly."
+  },
+  "DataDeletion": {
+    "title": "Deleting your data",
+    "intro": "If you asked Facebook or Instagram to delete your data from Athar, we act on it the moment it reaches us. Enter the confirmation code you were shown to check.",
+    "codePlaceholder": "Confirmation code",
+    "check": "Check",
+    "notFoundTitle": "No record for that code",
+    "notFoundBody": "Check that you copied all of it. If you think this is a mistake, write to support@athargrowth.com.",
+    "doneTitle": "Deleted",
+    "doneBody": "{n} account connection(s) and every access token belonging to them were removed.",
+    "scope": "What we delete is your platform account connection and its access tokens. Content a workspace owner wrote inside Athar — their sources, drafts and content DNA — belongs to them and is not deleted on a platform's request. To delete an Athar account entirely: Settings → Delete account."
   }
 }

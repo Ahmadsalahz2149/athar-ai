@@ -253,6 +253,20 @@
       "when": 1789529714072,
       "tag": "0035_review_links",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1789535537632,
+      "tag": "0036_meta_data_deletion",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1789535552698,
+      "tag": "0037_social_user_index",
+      "breakpoints": true
     }
   ]
 }

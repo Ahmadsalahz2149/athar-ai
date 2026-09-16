@@ -312,6 +312,39 @@ export const reviewLinks = pgTable(
   ],
 );
 
+/**
+ * A platform's request to erase someone's data (Phase 6).
+ *
+ * Meta requires a callback that accepts a deletion request and returns a URL
+ * where the person can check on it. That promise needs somewhere to live: the
+ * code they are given has to still mean something when they come back with it.
+ *
+ * Deliberately NOT org-scoped. The request arrives identifying a platform user,
+ * who may have connected accounts in several workspaces — or in none. It is
+ * about a person on a platform, not about a tenant, which is also why it sits
+ * outside the forOrg façade.
+ */
+export const dataDeletionRequests = pgTable(
+  "data_deletion_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Which platform asked. `meta` covers Facebook and Instagram — one app. */
+    provider: text("provider").notNull(),
+    externalUserId: text("external_user_id").notNull(),
+    /** What the person quotes back to check on it. */
+    confirmationCode: text("confirmation_code").notNull(),
+    /** received | completed — completed once the connections are gone. */
+    status: text("status").notNull().default("received"),
+    connectionsDeleted: integer("connections_deleted").notNull().default(0),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("data_deletion_code_uq").on(t.confirmationCode),
+    index("data_deletion_user_idx").on(t.provider, t.externalUserId),
+  ],
+);
+
 // Append-only credit ledger (ADR-004 / A4). Balance is derived (sum of deltas);
 // balance_after is a denormalized convenience. Never UPDATE/DELETE rows.
 export const creditLedger = pgTable(
@@ -546,6 +579,12 @@ export const socialConnections = pgTable(
     refreshToken: text("refresh_token"),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     externalAccountId: text("external_account_id"),
+    /** The PLATFORM USER who authorized this connection — distinct from
+     * externalAccountId, which is the thing we post to (a Page, an IG business
+     * account). Meta's data-deletion and deauthorize callbacks identify a person
+     * by this and nothing else, so without it a deletion request cannot find
+     * what to delete. Nullable: connections made before Phase 6 do not have it. */
+    externalUserId: text("external_user_id"),
     accountName: text("account_name"),
     scopes: text("scopes"),
     // connected | expired | revoked
@@ -554,6 +593,8 @@ export const socialConnections = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
+    // The data-deletion callback's only lookup key.
+    index("social_connections_user_idx").on(t.externalUserId),
     // One live connection per brand+platform.
     uniqueIndex("social_conn_brand_platform_uq").on(t.brandId, t.platform),
     index("social_conn_brand_idx").on(t.orgId, t.brandId),

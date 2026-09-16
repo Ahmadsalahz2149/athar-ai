@@ -95,3 +95,32 @@ re-consent — the publisher does not pretend otherwise.
    of at the first scheduled slot.
 5. Verify with one post: schedule it a minute out, or use "Publish now" on the
    calendar, and confirm the card turns green with a working link.
+
+## Platform approvals, and the callbacks they require
+
+Every credential here is inert until the platform approves the app. What to
+submit — the exact scopes, redirect URIs, callback URLs and the questions each
+review asks — is in `docs/PLATFORM_APPROVALS.md`, read from this code rather
+than from memory.
+
+Two endpoints exist solely because Meta's App Review requires them, and are
+correct on their own terms besides:
+
+| Route | What it does |
+|---|---|
+| `POST /api/social/meta/data-deletion` | Someone asked Facebook to erase their data. Verifies `signed_request`, deletes that platform user's Meta connections and tokens, returns `{url, confirmation_code}` |
+| `POST /api/social/meta/deauthorize` | Someone removed the app. Their tokens are already dead; we stop holding them |
+
+Both verify an HMAC-SHA256 signature against `META_CLIENT_SECRET` before acting.
+They are public, unauthenticated, and they delete — so a request that fails
+verification is refused with 400, never honoured. Without that check, anyone who
+could POST to the URL could wipe another person's connections by guessing a
+numeric user id.
+
+What they delete is the **connection**: tokens, account ids, the link to the
+platform. Not the customer's drafts, sources or DNA — that is the workspace's
+own work, authored by them, and not a platform's to ask about.
+
+`/{locale}/data-deletion` is the public page Meta links people to, where a
+confirmation code can be checked. It is `noindex`, and an unknown code is
+answered with "no record" rather than anything about who else exists.
