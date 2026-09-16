@@ -13,6 +13,21 @@ export PATH
 
 cd "$APP_ROOT"
 
+# Pin the temp directory for the WHOLE deploy, unconditionally.
+#
+# This account inherits TMPDIR from the server environment, pointing at another
+# application's directory that the `athar` user cannot write. Anything that
+# spills to temp then dies with EACCES — which is exactly how the first deploy
+# that ran migrations from this script failed, at `drizzle-kit migrate`.
+#
+# It is an assignment, not a `${TMPDIR:-...}` default: a default only fills in
+# an UNSET variable, and the problem here is a variable that is set to the wrong
+# thing. ATHAR_TMPDIR is the deliberate override for an operator who wants a
+# different location; the inherited value is never trusted.
+TMPDIR="${ATHAR_TMPDIR:-$APP_ROOT/tmp}"
+mkdir -p "$TMPDIR"
+export TMPDIR
+
 # Refuse to build without the server-only production configuration. Next.js
 # also needs the NEXT_PUBLIC_* values while compiling browser bundles.
 test -s .env.production
@@ -32,15 +47,9 @@ rm -rf .next
 # so the previous release keeps serving. Our migrations are additive first
 # (a new column is invisible to the running code), which is what makes
 # "migrate, then swap" the correct order rather than a gamble.
-#
-# TMPDIR is pinned because the account's default points at a directory this user
-# cannot write, which failed drizzle-kit with EACCES.
 if [ "${ATHAR_SKIP_MIGRATE:-0}" = "1" ]; then
   printf 'Skipping migrations (ATHAR_SKIP_MIGRATE=1).\n'
 else
-  TMPDIR="${TMPDIR:-$APP_ROOT/tmp}"
-  mkdir -p "$TMPDIR"
-  export TMPDIR
   "$NPM" run db:migrate
 fi
 
