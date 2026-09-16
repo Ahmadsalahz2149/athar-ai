@@ -44,7 +44,8 @@
 2. **`NEXT_PUBLIC_SENTRY_DSN`** في `.env.production` — بدونه المراقبة صامتة.
 3. **UptimeRobot** — مراقبان على `/api/health` و`/api/health?alert=1` كل ٥ دقائق.
 4. **تفعيل عزل الصفوف** — السياسات حيّة لكنها خاملة على الدور المالك.
-   تحقّق أولًا بـ `npm run db:rls-check`، ثم اتبع `docs/RLS.md`.
+   تحقّق أولًا بـ `npm run db:rls-check`، ثم بكلمة سر الدور:
+   `ATHAR_APP_PASSWORD='...' npm run db:rls-check`، ثم اتبع `docs/RLS.md`.
 5. **النسخ الاحتياطي واستعادته** — فعّل PITR، ثم **جرّب استعادة فعلية**؛
    الإجراء في `docs/ADMIN_RUNBOOK.md`.
 6. **مراجعة محامٍ** للصفحات الثلاث + تثبيت الكيان والاختصاص.

@@ -16,10 +16,19 @@
  *       tenant tables carry a policy, and whether an unscoped read really
  *       returns nothing.
  *
- *   DATABASE_URL_RLS='postgres://athar_app:...' npm run db:rls-check
- *       ALSO connects as the candidate role and runs the isolation probes
- *       against it — so you find out the switch works BEFORE you make it,
- *       instead of finding out from a production page that returns nothing.
+ *   ATHAR_APP_PASSWORD='...' npm run db:rls-check
+ *       ALSO connects as athar_app and runs the isolation probes against it —
+ *       so you find out the switch works BEFORE you make it, instead of finding
+ *       out from a production page that renders empty.
+ *
+ *       Only the password: the host, port and database are taken from the
+ *       DATABASE_URL already in front of us. Asking for a whole URL means
+ *       handing someone a template with placeholders in it, and a placeholder
+ *       pasted verbatim is a command that fails for a reason that has nothing
+ *       to do with what was being tested.
+ *
+ *   DATABASE_URL_RLS='postgres://...' npm run db:rls-check
+ *       The same, when the candidate is not simply athar_app on this host.
  */
 import postgres from "postgres";
 import { databaseUrl } from "./migration-lib.mjs";
@@ -34,6 +43,21 @@ function check(condition, good, wrong) {
   else {
     console.log(bad(wrong));
     failures++;
+  }
+}
+
+/** The same database, reached as athar_app — derived from the URL we already
+ * have so the caller only has to supply the one secret we cannot know. */
+function appUrlFrom(ownerUrl, password) {
+  if (!password) return null;
+  try {
+    const u = new URL(ownerUrl);
+    u.username = "athar_app";
+    u.password = password;
+    return u.toString();
+  } catch {
+    console.error("Could not derive the athar_app URL from DATABASE_URL; pass DATABASE_URL_RLS instead.");
+    process.exit(2);
   }
 }
 
@@ -105,16 +129,17 @@ try {
     console.log(info(`this role owns the tables, so policies do not apply to it (${unscoped} rows readable unscoped)`));
     console.log(info("isolation is DORMANT on this connection — expected until the switch is made"));
     console.log(`\n  To enforce, point DATABASE_URL at athar_app and set DB_RLS=true. See docs/RLS.md.`);
-    console.log(`  Verify the candidate first: DATABASE_URL_RLS='postgres://athar_app:...' npm run db:rls-check`);
+    console.log(`  Verify the role first, giving only its password:
+    ATHAR_APP_PASSWORD='the-password-you-set' npm run db:rls-check`);
   } else {
     check(unscoped === 0, "an unscoped read returns nothing — isolation is LIVE", `an unscoped read returned ${total} rows: policies are NOT applying to this role`);
   }
 
   // --- The candidate role, if one was supplied --------------------------------
 
-  const candidate = process.env.DATABASE_URL_RLS;
+  const candidate = process.env.DATABASE_URL_RLS ?? appUrlFrom(url, process.env.ATHAR_APP_PASSWORD);
   if (candidate) {
-    console.log("\nCandidate role (DATABASE_URL_RLS)\n");
+    console.log("\nCandidate role\n");
     appSql = connect(candidate);
 
     const [cwho] = await appSql`select current_user as role`;

@@ -35,14 +35,19 @@ cannot tell you: it reports which role this connection uses, whether that role
 is exempt (it owns the tables), how many tenant tables carry a policy, and
 whether an unscoped read really returns nothing.
 
-Give it the candidate credential and it probes THAT role before you commit to
-it — which is the difference between finding out here and finding out from a
-production page that renders empty:
+Give it the role's password and it probes THAT role before you commit to it —
+the difference between finding out here and finding out from a production page
+that renders empty:
 
 ```bash
-DATABASE_URL_RLS='postgres://athar_app:<password>@<host>:<port>/<db>?sslmode=require' \
-  npm run db:rls-check
+ATHAR_APP_PASSWORD='the-password-you-set' npm run db:rls-check
 ```
+
+Only the password. The host, port and database come from the `DATABASE_URL`
+already in front of it: a command with placeholders in it is a command someone
+will paste verbatim, and then the failure has nothing to do with what was being
+tested. Use `DATABASE_URL_RLS='postgres://...'` only when the candidate is not
+simply `athar_app` on this same host.
 
 It checks four things on the candidate: an unscoped read returns nothing, a
 scoped read sees no other workspace's rows, the system escape still works, and
