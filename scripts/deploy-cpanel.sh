@@ -13,6 +13,14 @@ export PATH
 
 cd "$APP_ROOT"
 
+# Announce each phase. A step that is killed rather than failed prints nothing
+# at all — which is how a deploy that died inside `drizzle-kit migrate` looked
+# identical to one that finished it. The banner before each phase means the last
+# line on screen always names the step that did not come back.
+say() {
+  printf '\n==> %s\n' "$1"
+}
+
 # Pin the temp directory for the WHOLE deploy, unconditionally.
 #
 # This account inherits TMPDIR from the server environment, pointing at another
@@ -35,6 +43,7 @@ test -s .env.production
 # A clean build is essential: merging two Turbopack outputs can leave HTML and
 # the server runtime pointing at chunks that no longer exist.
 rm -rf .next
+say "installing dependencies"
 "$NPM" ci
 
 # Schema before code. Leaving migrations out of this script meant remembering a
@@ -50,14 +59,17 @@ rm -rf .next
 if [ "${ATHAR_SKIP_MIGRATE:-0}" = "1" ]; then
   printf 'Skipping migrations (ATHAR_SKIP_MIGRATE=1).\n'
 else
+  say "applying migrations"
   "$NPM" run db:migrate
 fi
 
+say "building"
 "$NPM" run build
 
 # Standalone does not copy these directories automatically. Assemble an
 # immutable release outside .next, then switch the `current` symlink only when
 # the release is complete. A failed future build cannot damage the live app.
+say "staging the release"
 build_id=$(cat "$APP_ROOT/.next/standalone/.next/BUILD_ID")
 release="$RELEASES_ROOT/$build_id"
 stage="$RELEASES_ROOT/.${build_id}.tmp.$$"
@@ -73,6 +85,7 @@ cp "$APP_ROOT/deploy/passenger-app.js" "$stage/app.js"
 mkdir -p "$stage/tmp"
 rm -rf "$release"
 mv "$stage" "$release"
+say "switching to the new release"
 ln -sfn "$release" "$APP_ROOT/current"
 
 # Passenger is the only production process manager. It detects app.js and

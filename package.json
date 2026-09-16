@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:status": "node scripts/migration-status.mjs",
     "db:push": "drizzle-kit push",
     "test": "vitest run --no-file-parallelism",
     "eval": "tsx eval/run.ts"
