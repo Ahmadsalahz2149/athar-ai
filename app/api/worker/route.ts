@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runBatch } from "@/lib/jobs/runner";
 import { reapStale } from "@/lib/jobs/queue";
-import { dispatchDuePublishes, requeueAbandonedPublishes } from "@/lib/social/dispatch";
+import { dispatchDuePublishes, dispatchDueMetrics, requeueAbandonedPublishes } from "@/lib/social/dispatch";
 import "@/lib/jobs/handlers"; // registers all handlers as a side effect
 
 /**
@@ -36,8 +36,12 @@ async function handle(req: Request) {
   // runs. One cron, no second thing for the operator to keep alive.
   const requeued = await requeueAbandonedPublishes(db);
   const dispatched = await dispatchDuePublishes(db);
+  // Published posts get their numbers read back on the same tick. Collection is
+  // idempotent and capped per run, so it rides along instead of needing a cron
+  // of its own.
+  const metrics = await dispatchDueMetrics(db);
   const processed = await runBatch(db, workerId, 10);
-  return NextResponse.json({ ok: true, processed, reaped, dispatched, requeued });
+  return NextResponse.json({ ok: true, processed, reaped, dispatched, metrics, requeued });
 }
 
 export async function POST(req: Request) {

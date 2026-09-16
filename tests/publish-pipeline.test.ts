@@ -6,8 +6,9 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { eq, and } from "drizzle-orm";
 import * as schema from "@/lib/db/schema";
 import { forOrg } from "@/lib/db/forOrg";
-import { dispatchDuePublishes, requeueAbandonedPublishes, PUBLISH_JOB, PUBLISH_MAX_ATTEMPTS } from "@/lib/social/dispatch";
+import { dispatchDuePublishes, dispatchDueMetrics, requeueAbandonedPublishes, PUBLISH_JOB, PUBLISH_MAX_ATTEMPTS, METRICS_JOB } from "@/lib/social/dispatch";
 import { publishDraftHandler } from "@/lib/jobs/handlers/publishDraft";
+import { collectMetricsHandler } from "@/lib/jobs/handlers/collectMetrics";
 import type { JobRow } from "@/lib/jobs/types";
 
 /**
@@ -63,6 +64,7 @@ function jobFor(draftId: string, over: Partial<JobRow> = {}): JobRow {
 }
 
 const run = (job: JobRow) => publishDraftHandler({ db: db!, job, progress: async () => {} });
+const collect = (job: JobRow) => collectMetricsHandler({ db: db!, job, progress: async () => {} });
 
 const statusOf = async (id: string) => {
   const [r] = await db!.select().from(schema.drafts).where(eq(schema.drafts.id, id));
@@ -88,6 +90,7 @@ describe.runIf(!!db)("publishing pipeline", () => {
   beforeEach(async () => {
     await db!.delete(schema.jobs).where(eq(schema.jobs.orgId, orgId));
     await db!.delete(schema.drafts).where(eq(schema.drafts.orgId, orgId));
+    await db!.delete(schema.postMetrics).where(eq(schema.postMetrics.orgId, orgId));
     await db!.delete(schema.socialConnections).where(eq(schema.socialConnections.orgId, orgId));
   });
 
@@ -96,6 +99,7 @@ describe.runIf(!!db)("publishing pipeline", () => {
   afterAll(async () => {
     if (!db) return;
     await db.delete(schema.jobs).where(eq(schema.jobs.orgId, orgId));
+    await db.delete(schema.postMetrics).where(eq(schema.postMetrics.orgId, orgId));
     await db.delete(schema.drafts).where(eq(schema.drafts.orgId, orgId));
     await db.delete(schema.socialConnections).where(eq(schema.socialConnections.orgId, orgId));
     await db.delete(schema.brands).where(eq(schema.brands.orgId, orgId));
@@ -161,6 +165,177 @@ describe.runIf(!!db)("publishing pipeline", () => {
       const d = await newDraft({ status: "publishing", scheduledAt: new Date(Date.now() - 60_000) });
       expect(await requeueAbandonedPublishes(db!)).toBe(0);
       expect((await statusOf(d.id)).status).toBe("publishing");
+    });
+  });
+
+  // --- Metrics collection ---------------------------------------------------
+  /**
+   * The step that turns "we posted it" into "here is what happened". Everything
+   * downstream — the performance analytics and the DNA learning from real
+   * results rather than our own guess — reads what this writes.
+   */
+  describe("metrics collection", () => {
+    const published = (over: Partial<typeof schema.drafts.$inferInsert> = {}) =>
+      newDraft({
+        status: "published",
+        externalPostId: "ext_1",
+        publishedAt: new Date(Date.now() - 3600_000),
+        scheduledAt: new Date(Date.now() - 3600_000),
+        ...over,
+      });
+
+    const stubMetrics = (body: unknown, status = 200) =>
+      vi.stubGlobal("fetch", async () => new Response(JSON.stringify(body), { status }));
+
+    const metricsOf = async (draftId: string) =>
+      db!.select().from(schema.postMetrics).where(eq(schema.postMetrics.draftId, draftId));
+
+    describe("dispatchDueMetrics", () => {
+      it("queues a collection for a published post with no snapshot today", async () => {
+        const d = await published();
+        expect(await dispatchDueMetrics(db!)).toBeGreaterThanOrEqual(1);
+        const jobs = await db!.select().from(schema.jobs).where(and(eq(schema.jobs.orgId, orgId), eq(schema.jobs.type, METRICS_JOB)));
+        expect(jobs).toHaveLength(1);
+        expect(jobs[0].payload).toEqual({ draftId: d.id });
+      });
+
+      // Collection is idempotent, so the guard that matters is against piling
+      // up duplicate JOBS, not against collecting twice.
+      it("does not queue a second job while one is still pending", async () => {
+        await published();
+        expect(await dispatchDueMetrics(db!)).toBe(1);
+        expect(await dispatchDueMetrics(db!)).toBe(0);
+      });
+
+      it("skips a post already captured today", async () => {
+        const d = await published();
+        await forOrg(db!, orgId).recordPostMetrics(brandId, d.id, {
+          platform: "x", externalPostId: "ext_1",
+          impressions: 1, likes: 1, comments: null, shares: null, clicks: null,
+          capturedOn: new Date().toISOString().slice(0, 10),
+        });
+        expect(await dispatchDueMetrics(db!)).toBe(0);
+      });
+
+      it("leaves unpublished, id-less, deleted and long-past posts alone", async () => {
+        await newDraft({ status: "scheduled" });
+        await published({ externalPostId: null });
+        await published({ deletedAt: new Date() });
+        // Engagement is settled long before the window closes; past it we would
+        // be spending API calls on a flat line.
+        await published({ publishedAt: new Date(Date.now() - 60 * 24 * 3600_000) });
+        expect(await dispatchDueMetrics(db!)).toBe(0);
+      });
+    });
+
+    describe("the collector", () => {
+      it("stores what the platform reported", async () => {
+        await forOrg(db!, orgId).saveConnection(brandId, "x", { accessToken: "tok", externalAccountId: "acct" });
+        const d = await published();
+        stubMetrics({ data: { public_metrics: { like_count: 14, reply_count: 3, retweet_count: 2, quote_count: 1, impression_count: 820 } } });
+
+        const out = await collect(jobFor(d.id));
+        expect(out).toMatchObject({ collected: true, likes: 14, comments: 3, shares: 3, impressions: 820 });
+
+        const [row] = await metricsOf(d.id);
+        expect(row.likes).toBe(14);
+        expect(row.shares).toBe(3);
+        expect(row.platform).toBe("x");
+        expect(row.externalPostId).toBe("ext_1");
+      });
+
+      // Engagement moves fast in the first hours, so the later read of a day is
+      // the better one — a refresh, not a duplicate.
+      it("refreshes the same day's snapshot instead of duplicating it", async () => {
+        await forOrg(db!, orgId).saveConnection(brandId, "x", { accessToken: "tok" });
+        const d = await published();
+        stubMetrics({ data: { public_metrics: { like_count: 5 } } });
+        await collect(jobFor(d.id));
+        stubMetrics({ data: { public_metrics: { like_count: 40 } } });
+        await collect(jobFor(d.id));
+
+        const rows = await metricsOf(d.id);
+        expect(rows).toHaveLength(1);
+        expect(rows[0].likes).toBe(40);
+      });
+
+      // A row of all-nulls would claim we measured this post and found nothing.
+      it("writes no row when the platform returned nothing usable", async () => {
+        await forOrg(db!, orgId).saveConnection(brandId, "x", { accessToken: "tok" });
+        const d = await published();
+        stubMetrics({ data: {} });
+        expect(await collect(jobFor(d.id))).toMatchObject({ collected: false, reason: "no_metrics_available" });
+        expect(await metricsOf(d.id)).toHaveLength(0);
+      });
+
+      // A missing scope is a platform approval to obtain, not a fault to back
+      // off from — and the post itself is fine either way.
+      it("reports a missing scope without failing the job", async () => {
+        await forOrg(db!, orgId).saveConnection(brandId, "x", { accessToken: "tok" });
+        const d = await published();
+        stubMetrics({ error: { message: "insufficient scope" } }, 403);
+        expect(await collect(jobFor(d.id))).toMatchObject({ collected: false, reason: "not_permitted:x" });
+      });
+
+      it("flags a revoked token for re-auth", async () => {
+        await forOrg(db!, orgId).saveConnection(brandId, "x", { accessToken: "dead" });
+        const d = await published();
+        stubMetrics({}, 401);
+        await collect(jobFor(d.id));
+        expect((await forOrg(db!, orgId).getConnection(brandId, "x"))?.status).toBe("expired");
+      });
+
+      it("retries a rate limit", async () => {
+        await forOrg(db!, orgId).saveConnection(brandId, "x", { accessToken: "tok" });
+        const d = await published();
+        stubMetrics({}, 429);
+        await expect(collect(jobFor(d.id))).rejects.toMatchObject({ retryable: true });
+      });
+
+      // The account was disconnected after the post went out. The post is still
+      // live; we simply can no longer read it.
+      it("stops quietly when the account is no longer connected", async () => {
+        const d = await published();
+        let called = false;
+        vi.stubGlobal("fetch", async () => { called = true; return new Response("{}"); });
+        expect(await collect(jobFor(d.id))).toMatchObject({ collected: false, reason: "not_connected:x" });
+        expect(called).toBe(false);
+      });
+
+      it("never collects for another workspace's post", async () => {
+        const [other] = await db!.insert(schema.organizations).values({ name: "metrics-other" }).returning();
+        const [ob] = await db!.insert(schema.brands).values({ orgId: other.id, name: "O" }).returning();
+        const [od] = await db!.insert(schema.drafts).values({
+          orgId: other.id, brandId: ob.id, platform: "X / Twitter", hook: "h", body: "b",
+          status: "published", externalPostId: "theirs", publishedAt: new Date(),
+        }).returning();
+
+        expect(await collect(jobFor(od.id))).toMatchObject({ collected: false, reason: "draft_missing" });
+
+        await db!.delete(schema.drafts).where(eq(schema.drafts.orgId, other.id));
+        await db!.delete(schema.brands).where(eq(schema.brands.orgId, other.id));
+        await db!.delete(schema.organizations).where(eq(schema.organizations.id, other.id));
+      });
+    });
+
+    describe("latestPostMetrics", () => {
+      it("returns the newest snapshot per post, joined to the post", async () => {
+        const d = await published({ hook: "عنوان البوست" });
+        const org = forOrg(db!, orgId);
+        await org.recordPostMetrics(brandId, d.id, {
+          platform: "x", externalPostId: "ext_1", impressions: 100, likes: 2,
+          comments: null, shares: null, clicks: null, capturedOn: "2026-09-01",
+        });
+        await org.recordPostMetrics(brandId, d.id, {
+          platform: "x", externalPostId: "ext_1", impressions: 900, likes: 30,
+          comments: null, shares: null, clicks: null, capturedOn: "2026-09-02",
+        });
+
+        const rows = await org.latestPostMetrics(brandId);
+        expect(rows).toHaveLength(1);
+        expect(rows[0].likes).toBe(30); // the later capture wins
+        expect(rows[0].hook).toBe("عنوان البوست");
+      });
     });
   });
 

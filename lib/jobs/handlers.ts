@@ -8,10 +8,12 @@ import { ingestSourceHandler } from "./handlers/ingestSource";
 import { analyzeSourceHandler } from "./handlers/analyzeSource";
 import { synthesizeDnaHandler } from "./handlers/synthesizeDna";
 import { publishDraftHandler } from "./handlers/publishDraft";
+import { collectMetricsHandler } from "./handlers/collectMetrics";
 
 registerHandler("ingest_source", ingestSourceHandler);
 registerHandler("analyze_source", analyzeSourceHandler);
 registerHandler("synthesize_dna", synthesizeDnaHandler);
 registerHandler("publish_draft", publishDraftHandler);
+registerHandler("collect_metrics", collectMetricsHandler);
 
 export {};

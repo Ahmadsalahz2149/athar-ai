@@ -56,6 +56,7 @@ export const ORG_SCOPED_TABLES = [
   "lesson_progress",
   "link_events",
   "media_assets",
+  "post_metrics",
   "products",
   "social_connections",
   "target_groups",

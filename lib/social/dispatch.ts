@@ -84,3 +84,50 @@ export async function requeueAbandonedPublishes(db: Db, olderThanMinutes = 60): 
   if (n) log.warn("publish.requeued_abandoned", { n });
   return n;
 }
+
+export const METRICS_JOB = "collect_metrics";
+/** Collection is idempotent, so a transient failure is cheap to retry. */
+export const METRICS_MAX_ATTEMPTS = 3;
+/** How long a post stays worth re-reading. Engagement is effectively settled
+ * well before this; past it we would be spending API calls on a flat line. */
+export const METRICS_WINDOW_DAYS = 30;
+
+/**
+ * Enqueue a metrics collection for every published post that has no snapshot
+ * today (Phase 8).
+ *
+ * Unlike the publish dispatcher this needs no claim transaction, and that is a
+ * property of the work rather than an oversight: collecting twice writes the
+ * same row twice, which the daily unique index turns into a refresh. The only
+ * thing worth avoiding is piling up duplicate JOBS, which the NOT EXISTS below
+ * does — so the whole thing is one statement instead of a claim-and-enqueue
+ * dance.
+ */
+export async function dispatchDueMetrics(db: Db, limit = 25): Promise<number> {
+  const rows = await asSystem(db, (tx) => tx.execute(sql`
+    INSERT INTO jobs (org_id, brand_id, type, payload, max_attempts)
+    SELECT d.org_id, d.brand_id, ${METRICS_JOB},
+           jsonb_build_object('draftId', d.id::text), ${METRICS_MAX_ATTEMPTS}
+    FROM drafts d
+    WHERE d.status = 'published'
+      AND d.external_post_id IS NOT NULL
+      AND d.deleted_at IS NULL
+      AND d.published_at > now() - (${METRICS_WINDOW_DAYS} * interval '1 day')
+      AND NOT EXISTS (
+        SELECT 1 FROM post_metrics m
+        WHERE m.draft_id = d.id AND m.captured_on = current_date
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM jobs j
+        WHERE j.type = ${METRICS_JOB}
+          AND j.status IN ('queued', 'running')
+          AND j.payload->>'draftId' = d.id::text
+      )
+    ORDER BY d.published_at DESC
+    LIMIT ${limit}
+    RETURNING id
+  `));
+  const n = (rows as unknown as unknown[]).length;
+  if (n) log.info("metrics.dispatched", { n });
+  return n;
+}

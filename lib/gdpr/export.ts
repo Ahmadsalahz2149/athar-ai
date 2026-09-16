@@ -32,6 +32,8 @@ export const EXPORTED_TABLES = [
   "drafts",
   "content_plans",
   "media_assets",
+  // Their own posts' performance — the customer's data about their own work.
+  "post_metrics",
   "assistant_messages",
   "lesson_progress",
   "dismissed_suggestions",

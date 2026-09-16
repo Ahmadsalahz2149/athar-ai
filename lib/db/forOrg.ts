@@ -481,6 +481,87 @@ function facade(db: Executor, orgId: string) {
         .where(eq(schema.organizations.id, orgId));
     },
 
+    // --- Post performance (Phase 8) ---
+    /**
+     * Store today's snapshot for one published post.
+     *
+     * Upserted on (draft, day): collecting twice in a day is not a duplicate,
+     * it is a refresh — and engagement moves enough in the first hours that the
+     * later read is the better one.
+     */
+    async recordPostMetrics(
+      brandId: string,
+      draftId: string,
+      m: {
+        platform: string;
+        externalPostId: string;
+        impressions: number | null;
+        likes: number | null;
+        comments: number | null;
+        shares: number | null;
+        clicks: number | null;
+        capturedOn: string;
+      },
+    ): Promise<void> {
+      const values = { orgId, brandId, draftId, ...m, capturedAt: new Date() };
+      await db
+        .insert(schema.postMetrics)
+        .values(values)
+        .onConflictDoUpdate({
+          target: [schema.postMetrics.draftId, schema.postMetrics.capturedOn],
+          set: {
+            impressions: m.impressions,
+            likes: m.likes,
+            comments: m.comments,
+            shares: m.shares,
+            clicks: m.clicks,
+            capturedAt: new Date(),
+          },
+          // An org may only refresh its OWN snapshot, even though the draft id
+          // is globally unique.
+          setWhere: eq(schema.postMetrics.orgId, orgId),
+        });
+    },
+
+    /**
+     * The latest snapshot per published post, joined to the post it describes.
+     *
+     * DISTINCT ON takes the newest row per draft — engagement only accumulates,
+     * so the most recent capture is the current truth, and the older rows stay
+     * for the shape of the curve rather than the total.
+     */
+    async latestPostMetrics(brandId: string, days = 90) {
+      const rows = await db.execute(sql`
+        SELECT DISTINCT ON (m.draft_id)
+          m.draft_id      AS "draftId",
+          m.platform      AS "platform",
+          m.impressions   AS "impressions",
+          m.likes         AS "likes",
+          m.comments      AS "comments",
+          m.shares        AS "shares",
+          m.clicks        AS "clicks",
+          m.captured_at   AS "capturedAt",
+          d.hook          AS "hook",
+          d.body          AS "body",
+          d.published_at  AS "publishedAt",
+          d.external_url  AS "externalUrl",
+          d.post_score    AS "postScore"
+        FROM post_metrics m
+        JOIN drafts d ON d.id = m.draft_id
+        WHERE m.org_id = ${orgId}::uuid AND m.brand_id = ${brandId}::uuid
+          AND d.deleted_at IS NULL
+          AND d.published_at > now() - (${days} * interval '1 day')
+        ORDER BY m.draft_id, m.captured_at DESC
+      `);
+      return rows as unknown as {
+        draftId: string; platform: string;
+        impressions: number | null; likes: number | null; comments: number | null;
+        shares: number | null; clicks: number | null;
+        capturedAt: Date; hook: string; body: string;
+        publishedAt: Date | null; externalUrl: string | null; postScore: number;
+      }[];
+    },
+
     // --- Tax invoices (Phase 8) ---
     /** Record or update one Stripe invoice. Upserted on the Stripe id because
      * Stripe delivers at least once AND an invoice legitimately changes (open →
@@ -1331,7 +1412,7 @@ function facade(db: Executor, orgId: string) {
      * platform like Instagram requires. Org-scoped like every other read here,
      * so a job with a mismatched org/brand simply finds nothing. */
     async draftForPublish(brandId: string, draftId: string): Promise<
-      { id: string; platform: string; hook: string; body: string; status: string; imageUrl: string | null } | null
+      { id: string; platform: string; hook: string; body: string; status: string; externalPostId: string | null; imageUrl: string | null } | null
     > {
       const rows = await db
         .select({
@@ -1340,6 +1421,8 @@ function facade(db: Executor, orgId: string) {
           hook: schema.drafts.hook,
           body: schema.drafts.body,
           status: schema.drafts.status,
+          // The publisher writes this; the metrics collector reads it back.
+          externalPostId: schema.drafts.externalPostId,
         })
         .from(schema.drafts)
         .where(

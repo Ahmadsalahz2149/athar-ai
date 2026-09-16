@@ -7,6 +7,7 @@ import {
   timestamp,
   uniqueIndex,
   index,
+  date,
   vector,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -395,6 +396,45 @@ export const invoices = pgTable(
     // paid); the upsert target keeps that one row instead of one per delivery.
     uniqueIndex("invoices_stripe_id_uq").on(t.stripeInvoiceId),
     index("invoices_org_idx").on(t.orgId, t.issuedAt),
+  ],
+);
+
+// Real post performance (Phase 8). One snapshot per published post per day,
+// pulled from the platform we published it to.
+//
+// Append-only by day rather than a single mutable row: engagement moves fast in
+// the first 48 hours and then plateaus, and a brand needs to see that shape —
+// "did it land immediately or build slowly" is a different lesson from a single
+// final number. The daily unique index keeps that history from growing without
+// bound and makes a repeated collection a no-op instead of a duplicate.
+//
+// Every metric is NULLABLE on purpose. No two platforms expose the same set,
+// and some expose nothing at all without a permission the app has not been
+// granted — so a missing number means "not available", which is a different
+// thing from zero and must never be shown as zero.
+export const postMetrics = pgTable(
+  "post_metrics",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull(),
+    brandId: uuid("brand_id").notNull(),
+    draftId: uuid("draft_id").notNull(),
+    platform: text("platform").notNull(),
+    /** The platform's own id, copied so a snapshot survives the draft changing. */
+    externalPostId: text("external_post_id").notNull(),
+    impressions: integer("impressions"),
+    likes: integer("likes"),
+    comments: integer("comments"),
+    shares: integer("shares"),
+    clicks: integer("clicks"),
+    /** The day this snapshot belongs to — the dedupe key. */
+    capturedOn: date("captured_on").notNull(),
+    capturedAt: timestamp("captured_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    // One snapshot per post per day; a re-run overwrites rather than duplicates.
+    uniqueIndex("post_metrics_daily_uq").on(t.draftId, t.capturedOn),
+    index("post_metrics_brand_idx").on(t.orgId, t.brandId, t.capturedAt),
   ],
 );
 
