@@ -92,4 +92,42 @@ ln -sfn "$release" "$APP_ROOT/current"
 # restarts the application after this timestamp changes.
 touch "$APP_ROOT/current/tmp/restart.txt"
 
+# Keep a few previous releases for a fast rollback, delete the rest.
+#
+# Nothing used to prune these, so every deploy left a complete standalone build
+# behind for ever. On a cPanel account with a disk quota that ends one way: a
+# deploy that dies part-way through copying, on a full disk, which is the worst
+# moment to run out of room.
+#
+# Deliberately AFTER the symlink switch, and it never touches whatever `current`
+# resolves to — a prune that could delete the running release would be a far
+# worse bug than the one it fixes. Failures here are swallowed for the same
+# reason: the release is already live, and housekeeping must not fail a
+# successful deploy.
+prune_releases() {
+  keep="${ATHAR_KEEP_RELEASES:-3}"
+  live=$(readlink "$APP_ROOT/current" 2>/dev/null || echo "")
+
+  # Staging directories from a deploy that died before the move. These are
+  # never the live release — `current` only ever points at a finished one.
+  find "$RELEASES_ROOT" -maxdepth 1 -name '.*.tmp.*' -type d -mmin +60 -exec rm -rf {} + 2>/dev/null || true
+
+  kept=0
+  for dir in $(ls -1dt "$RELEASES_ROOT"/*/ 2>/dev/null); do
+    dir=${dir%/}
+    # Test the BASENAME. The releases root is itself a dot-directory, so a
+    # pattern against the whole path matches every entry and prunes nothing —
+    # which is how the first version of this silently did nothing at all.
+    case "$(basename "$dir")" in .*) continue ;; esac
+    if [ "$dir" = "$live" ]; then
+      continue                              # the running release is never a candidate
+    fi
+    kept=$((kept + 1))
+    if [ "$kept" -ge "$keep" ]; then
+      rm -rf "$dir" 2>/dev/null || true
+    fi
+  done
+}
+prune_releases || true
+
 printf 'Athar release %s is ready for Passenger.\n' "$build_id"

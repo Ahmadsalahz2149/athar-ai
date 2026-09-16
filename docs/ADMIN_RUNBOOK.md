@@ -60,6 +60,21 @@ remaining fourteen.
   what `--deep` is for, and a ledger that claims too much is the dangerous
   direction: `migrate` then skips work silently.
 
+### Releases on disk
+
+Each deploy assembles a complete standalone build under `.releases/<build_id>`
+and points `current` at it. Nothing used to remove the old ones, so every deploy
+left a full build behind for ever — on an account with a disk quota that ends
+with a deploy dying part-way through a copy, on a full disk, which is the worst
+moment to run out of room.
+
+The script now keeps the live release plus the two before it (for a fast
+rollback) and deletes the rest, along with staging directories left by a deploy
+that died before the move. `ATHAR_KEEP_RELEASES` changes how many are kept.
+
+It runs AFTER the symlink switch and never touches whatever `current` resolves
+to. A rollback is `ln -sfn .releases/<build_id> current && touch current/tmp/restart.txt`.
+
 ### Other things learned the hard way
 
 - `TMPDIR` is inherited from the server environment and points at another
