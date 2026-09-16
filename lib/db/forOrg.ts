@@ -524,6 +524,67 @@ function facade(db: Executor, orgId: string) {
     },
 
     /**
+     * Every published post with a known result, shaped for the performance
+     * report.
+     *
+     * The local hour and weekday are computed HERE, in the brand's own
+     * timezone, rather than derived from a UTC timestamp later: an offset of a
+     * few hours moves a late-evening post onto the wrong day, and a wrong "best
+     * day to post" is worse than saying nothing. Postgres owns the zone
+     * conversion because it owns the zone database.
+     */
+    async measuredPosts(brandId: string, days = 90) {
+      const rows = await db.execute(sql`
+        WITH latest AS (
+          SELECT DISTINCT ON (m.draft_id) m.*
+          FROM post_metrics m
+          WHERE m.org_id = ${orgId}::uuid AND m.brand_id = ${brandId}::uuid
+          ORDER BY m.draft_id, m.captured_at DESC
+        )
+        SELECT
+          d.id           AS "draftId",
+          d.platform     AS "platform",
+          d.hook         AS "hook",
+          d.body         AS "body",
+          d.post_score   AS "postScore",
+          d.external_url AS "externalUrl",
+          d.published_at AS "publishedAt",
+          l.impressions  AS "impressions",
+          l.likes        AS "likes",
+          l.comments     AS "comments",
+          l.shares       AS "shares",
+          l.clicks       AS "clicks",
+          EXTRACT(HOUR FROM d.published_at AT TIME ZONE b.timezone)::int AS "localHour",
+          EXTRACT(DOW  FROM d.published_at AT TIME ZONE b.timezone)::int AS "localWeekday"
+        FROM drafts d
+        JOIN brands b ON b.id = d.brand_id
+        LEFT JOIN latest l ON l.draft_id = d.id
+        WHERE d.org_id = ${orgId}::uuid AND d.brand_id = ${brandId}::uuid
+          AND d.status = 'published' AND d.deleted_at IS NULL
+          AND d.published_at > now() - (${days} * interval '1 day')
+        ORDER BY d.published_at DESC
+      `);
+      return rows as unknown as {
+        draftId: string; platform: string; hook: string; body: string; postScore: number;
+        externalUrl: string | null; publishedAt: Date | null;
+        impressions: number | null; likes: number | null; comments: number | null;
+        shares: number | null; clicks: number | null;
+        localHour: number | null; localWeekday: number | null;
+      }[];
+    },
+
+    /** The brand's timezone, so a screen can name the zone its timing advice
+     * was computed in instead of implying one. */
+    async brandTimezone(brandId: string): Promise<string> {
+      const rows = await db
+        .select({ tz: schema.brands.timezone })
+        .from(schema.brands)
+        .where(and(eq(schema.brands.id, brandId), eq(schema.brands.orgId, orgId)))
+        .limit(1);
+      return rows[0]?.tz ?? "Asia/Riyadh";
+    },
+
+    /**
      * The latest snapshot per published post, joined to the post it describes.
      *
      * DISTINCT ON takes the newest row per draft — engagement only accumulates,

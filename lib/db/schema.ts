@@ -77,6 +77,12 @@ export const brands = pgTable("brands", {
   // { headline, bio, links: {label,url}[] }.
   handle: text("handle"),
   linkPage: jsonb("link_page"),
+  /** IANA zone used for "when should I post" analysis. Published timestamps are
+   * stored in UTC, and an offset of a few hours moves a late-evening post to
+   * the wrong day — a wrong "best day to post" is worse than none. Defaults to
+   * the primary market rather than UTC, and the analytics screen names the zone
+   * it used so the assumption is never silent. */
+  timezone: text("timezone").notNull().default("Asia/Riyadh"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 }, (t) => [

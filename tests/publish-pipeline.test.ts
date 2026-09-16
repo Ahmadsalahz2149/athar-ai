@@ -318,6 +318,68 @@ describe.runIf(!!db)("publishing pipeline", () => {
       });
     });
 
+    describe("measuredPosts", () => {
+      // The timing findings are only worth showing if the hour is the brand's
+      // own. Postgres owns the conversion because it owns the zone database —
+      // and AT TIME ZONE is easy to apply in the wrong direction.
+      it("reports the local hour and weekday in the brand's timezone", async () => {
+        // 22:00 UTC on a Sunday is 01:00 MONDAY in Riyadh (+03).
+        const d = await published({ publishedAt: new Date("2026-09-06T22:00:00Z") });
+        await forOrg(db!, orgId).recordPostMetrics(brandId, d.id, {
+          platform: "x", externalPostId: "ext_1", impressions: 10, likes: 1,
+          comments: null, shares: null, clicks: null, capturedOn: "2026-09-07",
+        });
+
+        const [row] = (await forOrg(db!, orgId).measuredPosts(brandId)).filter((r) => r.draftId === d.id);
+        expect(row.localHour).toBe(1);
+        expect(row.localWeekday).toBe(1); // Monday, not Sunday
+      });
+
+      it("honours a brand that is in another zone", async () => {
+        await db!.update(schema.brands).set({ timezone: "America/New_York" }).where(eq(schema.brands.id, brandId));
+        const d = await published({ publishedAt: new Date("2026-09-06T22:00:00Z") });
+        const [row] = (await forOrg(db!, orgId).measuredPosts(brandId)).filter((r) => r.draftId === d.id);
+        expect(row.localHour).toBe(18); // 22:00 UTC is 18:00 EDT, same day
+        expect(row.localWeekday).toBe(0);
+        await db!.update(schema.brands).set({ timezone: "Asia/Riyadh" }).where(eq(schema.brands.id, brandId));
+      });
+
+      // A published post with no numbers must still be returned, so the report
+      // can count it as unmeasured rather than pretend it does not exist.
+      it("returns published posts that have no metrics yet", async () => {
+        const d = await published();
+        const rows = await forOrg(db!, orgId).measuredPosts(brandId);
+        const row = rows.find((r) => r.draftId === d.id)!;
+        expect(row).toBeTruthy();
+        expect(row.likes).toBeNull();
+      });
+
+      it("uses the newest snapshot when there are several", async () => {
+        const d = await published();
+        const org = forOrg(db!, orgId);
+        await org.recordPostMetrics(brandId, d.id, { platform: "x", externalPostId: "ext_1", impressions: null, likes: 1, comments: null, shares: null, clicks: null, capturedOn: "2026-09-01" });
+        await org.recordPostMetrics(brandId, d.id, { platform: "x", externalPostId: "ext_1", impressions: null, likes: 99, comments: null, shares: null, clicks: null, capturedOn: "2026-09-05" });
+        const row = (await org.measuredPosts(brandId)).find((r) => r.draftId === d.id)!;
+        expect(row.likes).toBe(99);
+      });
+
+      it("never returns another workspace's posts", async () => {
+        const [other] = await db!.insert(schema.organizations).values({ name: "perf-other" }).returning();
+        const [ob] = await db!.insert(schema.brands).values({ orgId: other.id, name: "O" }).returning();
+        await db!.insert(schema.drafts).values({
+          orgId: other.id, brandId: ob.id, platform: "X / Twitter", hook: "theirs", body: "b",
+          status: "published", externalPostId: "theirs", publishedAt: new Date(),
+        });
+
+        const rows = await forOrg(db!, orgId).measuredPosts(brandId);
+        expect(rows.some((r) => r.hook === "theirs")).toBe(false);
+
+        await db!.delete(schema.drafts).where(eq(schema.drafts.orgId, other.id));
+        await db!.delete(schema.brands).where(eq(schema.brands.orgId, other.id));
+        await db!.delete(schema.organizations).where(eq(schema.organizations.id, other.id));
+      });
+    });
+
     describe("latestPostMetrics", () => {
       it("returns the newest snapshot per post, joined to the post", async () => {
         const d = await published({ hook: "عنوان البوست" });

@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { forOrg } from "@/lib/db/forOrg";
 import { currentContext } from "@/lib/auth/current";
 import { StatCard, StatusPill, EmptyState, btnNavy } from "@/components/ui/display";
+import { buildReport, type PerformanceReport } from "@/lib/analytics/performance";
+import { engagementScore } from "@/lib/social/metrics";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +25,14 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ loca
   let linkStats = { views: 0, clicks: 0 };
   let dnaPct = 0;
   let topPosts: { hook: string; platform: string; score: number }[] = [];
+  let perf: PerformanceReport | null = null;
+  let timezone = "Asia/Riyadh";
 
   if (db) {
     const ctx = await currentContext();
     if (ctx) {
       const org = forOrg(db, ctx.orgId);
-      const [c, w, u, g, ls, dna, drafts] = await Promise.all([
+      const [c, w, u, g, ls, dna, drafts, measured, tz] = await Promise.all([
         org.counts(ctx.brandId),
         org.weeklyContent(ctx.brandId, 8),
         org.creditUsage(),
@@ -36,12 +40,27 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ loca
         org.linkStats(ctx.brandId),
         org.currentDna(ctx.brandId),
         org.listDraftsByStatus(ctx.brandId),
+        org.measuredPosts(ctx.brandId),
+        org.brandTimezone(ctx.brandId),
       ]);
       counts = c; weekly = w; usage = u.slice(0, 8); dnaGrowth = g; linkStats = ls;
       dnaPct = dna?.completion_pct ?? 0;
       topPosts = drafts.filter((r) => r.hook).sort((a, b) => b.postScore - a.postScore).slice(0, 3).map((r) => ({ hook: r.hook, platform: r.platform, score: r.postScore }));
+      timezone = tz;
+      // The weighted score lives with the metrics layer that defines it, so the
+      // page never invents its own idea of what "engagement" means.
+      perf = buildReport(measured.map((m) => ({ ...m, engagement: engagementScore(m) })));
     }
   }
+
+  /** Buckets come back as machine keys; the day dimension as a weekday number. */
+  const bucketLabel = (dimension: string, key: string) => {
+    if (dimension === "platform") return key;
+    if (dimension === "day") return t(`d_${key}`);
+    const k = `b_${key}`;
+    const v = t(k);
+    return v === k ? key : v;
+  };
 
   const totalContent = counts.ideas + counts.drafts;
   const funnel = [
@@ -69,6 +88,78 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ loca
         <StatCard label={t("kDna")} value={`${nf.format(dnaPct)}%`} tint="var(--gold-tint)" />
         <StatCard label={t("kLinkViews")} value={nf.format(linkStats.views)} tint="var(--coral-tint)" />
       </div>
+
+      {/* Real performance — the only numbers here that come from outside the app. */}
+      <section style={{ ...card, marginBlockStart: 18 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+          <div style={cardTitle}>{t("perfTitle")}</div>
+          <span style={{ fontSize: 12.5, color: "var(--muted)" }}>{t("perfSub")}</span>
+        </div>
+
+        {!perf || (perf.measured === 0 && perf.unmeasured === 0) ? (
+          <p style={{ fontSize: 13.5, color: "var(--muted)", padding: "16px 0", margin: 0 }}>{t("perfNoData")}</p>
+        ) : (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,150px),1fr))", gap: 12, marginBlockStart: 14 }}>
+              <StatCard label={t("perfMeasured")} value={nf.format(perf.measured)} tint="var(--teal-tint)" />
+              <StatCard label={t("perfAvg")} value={nf.format(perf.avgEngagement)} tint="var(--blue-tint)" />
+              <StatCard
+                label={t("perfImpressions")}
+                value={perf.totalImpressions === null ? t("perfNotAvailable") : nf.format(perf.totalImpressions)}
+                tint="var(--gold-tint)"
+              />
+            </div>
+
+            {perf.unmeasured > 0 && (
+              <p style={{ fontSize: 12.8, color: "var(--muted)", marginBlock: "12px 0" }}>{t("perfUnmeasured", { n: nf.format(perf.unmeasured) })}</p>
+            )}
+
+            {perf.needMore > 0 ? (
+              /* The honest empty state. Naming a pattern from this little data
+                 would be noise dressed as advice — so it says what is missing. */
+              <p style={{ fontSize: 13.5, color: "var(--slate)", background: "var(--surface)", border: "1px dashed var(--border-2)", borderRadius: 12, padding: "14px 16px", marginBlock: "14px 0" }}>
+                {t("perfNeedMore", { n: nf.format(perf.needMore) })}
+              </p>
+            ) : (
+              <div style={{ display: "grid", gap: 9, marginBlockStart: 16 }}>
+                {perf.findings.map((f, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "11px 13px", borderRadius: 11, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                    <span style={{ flex: "none", fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: "var(--teal-tint-2)", color: "var(--teal-deep)" }}>{t(`f_${f.dimension}`)}</span>
+                    <span style={{ flex: "1 1 240px", fontSize: 13.8, color: "var(--heading)", fontWeight: 600 }}>
+                      {t("perfBeats", { winner: bucketLabel(f.dimension, f.winner), loser: bucketLabel(f.dimension, f.loser), lift: nf.format(f.lift) })}
+                    </span>
+                    {/* The sample is part of the claim, not a footnote. */}
+                    <span style={{ flex: "none", fontSize: 11.5, color: "var(--muted)" }}>{t("perfSample", { n: nf.format(f.sample) })}</span>
+                  </div>
+                ))}
+
+                {perf.findings.some((f) => f.dimension === "timing" || f.dimension === "day") && (
+                  <p style={{ fontSize: 11.5, color: "var(--subtle)", margin: "2px 2px 0" }}>{t("perfTz", { tz: timezone })}</p>
+                )}
+
+                {perf.scoreCheck && (
+                  <p style={{ fontSize: 13, color: perf.scoreCheck.predictive ? "var(--teal-deep)" : "var(--coral)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 11, padding: "11px 13px", margin: 0 }}>
+                    {t(perf.scoreCheck.predictive ? "perfScoreYes" : "perfScoreNo", {
+                      top: nf.format(perf.scoreCheck.topAvg),
+                      rest: nf.format(perf.scoreCheck.restAvg),
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {perf.best && (
+              <div style={{ marginBlockStart: 14, paddingTop: 13, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--muted)" }}>{t("perfBest")}</span>
+                <span style={{ flex: "1 1 220px", fontSize: 13.5, color: "var(--heading)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{perf.best.hook}</span>
+                {perf.best.externalUrl && (
+                  <a href={perf.best.externalUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12.5, fontWeight: 600, color: "var(--teal-deep)", textDecoration: "none" }}>{t("perfViewPost")} ↗</a>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </section>
 
       <div className="col2 wide-first" style={{ marginBlockStart: 18 }}>
         <div style={{ display: "grid", gap: 18, alignContent: "start" }}>
